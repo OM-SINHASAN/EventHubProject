@@ -104,15 +104,16 @@
 /* Button */
 .nav-btn {
   padding: 7px 15px;
-  background: #4f46e5;
+  background: #6366f1;
   color: white;
   text-decoration: none;
   border-radius: 6px;
   display: inline-block;
+  outline: none;
 }
 
 .nav-btn:hover {
-  background-color: #1e4fd6;
+  background-color: #4f46e5;
 }
 
 /* Mobile button */
