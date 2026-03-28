@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Help & Support</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../user/user.css">
+  <link rel="icon" href="../images/logo1.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+<div class="dashboard">
+  <aside class="sidebar">
+    <h2 class="logo">EventHub</h2>
+
+    <!-- -------------------sidebar actions------------------- -->
+    <ul class="menu">
+      <li>
+        <a href="/dashboard/organizer">
+        <i class="fa-regular fa-calendar"></i>
+      My Dashboard</a></li>
+
+      <li>
+        <a href="create.html">
+        <i class="fa-solid fa-plus"></i>
+        Create Event </a></li>
+
+      <li><i class="fa-solid fa-ticket"></i>
+        Ticket Sales</li>
+
+      <li><a href="/assets/dashboard/organizer/myevents.html"><i class="fa-solid fa-chart-column"></i>
+        My Events</a></li>
+
+      <li><a href="/assets/dashboard/organizer/manageusers.html"><i class="fa-solid fa-users"></i>
+        Manage User</a></li>
+
+      <li><i class="fa-regular fa-calendar-days"></i>
+        Event Calendar</li>
+
+      <li>
+       <a href="profile.html"><i class="fa-regular fa-circle-user"></i>
+        Profile Settings</a></li>
+
+      <li  class="active">
+        <a href="#"><i class="fa-regular fa-circle-question"></i>
+        Help & Support</a></li>
+    </ul>
+
+    <!-- user signout -->
+    <div class="user">
+
+  <div class="user-info">
+    <img src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar>
+
+    <div class="user-text">
+      <strong data-organizer-name>Organizer</strong>
+      <span>Event Organizer</span>
+    </div>
+  </div>
+
+  <a href="#" class="logout">
+    <i class="fa-solid fa-right-from-bracket"></i>
+  </a>
+
+</div>
+  </aside>
+
+
+  <!-- ----------------Main Content---------------- -->
+  <main class="main browse-main">
+    <header class="topbar">
+
+      <button class="menu-toggle" onclick="toggleSidebar()">
+<i class="fa-solid fa-bars"></i>
+</button>
+      <h2>Organizer Support</h2>
+
+      <div class="top-actions">
+        <input type="text" placeholder="Search Events..." class="searchbox">
+        <button class="primary-btn" onclick="window.location.href='create.html'">Create Event</button>
+        <img class="avatar" src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar>
+      </div>
+    </header>
+
+   <!---------------- Get in touch-------------- -->
+      <section id="contact" class="contact">
+        <div class="contact-container">
+          <div class="contact-form">
+            <h2>Get in Touch</h2>
+            <p class="contact-desc">
+              Have questions or need help? Reach out to us and we'll get back to you shortly.
+            </p>
+
+            <form>
+              <input type="text" placeholder="Your Name" required>
+              <input type="email" placeholder="Your Email" required>
+              <textarea placeholder="Your Message" rows="4" required></textarea>
+              <button type="submit">Send Message</button>
+            </form>
+          </div>
+
+          <div class="contact-visual">
+            <img src="../images/contactimg.jpg" alt="Contact EventHub">
+
+            <div class="contact-overlay">
+              <div class="overlay-item">
+                <strong>Email</strong>
+                <span>support@eventhub.com</span>
+              </div>
+              <div class="overlay-item">
+                <strong>Phone</strong>
+                <span>+91 90044 65372</span>
+              </div>
+              <div class="overlay-item">
+                <strong>Location</strong>
+                <span>Mumbai, India</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+<!-- ------------------ -->
+  </main>
+</div>
+</body>
+
+<script src="organizer.js"></script>
+</html>

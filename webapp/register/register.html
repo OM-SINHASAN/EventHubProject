@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Register | EventHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/register/register.css">
+  <link rel="icon" href="/assets/home/logo1.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+</head>
+<body>
+  <div class="auth-wrapper">
+    <div class="auth-card">
+      <div class="auth-info">
+        <h2>Join EventHub</h2>
+        <p>
+          Create your account to discover, manage, and attend amazing events
+          around you.
+        </p>
+      </div>
+
+      <div class="auth-form">
+        <h3>Create Account</h3>
+        <div class="{{STATUS_CLASS}}">{{STATUS_MESSAGE}}</div>
+
+        <form action="/register" method="POST" id="registerForm">
+          <input type="text" name="name" placeholder="Full Name" value="{{NAME_VALUE}}" required>
+          <input type="email" name="email" placeholder="Email Address" value="{{EMAIL_VALUE}}" required>
+
+          <div class="role-select">
+            <label>
+              <input type="radio" name="role" value="user" {{USER_CHECKED}}>
+              <span>User</span>
+            </label>
+
+            <label>
+              <input type="radio" name="role" value="organizer" {{ORGANIZER_CHECKED}}>
+              <span>Organizer</span>
+            </label>
+          </div>
+
+          <div class="password-field">
+            <input type="password" name="password" id="password" placeholder="Password" required>
+            <button type="button" class="password-toggle" data-target="password" aria-label="Show password">
+              <i class="fa-regular fa-eye"></i>
+            </button>
+          </div>
+          <div class="password-field">
+            <input type="password" name="confirmPassword" id="confirmPassword" placeholder="Confirm Password" required>
+            <button type="button" class="password-toggle" data-target="confirmPassword" aria-label="Show password">
+              <i class="fa-regular fa-eye"></i>
+            </button>
+          </div>
+
+          <button type="submit">Register</button>
+        </form>
+
+        <p class="auth-switch">
+          Already have an account?
+          <a href="/login">Login</a>
+        </p>
+      </div>
+    </div>
+  </div>
+  <script>
+    const registerForm = document.getElementById("registerForm");
+    const passwordInput = document.getElementById("password");
+    const confirmPasswordInput = document.getElementById("confirmPassword");
+
+    const validatePasswords = () => {
+      if (!passwordInput || !confirmPasswordInput) {
+        return;
+      }
+
+      if (confirmPasswordInput.value && passwordInput.value !== confirmPasswordInput.value) {
+        confirmPasswordInput.setCustomValidity("Passwords do not match.");
+        return;
+      }
+
+      confirmPasswordInput.setCustomValidity("");
+    };
+
+    if (passwordInput && confirmPasswordInput) {
+      passwordInput.addEventListener("input", validatePasswords);
+      confirmPasswordInput.addEventListener("input", validatePasswords);
+    }
+
+    if (registerForm) {
+      registerForm.addEventListener("submit", validatePasswords);
+    }
+
+    document.querySelectorAll(".password-toggle").forEach(toggleButton => {
+      toggleButton.addEventListener("click", () => {
+        const targetInput = document.getElementById(toggleButton.dataset.target);
+
+        if (!targetInput) {
+          return;
+        }
+
+        const isPassword = targetInput.type === "password";
+        targetInput.type = isPassword ? "text" : "password";
+        toggleButton.innerHTML = isPassword
+          ? '<i class="fa-regular fa-eye-slash"></i>'
+          : '<i class="fa-regular fa-eye"></i>';
+        toggleButton.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+      });
+    });
+  </script>
+</body>
+</html>

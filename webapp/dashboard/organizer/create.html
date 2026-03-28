@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <!-- ===== BASIC PAGE META ===== -->
+  <meta charset="UTF-8">
+  <title>Create Event | EventHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- ===== MAIN CSS ===== -->
+  <link rel="stylesheet" href="organizer.css">
+
+  <!-- ===== WEBSITE ICON ===== -->
+  <link rel="icon" href="../images/logo1.png">
+
+  <!-- ===== FONT AWESOME ICONS ===== -->
+  <link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+
+</head>
+
+<body>
+
+<!-- ================================================= -->
+<!-- ================= MAIN DASHBOARD ================= -->
+<!-- ================================================= -->
+
+<div class="dashboard">
+
+
+<!-- ================================================= -->
+<!-- ==================== SIDEBAR ===================== -->
+<!-- ================================================= -->
+
+<aside class="sidebar">
+
+<h2 class="logo">EventHub</h2>
+
+<ul class="menu">
+
+<li>
+<a href="/dashboard/organizer"><i class="fa-regular fa-calendar"></i>
+My Dashboard</a>
+</li>
+
+<li class="active">
+<a href="#"><i class="fa-solid fa-plus"></i>
+Create Event</a>
+</li>
+
+<li>
+<i class="fa-solid fa-ticket"></i>
+Ticket Sales
+</li>
+
+<li>
+<a href="/assets/dashboard/organizer/myevents.html"><i class="fa-solid fa-chart-column"></i>
+My Events</a>
+</li>
+
+<li>
+<a href="/assets/dashboard/organizer/manageusers.html"><i class="fa-solid fa-users"></i>
+Manage User</a>
+</li>
+
+<li>
+<i class="fa-regular fa-calendar-days"></i>
+Calendar
+</li>
+
+<li>
+<a href="profile.html"><i class="fa-regular fa-circle-user"></i>
+My Profile</a>
+</li>
+
+<li>
+<a href="support.html"><i class="fa-regular fa-circle-question"></i>
+Help & Support</a>
+</li>
+
+</ul>
+
+
+<!-- ===== ORGANIZER PROFILE ===== -->
+
+<div class="user">
+
+<div class="user-info">
+
+<img src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar>
+
+<div class="user-text">
+<strong data-organizer-name>Organizer</strong>
+<span>Event Organizer</span>
+</div>
+
+</div>
+
+<a href="#" class="logout">
+<i class="fa-solid fa-right-from-bracket"></i>
+</a>
+
+</div>
+
+</aside>
+
+
+
+<!-- ================================================= -->
+<!-- ===================== MAIN ======================= -->
+<!-- ================================================= -->
+
+<main class="main">
+
+
+<!-- ================================================= -->
+<!-- ==================== TOPBAR ====================== -->
+<!-- ================================================= -->
+
+<header class="topbar">
+
+<button class="menu-toggle" onclick="toggleSidebar()">
+<i class="fa-solid fa-bars"></i>
+</button>
+
+<h2>Organizer Dashboard</h2>
+
+<div class="top-actions">
+
+<input type="text" placeholder="Search events..." class="searchbox">
+
+<button class="primary-btn">Create Event</button>
+
+<img class="avatar" src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar>
+
+</div>
+
+</header>
+
+
+
+<!-- ================================================= -->
+<!-- =================== Create Events =================== -->
+<!-- ================================================= -->
+<section class="create-event">
+
+<div class="container">
+
+<div class="page-head">
+<h1>Create Event</h1>
+<p>Fill in details to publish your event</p>
+</div>
+
+<form id="createEventForm">
+<input type="hidden" name="eventStatus" id="eventStatus" value="published">
+<input type="hidden" name="eventMode" id="eventMode" value="venue">
+<input type="hidden" name="ticketPricingMode" id="ticketPricingMode" value="paid">
+<input type="hidden" name="posterUrl" id="posterUrl" value="">
+
+<!-- BASIC DETAILS -->
+<div class="card">
+<h3>Basic Details</h3>
+
+<input type="text" name="eventTitle" id="eventTitle" placeholder="Event Title" required>
+
+<div class="grid">
+<select name="eventCategory" id="eventCategory" required>
+<option value="tech">Technology</option>
+<option value="business">Business</option>
+<option value="music">Music</option>
+<option value="arts">Arts</option>
+<option value="food">Food</option>
+<option value="sports">Sports</option>
+<option value="education">Education</option>
+<option value="health">Health & Wellness</option>
+<option value="startup">Startup & Networking</option>
+<option value="gaming">Gaming & Esports</option>
+<option value="fashion">Fashion & Lifestyle</option>
+<option value="community">Community Meetups</option>
+<option value="charity">Charity & Fundraiser</option>
+<option value="workshop">Workshops & Bootcamps</option>
+<option value="exhibition">Exhibitions & Trade Shows</option>
+<option value="religious">Religious & Spiritual</option>
+<option value="kids">Kids & Family</option>
+</select>
+
+<input type="text" name="organizerName" id="organizerName" placeholder="Organizer Name">
+</div>
+
+</div>
+
+
+<!-- DATE & LOCATION -->
+<div class="card">
+<h3>Date & Location</h3>
+
+<div class="grid">
+<input type="date" name="eventDate" id="eventDate" required>
+<input type="time" name="eventTime" id="eventTime" required>
+</div>
+
+<div class="radio-group" id="eventModeGroup">
+<button type="button" class="active" data-event-mode="venue">Venue</button>
+<button type="button" data-event-mode="online">Online</button>
+</div>
+
+<div id="venueAddressWrap">
+<input type="text" name="venueAddress" id="venueAddress" placeholder="Venue Address" required>
+</div>
+
+</div>
+
+
+<!-- MEDIA -->
+<div class="card">
+<h3>Event Poster</h3>
+
+<input type="file" id="posterImageInput" accept="image/png,image/jpeg" hidden>
+<div class="upload-box" id="posterUploadBox" role="button" tabindex="0" aria-label="Upload event poster">
+<p>Click or drag image</p>
+<span>JPG / PNG</span>
+</div>
+<small id="posterUploadMeta">No poster selected</small>
+
+</div>
+
+
+<!-- TICKETS -->
+<div class="card">
+<h3>Ticketing</h3>
+
+<div class="radio-group" id="ticketPricingGroup">
+<button type="button" class="active" data-ticket-mode="paid">Paid</button>
+<button type="button" data-ticket-mode="free">Free</button>
+</div>
+
+<div class="grid" id="ticketPriceWrap">
+<input type="number" name="ticketPrice" id="ticketPrice" placeholder="Price" min="0" step="1" required>
+</div>
+<div class="grid">
+<input type="number" name="eventCapacity" id="eventCapacity" placeholder="Capacity" min="0" step="1" required>
+</div>
+
+</div>
+
+
+<!-- DESCRIPTION -->
+<div class="card">
+<h3>Description</h3>
+
+<textarea rows="5" name="eventDescription" id="eventDescription" placeholder="Describe your event"></textarea>
+
+</div>
+
+</form>
+
+</div>
+
+<div class="form-actions">
+  <button type="submit" class="draft" id="draftEventButton" form="createEventForm">Save Draft</button>
+  <button type="submit" class="publish" id="publishEventButton" form="createEventForm">Publish Event</button>
+</div>
+<p id="createEventStatus" class="register-form-status" hidden></p>
+
+</section>
+
+<script src="organizer.js"></script>
+</body>
+</html>

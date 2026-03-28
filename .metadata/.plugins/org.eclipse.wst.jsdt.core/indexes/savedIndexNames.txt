@@ -1,0 +1,2 @@
+INDEX VERSION 1.4+C:\Users\omsin\Desktop\My Projects\EventHubProject\.metadata\.plugins\org.eclipse.wst.jsdt.core\indexes
+2310127333.index

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Dashboard | EventHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/dashboard/user/user.css">
+  <link rel="icon" href="/assets/dashboard/images/logo1.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+<div class="dashboard">
+  <aside class="sidebar">
+    <h2 class="logo">EventHub</h2>
+
+    <ul class="menu">
+      <li class="active">
+        <a href="/dashboard/user"><i class="fa-regular fa-calendar"></i>
+      My Events</a></li>
+
+      <li>
+        <a href="/assets/dashboard/user/browse.html">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        Browse Events </a></li>
+
+      <li>
+        <a href="/assets/dashboard/user/tickets.html"><i class="fa-solid fa-ticket"></i>
+        My Tickets</a></li>
+
+      <li>
+       <a href="/assets/dashboard/user/bookings.html"> <i class="fa-regular fa-file"></i>
+        My Bookings</a></li>
+<li>
+        <a href="/assets/dashboard/user/calendar.html"><i class="fa-regular fa-calendar-days"></i>
+        Event Calendar</a></li>
+
+      <li>
+        <a href="/assets/dashboard/user/profile.html"><i class="fa-regular fa-circle-user"></i>
+        Profile Settings</a></li>
+
+      <li>
+        <a href="/assets/dashboard/user/support.html"><i class="fa-regular fa-circle-question"></i>
+        Help & Support</a></li>
+    </ul>
+
+    <div class="user">
+      <div class="user-info">
+        <img src="https://i.pravatar.cc/40" alt="User avatar">
+
+        <div class="user-text">
+          <strong id="dashboardSidebarUserName">EventHub User</strong>
+          <span>Event Attendee</span>
+        </div>
+      </div>
+
+      <a href="/logout" class="logout">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </a>
+
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+
+      <button class="menu-toggle" onclick="toggleSidebar()">
+<i class="fa-solid fa-bars"></i>
+</button>
+      <h2 id="dashboardPageTitle">My Dashboard</h2>
+
+      <div class="top-actions">
+        <input type="text" placeholder="Search Events..." class="searchbox">
+        <button class="primary-btn" onclick="window.location.href='/assets/dashboard/user/browse.html'">Browse Events</button>
+        <img class="avatar topbar-profile-link" src="https://i.pravatar.cc/40" alt="User profile" onclick="window.location.href='/assets/dashboard/user/profile.html'">
+      </div>
+    </header>
+
+    <section class="stats" id="dashboardStats" hidden>
+      <div class="stat-card">
+        <div class="stat-icon" id="stat-icon1" style="color: #0d3fe3"><i class="fa-regular fa-calendar-days"></i></div>
+        <h3 id="registeredEventsCount">0</h3>
+        <p>Registered Events</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" id="stat-icon2" style="color: #9333EA"><i class="fa-solid fa-ticket"></i></div>
+        <h3 id="ticketsPurchasedCount">0</h3>
+        <p>Tickets Purchased</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" id="stat-icon3" style="color: #10B981"><i class="fa-solid fa-circle-check"></i></div>
+        <h3 id="eventsAttendedCount">0</h3>
+        <p>Events Attended</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" id="stat-icon4" style="color: #F59E0B"><i class="fa-regular fa-credit-card"></i></div>
+        <h3 id="totalSpentCount">$0</h3>
+        <p>Total Spent</p>
+      </div>
+    </section>
+
+    <section class="content" id="dashboardContent" hidden>
+      <div class="card large">
+        <h3>My Upcoming Events</h3>
+        <br>
+        <hr>
+        <div id="dashboardUpcomingEvents"></div>
+      </div>
+
+      <div class="card">
+        <h3>Quick Actions</h3>
+        <div class="actions">
+          <div class="action-card blue" onclick="window.location.href='/assets/dashboard/user/browse.html'">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span>Find Events</span>
+          </div>
+          <div class="action-card green" onclick="window.location.href='/assets/dashboard/user/tickets.html'">
+            <i class="fa-solid fa-ticket"></i>
+            <span>My Tickets</span>
+          </div>
+          <div class="action-card purple">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>Check-In</span>
+          </div>
+          <div class="action-card teal" id="openReviewQuickAction">
+            <i class="fa-solid fa-star"></i>
+            <span>Leave Review</span>
+          </div>
+          <div class="action-card orange" id="openShareQuickAction">
+            <i class="fa-solid fa-share"></i>
+            <span>Share Event</span>
+          </div>
+          <div class="action-card pink" onclick="window.location.href='/assets/dashboard/user/support.html'">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>Get Help</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Recent Activity</h3>
+        <ul class="activity" id="dashboardActivityList"></ul>
+      </div>
+
+      <div class="card reminders" id="dashboardRemindersSection">
+        <h3>Event Reminders</h3>
+        <div class="reminder-list" id="dashboardRemindersList"></div>
+      </div>
+    </section>
+
+    <div class="card tickets" id="dashboardTicketsSection" hidden>
+      <div class="tickets-header">
+        <h3>My Tickets</h3>
+        <a href="/assets/dashboard/user/tickets.html" class="view-link">View All</a>
+      </div>
+
+      <div class="tickets-grid" id="dashboardTicketsGrid"></div>
+    </div>
+
+    <div class="card history" id="dashboardHistorySection" hidden>
+      <h3>Past Events History</h3>
+
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>EVENT</th>
+            <th>DATE ATTENDED</th>
+            <th>TICKET TYPE</th>
+            <th>RATING</th>
+            <th>ACTIONS</th>
+          </tr>
+        </thead>
+
+        <tbody id="dashboardHistoryBody"></tbody>
+      </table>
+    </div>
+
+    <div class="tickets-empty-state" id="dashboardEmptyState" hidden>
+      <i class="fa-regular fa-face-frown"></i>
+      <h4>Unable to load dashboard</h4>
+      <p>Please login again to view your dashboard.</p>
+    </div>
+  </main>
+</div>
+
+<div class="logout-modal" id="logoutModal" hidden>
+  <div class="logout-modal-backdrop" id="logoutModalBackdrop"></div>
+  <div class="logout-modal-card" role="dialog" aria-modal="true" aria-labelledby="logoutModalTitle">
+    <div class="logout-modal-icon">
+      <i class="fa-solid fa-right-from-bracket"></i>
+    </div>
+    <h3 id="logoutModalTitle">Sign out?</h3>
+    <p>Do you really want to sign out from your account?</p>
+    <div class="logout-modal-actions">
+      <button type="button" class="logout-cancel-btn" id="logoutCancelBtn">Cancel</button>
+      <a href="/logout" class="logout-confirm-btn" id="logoutConfirmBtn">Sign out</a>
+    </div>
+  </div>
+</div>
+
+<div class="logout-modal" id="reviewModal" hidden>
+  <div class="logout-modal-backdrop" id="reviewModalBackdrop"></div>
+  <div class="logout-modal-card review-modal-card" role="dialog" aria-modal="true" aria-labelledby="reviewModalTitle">
+    <div class="logout-modal-icon">
+      <i class="fa-solid fa-star"></i>
+    </div>
+    <h3 id="reviewModalTitle">Leave a review</h3>
+    <p id="reviewModalEventName">Share your feedback about this event.</p>
+    <form id="reviewForm" class="review-form">
+      <label class="review-label" for="reviewRating">Rating</label>
+      <div class="review-stars" id="reviewStars" aria-label="Choose rating">
+        <button type="button" class="review-star" data-rating="1" aria-label="1 star"><i class="fa-regular fa-star"></i></button>
+        <button type="button" class="review-star" data-rating="2" aria-label="2 stars"><i class="fa-regular fa-star"></i></button>
+        <button type="button" class="review-star" data-rating="3" aria-label="3 stars"><i class="fa-regular fa-star"></i></button>
+        <button type="button" class="review-star" data-rating="4" aria-label="4 stars"><i class="fa-regular fa-star"></i></button>
+        <button type="button" class="review-star" data-rating="5" aria-label="5 stars"><i class="fa-regular fa-star"></i></button>
+      </div>
+      <input type="hidden" id="reviewRating" value="" required>
+      <label class="review-label" for="reviewMessage">Your review</label>
+      <textarea id="reviewMessage" class="review-input review-textarea" rows="4" placeholder="Write your experience here..." required></textarea>
+      <div class="logout-modal-actions">
+        <button type="button" class="logout-cancel-btn" id="reviewCancelBtn">Cancel</button>
+        <button type="submit" class="logout-confirm-btn">Submit Review</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="logout-modal" id="shareModal" hidden>
+  <div class="logout-modal-backdrop" id="shareModalBackdrop"></div>
+  <div class="logout-modal-card share-modal-card" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+    <div class="logout-modal-icon">
+      <i class="fa-solid fa-share-nodes"></i>
+    </div>
+    <h3 id="shareModalTitle">Share your events</h3>
+    <p id="shareModalDescription">Share your EventHub dashboard or invite others to check your upcoming events.</p>
+    <div class="share-modal-content">
+      <label class="review-label" for="shareEventLink">Share link</label>
+      <div class="share-link-row">
+        <input type="text" id="shareEventLink" class="review-input share-link-input" readonly value="http://127.0.0.1:8000/dashboard/user">
+        <button type="button" class="logout-confirm-btn share-copy-btn" id="shareCopyBtn">Copy Link</button>
+      </div>
+      <div class="share-option-grid">
+        <a href="#" class="share-option-card" id="shareWhatsappBtn" data-platform-name="WhatsApp" target="_blank" rel="noopener noreferrer">
+          <i class="fa-brands fa-whatsapp"></i>
+          <span>WhatsApp</span>
+        </a>
+        <a href="#" class="share-option-card" id="shareTelegramBtn" data-platform-name="Telegram" target="_blank" rel="noopener noreferrer">
+          <i class="fa-brands fa-telegram"></i>
+          <span>Telegram</span>
+        </a>
+        <a href="#" class="share-option-card" id="shareTwitterBtn" data-platform-name="Twitter" target="_blank" rel="noopener noreferrer">
+          <i class="fa-brands fa-x-twitter"></i>
+          <span>Twitter</span>
+        </a>
+        <a href="#" class="share-option-card" id="shareFacebookBtn" data-platform-name="Facebook" target="_blank" rel="noopener noreferrer">
+          <i class="fa-brands fa-facebook-f"></i>
+          <span>Facebook</span>
+        </a>
+        <a href="#" class="share-option-card" id="shareGmailBtn" data-platform-name="Gmail" target="_blank" rel="noopener noreferrer">
+          <i class="fa-regular fa-envelope"></i>
+          <span>Gmail</span>
+        </a>
+        <a href="#" class="share-option-card" id="shareInstagramBtn" data-platform-name="Instagram" target="_blank" rel="noopener noreferrer">
+          <i class="fa-brands fa-instagram"></i>
+          <span>Instagram</span>
+        </a>
+      </div>
+      <p class="share-status" id="shareStatusMessage" hidden></p>
+    </div>
+    <div class="logout-modal-actions">
+      <button type="button" class="logout-cancel-btn" id="shareCancelBtn">Close</button>
+    </div>
+  </div>
+</div>
+</body>
+
+<script src="/assets/dashboard/user/user.js"></script>
+</html>
+

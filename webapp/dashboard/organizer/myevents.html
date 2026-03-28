@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Events | EventHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/dashboard/organizer/organizer.css">
+  <link rel="icon" href="/assets/dashboard/images/logo1.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+</head>
+<body>
+<div class="dashboard">
+  <aside class="sidebar">
+    <h2 class="logo">EventHub</h2>
+    <ul class="menu">
+      <li>
+        <a href="/dashboard/organizer"><i class="fa-regular fa-calendar"></i>My Dashboard</a>
+      </li>
+      <li>
+        <a href="/assets/dashboard/organizer/create.html"><i class="fa-solid fa-plus"></i>Create Event</a>
+      </li>
+      <li><i class="fa-solid fa-ticket"></i>Ticket Sales</li>
+      <li class="active">
+        <a href="/assets/dashboard/organizer/myevents.html"><i class="fa-solid fa-chart-column"></i>My Events</a>
+      </li>
+      <li><a href="/assets/dashboard/organizer/manageusers.html"><i class="fa-solid fa-users"></i>Manage User</a></li>
+      <li><i class="fa-regular fa-calendar-days"></i>Calendar</li>
+      <li>
+        <a href="/assets/dashboard/organizer/profile.html"><i class="fa-regular fa-circle-user"></i>My Profile</a>
+      </li>
+      <li>
+        <a href="/assets/dashboard/organizer/support.html"><i class="fa-regular fa-circle-question"></i>Help & Support</a>
+      </li>
+    </ul>
+
+    <div class="user">
+      <div class="user-info">
+        <img src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar>
+        <div class="user-text">
+          <strong id="organizerSidebarUserName" data-organizer-name>Organizer</strong>
+          <span>Event Organizer</span>
+        </div>
+      </div>
+      <a href="/logout" class="logout">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </a>
+    </div>
+  </aside>
+
+  <main class="main browse-main">
+    <header class="topbar">
+      <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <h2 id="organizerEventsPageTitle">My Events</h2>
+      <div class="top-actions">
+        <input type="text" placeholder="Search events..." class="searchbox" id="organizerEventsSearch">
+        <button class="primary-btn" onclick="window.location.href='/assets/dashboard/organizer/create.html'">Create Event</button>
+        <img class="avatar" src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar>
+      </div>
+    </header>
+
+    <section class="content">
+      <div class="card large">
+        <div class="tickets-results-head">
+          <h3 id="organizerEventsHeading">Created Events</h3>
+          <p><span id="organizerEventsResultsCount">0</span> events found</p>
+        </div>
+        <br>
+        <hr>
+        <div class="organizer-events-grid" id="organizerEventsList"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="logout-modal" id="organizerEventEditModal" hidden>
+  <div class="logout-modal-backdrop" id="organizerEventEditModalBackdrop"></div>
+  <div class="logout-modal-card organizer-event-modal-card" role="dialog" aria-modal="true" aria-labelledby="organizerEventEditTitle">
+    <button type="button" class="register-modal-close" id="organizerEventEditClose" aria-label="Close event edit form">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <h3 id="organizerEventEditTitle">Edit Event</h3>
+    <form id="organizerEventEditForm" class="organizer-edit-form">
+      <input type="hidden" id="organizerEventEditId" name="eventId">
+      <input type="hidden" id="organizerEventEditMode" name="eventMode" value="venue">
+      <input type="hidden" id="organizerEventEditTicketMode" name="ticketPricingMode" value="paid">
+      <div class="grid">
+        <input type="text" id="organizerEventEditTitleInput" name="eventTitle" placeholder="Event title" required>
+        <select id="organizerEventEditCategory" name="eventCategory" required>
+          <option value="tech">Technology</option>
+          <option value="business">Business</option>
+          <option value="music">Music</option>
+          <option value="arts">Arts</option>
+          <option value="food">Food</option>
+          <option value="sports">Sports</option>
+          <option value="education">Education</option>
+          <option value="health">Health & Wellness</option>
+        </select>
+      </div>
+      <div class="grid">
+        <input type="date" id="organizerEventEditDate" name="eventDate" required>
+        <input type="time" id="organizerEventEditTime" name="eventTime" required>
+      </div>
+      <div class="organizer-modal-toggle" id="organizerEventModeToggle">
+        <button type="button" class="active" data-event-mode="venue">Venue</button>
+        <button type="button" data-event-mode="online">Online</button>
+      </div>
+      <div id="organizerEventEditVenueWrap">
+        <input type="text" id="organizerEventEditVenue" name="venueAddress" placeholder="Venue address" required>
+      </div>
+      <div class="organizer-modal-toggle" id="organizerEventTicketToggle">
+        <button type="button" class="active" data-ticket-mode="paid">Paid</button>
+        <button type="button" data-ticket-mode="free">Free</button>
+      </div>
+      <div class="grid" id="organizerEventEditPriceWrap">
+        <input type="number" id="organizerEventEditPrice" name="ticketPrice" placeholder="Price" min="0" step="1" required>
+        <input type="number" id="organizerEventEditCapacity" name="eventCapacity" placeholder="Capacity" min="0" step="1" required>
+      </div>
+      <textarea rows="4" id="organizerEventEditDescription" name="eventDescription" placeholder="Event description"></textarea>
+      <p id="organizerEventEditStatus" class="register-form-status" hidden></p>
+      <div class="logout-modal-actions">
+        <button type="button" class="logout-cancel-btn" id="organizerEventEditCancel">Close</button>
+        <button type="submit" class="logout-confirm-btn" id="organizerEventEditSubmit">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="logout-modal" id="organizerEventCancelModal" hidden>
+  <div class="logout-modal-backdrop" id="organizerEventCancelBackdrop"></div>
+  <div class="logout-modal-card" role="dialog" aria-modal="true" aria-labelledby="organizerEventCancelTitle">
+    <div class="logout-modal-icon">
+      <i class="fa-solid fa-calendar-xmark"></i>
+    </div>
+    <h3 id="organizerEventCancelTitle">Cancel this event?</h3>
+    <p id="organizerEventCancelDescription">This will mark the event as cancelled for attendees.</p>
+    <div class="logout-modal-actions">
+      <button type="button" class="logout-cancel-btn" id="organizerEventCancelClose">Keep Event</button>
+      <button type="button" class="logout-confirm-btn" id="organizerEventCancelConfirm">Cancel Event</button>
+    </div>
+  </div>
+</div>
+
+<div class="logout-modal" id="organizerEventDetailModal" hidden>
+  <div class="logout-modal-backdrop" id="organizerEventDetailBackdrop"></div>
+  <div class="logout-modal-card organizer-event-detail-modal-card" role="dialog" aria-modal="true" aria-labelledby="organizerEventDetailTitle">
+    <button type="button" class="register-modal-close" id="organizerEventDetailClose" aria-label="Close event details">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <div class="organizer-event-detail-layout">
+      <section class="organizer-event-detail-summary">
+        <img id="organizerEventDetailImage" src="" alt="Event image">
+        <h3 id="organizerEventDetailTitle">Event Details</h3>
+        <p class="meta" id="organizerEventDetailMeta"></p>
+        <div class="organizer-event-detail-grid">
+          <div><span>Status</span><strong id="organizerEventDetailStatus">-</strong></div>
+          <div><span>Attendees</span><strong id="organizerEventDetailAttendeeCount">0</strong></div>
+          <div><span>Capacity</span><strong id="organizerEventDetailCapacity">0</strong></div>
+          <div><span>Occupancy</span><strong id="organizerEventDetailOccupancy">0%</strong></div>
+        </div>
+        <p id="organizerEventDetailDescription" class="meta"></p>
+        <button type="button" class="logout-confirm-btn" id="organizerEventDetailCancelBtn">Cancel This Event</button>
+      </section>
+
+      <section class="organizer-event-detail-attendees">
+        <h4>Manage Attendees</h4>
+        <form id="organizerAddAttendeeForm" class="organizer-add-attendee-form">
+          <input type="hidden" id="organizerAddAttendeeEventId" name="eventId">
+          <input type="text" id="organizerAddAttendeeName" name="attendeeName" placeholder="Attendee name" required>
+          <input type="email" id="organizerAddAttendeeEmail" name="attendeeEmail" placeholder="Attendee email" required>
+          <input type="tel" id="organizerAddAttendeePhone" name="attendeePhone" placeholder="Phone (optional)">
+          <button type="submit" class="primary-btn" id="organizerAddAttendeeSubmit">Add Attendee</button>
+        </form>
+        <p id="organizerAddAttendeeStatus" class="register-form-status" hidden></p>
+        <div class="organizer-attendee-list" id="organizerAttendeeList"></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/dashboard/organizer/organizer.js"></script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Event Calendar | EventHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="user.css">
+  <link rel="icon" href="../images/logo1.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+</head>
+<body>
+<div class="dashboard">
+  <aside class="sidebar">
+    <h2 class="logo">EventHub</h2>
+
+    <ul class="menu">
+      <li><a href="user.html"><i class="fa-regular fa-calendar"></i> My Events</a></li>
+      <li><a href="browse.html"><i class="fa-solid fa-magnifying-glass"></i> Browse Events</a></li>
+      <li><a href="tickets.html"><i class="fa-solid fa-ticket"></i> My Tickets</a></li>
+      <li><a href="bookings.html"><i class="fa-regular fa-file"></i> My Bookings</a></li>
+      <li class="active"><a href="calendar.html"><i class="fa-regular fa-calendar-days"></i> Event Calendar</a></li>
+      <li><a href="profile.html"><i class="fa-regular fa-circle-user"></i> Profile Settings</a></li>
+      <li><a href="support.html"><i class="fa-regular fa-circle-question"></i> Help & Support</a></li>
+    </ul>
+
+    <div class="user">
+      <div class="user-info">
+        <img src="https://i.pravatar.cc/40" alt="User avatar">
+        <div class="user-text">
+          <strong id="sidebarUserName" data-user-name>EventHub User</strong>
+          <span>Event Attendee</span>
+        </div>
+      </div>
+      <a href="/logout" class="logout"><i class="fa-solid fa-right-from-bracket"></i></a>
+    </div>
+  </aside>
+
+  <main class="main browse-main">
+    <header class="topbar">
+      <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+
+      <h2>Event Calendar</h2>
+
+      <div class="top-actions">
+        <input type="text" id="calendarSearchTop" placeholder="Search calendar events..." class="searchbox">
+        <button class="primary-btn" onclick="window.location.href='browse.html'">Browse Events</button>
+        <img class="avatar" src="https://i.pravatar.cc/40" alt="User avatar">
+      </div>
+    </header>
+
+    <section class="event-calendar-section">
+      <div class="calendar-card">
+        <div class="calendar-toolbar">
+          <div class="tickets-search-input">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="calendarSearch" placeholder="Search by event or date (e.g. 12/09/2026, Sep 12)...">
+          </div>
+          <input type="date" id="calendarDateSearch" aria-label="Search events by date">
+          <button type="button" class="ticket-filter-btn" id="calendarClearDateBtn">Clear Date</button>
+          <div class="tickets-filter-group">
+            <button type="button" class="ticket-filter-btn active" data-calendar-filter="all">All</button>
+            <button type="button" class="ticket-filter-btn" data-calendar-filter="upcoming">Upcoming</button>
+            <button type="button" class="ticket-filter-btn" data-calendar-filter="registered">Registered</button>
+          </div>
+        </div>
+
+        <div class="calendar-header">
+          <h2 id="calendarMonthTitle">Loading...</h2>
+          <div class="nav-btns">
+            <button type="button" id="calendarPrevMonthBtn"><i class="fa-solid fa-chevron-left"></i></button>
+            <button type="button" id="calendarNextMonthBtn"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
+
+        <div class="date-strip-minimal" id="dateStrip"></div>
+
+        <div class="timeline-head">
+          <div class="line"></div>
+          <h3 id="calendarTimelineTitle">Events</h3>
+          <span class="count" id="calendarEventCount">0</span>
+        </div>
+
+        <div class="timeline" id="calendarTimeline"></div>
+
+        <div class="tickets-empty-state" id="calendarEmptyState" hidden>
+          <i class="fa-regular fa-calendar-xmark"></i>
+          <h4>No events found</h4>
+          <p>Try a different search or filter to view your event calendar.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="user.js"></script>
+</body>
+</html>

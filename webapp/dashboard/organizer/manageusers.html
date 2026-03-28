@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Manage User | EventHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/dashboard/organizer/organizer.css">
+  <link rel="icon" href="/assets/dashboard/images/logo1.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+</head>
+<body>
+<div class="dashboard">
+  <aside class="sidebar">
+    <h2 class="logo">EventHub</h2>
+    <ul class="menu">
+      <li>
+        <a href="/dashboard/organizer"><i class="fa-regular fa-calendar"></i>My Dashboard</a>
+      </li>
+      <li>
+        <a href="/assets/dashboard/organizer/create.html"><i class="fa-solid fa-plus"></i>Create Event</a>
+      </li>
+      <li><i class="fa-solid fa-ticket"></i>Ticket Sales</li>
+      <li>
+        <a href="/assets/dashboard/organizer/myevents.html"><i class="fa-solid fa-chart-column"></i>My Events</a>
+      </li>
+      <li class="active">
+        <a href="/assets/dashboard/organizer/manageusers.html"><i class="fa-solid fa-users"></i>Manage User</a>
+      </li>
+      <li><i class="fa-regular fa-calendar-days"></i>Calendar</li>
+      <li>
+        <a href="/assets/dashboard/organizer/profile.html"><i class="fa-regular fa-circle-user"></i>My Profile</a>
+      </li>
+      <li>
+        <a href="/assets/dashboard/organizer/support.html"><i class="fa-regular fa-circle-question"></i>Help & Support</a>
+      </li>
+    </ul>
+
+    <div class="user">
+      <div class="user-info">
+        <img src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar>
+        <div class="user-text">
+          <strong data-organizer-name>Organizer</strong>
+          <span>Event Organizer</span>
+        </div>
+      </div>
+      <a href="#" class="logout">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </a>
+    </div>
+  </aside>
+
+  <main class="main browse-main">
+    <header class="topbar">
+      <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <h2>Manage User</h2>
+      <div class="top-actions">
+        <input type="text" placeholder="Search events..." class="searchbox" id="manageUsersEventSearch">
+        <button class="primary-btn" onclick="window.location.href='/assets/dashboard/organizer/create.html'">Create Event</button>
+        <img class="avatar" src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar>
+      </div>
+    </header>
+
+    <section class="content">
+      <div class="card large">
+        <div class="tickets-results-head">
+          <h3>Select Event</h3>
+          <p><span id="manageUsersEventCount">0</span> events</p>
+        </div>
+        <div class="manage-users-events-grid" id="manageUsersEventsList"></div>
+      </div>
+
+      <div class="card large manage-users-table-wrap" id="manageUsersAttendeeSection" hidden>
+        <div class="tickets-results-head">
+          <h3 id="manageUsersSelectedEvent">Attendees</h3>
+          <div class="manage-users-head-right">
+            <p class="manage-users-selected-event-right" id="manageUsersSelectedEventRight">-</p>
+            <p><span id="manageUsersAttendeeCount">0</span> attendees</p>
+          </div>
+        </div>
+        <input type="text" class="searchbox manage-users-attendee-search" id="manageUsersAttendeeSearch" placeholder="Filter by attendee name or ticket ID">
+        <div class="manage-users-table-scroll">
+          <table class="manage-users-table">
+            <thead>
+              <tr>
+                <th>Attendee Name</th>
+                <th>Ticket Type</th>
+                <th>No. of Tickets</th>
+                <th>Ticket ID</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="manageUsersAttendeeBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="/assets/dashboard/organizer/organizer.js"></script>
+</body>
+</html>

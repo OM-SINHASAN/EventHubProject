@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Bookings | EventHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="user.css">
+  <link rel="icon" href="../images/logo1.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+<div class="dashboard">
+  <aside class="sidebar">
+    <h2 class="logo">EventHub</h2>
+
+    <ul class="menu">
+      <li><a href="user.html"><i class="fa-regular fa-calendar"></i>My Events</a></li>
+      <li><a href="browse.html"><i class="fa-solid fa-magnifying-glass"></i>Browse Events</a></li>
+      <li><a href="tickets.html"><i class="fa-solid fa-ticket"></i>My Tickets</a></li>
+      <li class="active"><a href="bookings.html"><i class="fa-regular fa-file"></i>My Bookings</a></li>
+<li><a href="calendar.html"><i class="fa-regular fa-calendar-days"></i>Event Calendar</a></li>
+      <li><a href="profile.html"><i class="fa-regular fa-circle-user"></i>Profile Settings</a></li>
+      <li><a href="support.html"><i class="fa-regular fa-circle-question"></i>Help & Support</a></li>
+    </ul>
+
+    <div class="user">
+      <div class="user-info">
+        <img src="https://i.pravatar.cc/40" alt="User avatar">
+        <div class="user-text">
+          <strong id="sidebarUserName" data-user-name>EventHub User</strong>
+          <span>Event Attendee</span>
+        </div>
+      </div>
+
+      <a href="/logout" class="logout">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </a>
+    </div>
+  </aside>
+
+  <main class="main browse-main">
+    <header class="topbar">
+      <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <h2 id="bookingsPageTitle">My Bookings</h2>
+
+      <div class="top-actions">
+        <input type="text" placeholder="Search bookings..." class="searchbox" id="bookingsSearch">
+        <button class="primary-btn" onclick="window.location.href='browse.html'">Browse Events</button>
+        <img class="avatar" src="https://i.pravatar.cc/40" alt="User avatar">
+      </div>
+    </header>
+
+    <section class="content">
+      <div class="card large">
+        <div class="tickets-results-head">
+          <h3 id="bookingsHeading">Recent Bookings</h3>
+          <p><span id="bookingsResultsCount">0</span> bookings found</p>
+        </div>
+        <br>
+        <hr>
+        <div class="bookings-grid" id="bookingsList"></div>
+        <div class="tickets-empty-state" id="bookingsEmptyState" hidden>
+          <i class="fa-regular fa-face-frown"></i>
+          <h4>No bookings found</h4>
+          <p>Register for an event from Browse Events to see it here.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="register-modal" id="bookingEditModal" hidden>
+  <div class="register-modal-backdrop" id="bookingEditModalBackdrop"></div>
+  <div class="register-modal-card" role="dialog" aria-modal="true" aria-labelledby="bookingEditModalTitle">
+    <button type="button" class="register-modal-close" id="bookingEditModalClose" aria-label="Close booking edit form">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <div class="register-modal-layout">
+      <section class="register-modal-summary">
+        <span class="register-modal-badge" id="bookingEditModalCategory">Booking</span>
+        <h3 id="bookingEditModalTitle">Edit Booking</h3>
+        <img src="" alt="" id="bookingEditModalImage">
+        <div class="register-modal-details">
+          <div>
+            <span>Date</span>
+            <strong id="bookingEditModalDate">-</strong>
+          </div>
+          <div>
+            <span>Time</span>
+            <strong id="bookingEditModalTime">-</strong>
+          </div>
+          <div>
+            <span>Location</span>
+            <strong id="bookingEditModalLocation">-</strong>
+          </div>
+          <div>
+            <span>Ticket Code</span>
+            <strong id="bookingEditModalTicketCode">-</strong>
+          </div>
+          <div>
+            <span>Organizer Contact</span>
+            <strong id="bookingEditModalOrganizerPhone">-</strong>
+          </div>
+          <div>
+            <span>Status</span>
+            <strong id="bookingEditModalStatus">-</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="register-modal-form-wrap">
+        <div class="register-modal-copy">
+          <h4>Update Booking</h4>
+          <p>Edit your enrollment details or preferences for this event.</p>
+        </div>
+        <form class="register-form" id="bookingEditForm">
+          <input type="hidden" name="bookingId" id="bookingEditId">
+          <div class="register-form-grid">
+            <label>
+              <span>Full Name</span>
+              <input type="text" name="attendeeName" id="bookingEditAttendeeName" required>
+            </label>
+            <label>
+              <span>Email Address</span>
+              <input type="email" name="attendeeEmail" id="bookingEditAttendeeEmail" required>
+            </label>
+            <label>
+              <span>Phone Number</span>
+              <input type="tel" name="attendeePhone" id="bookingEditAttendeePhone" required>
+            </label>
+            <label>
+              <span>Ticket Type</span>
+              <input type="text" name="ticketType" id="bookingEditTicketType" required>
+            </label>
+            <label>
+              <span>Number of Tickets</span>
+              <select name="ticketCount" id="bookingEditTicketCount">
+                <option value="1">1 Ticket</option>
+                <option value="2">2 Tickets</option>
+                <option value="3">3 Tickets</option>
+                <option value="4">4 Tickets</option>
+              </select>
+            </label>
+            <label>
+              <span>City</span>
+              <input type="text" name="city" id="bookingEditCity" required>
+            </label>
+            <label>
+              <span>Payment Method</span>
+              <select name="paymentMethod" id="bookingEditPaymentMethod" required>
+                <option value="">Choose payment method</option>
+                <option value="upi">UPI</option>
+                <option value="card">Credit / Debit Card</option>
+                <option value="netbanking">Net Banking</option>
+                <option value="wallet">Wallet</option>
+                <option value="cash">Cash at Venue</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            <span>Address</span>
+            <textarea name="address" id="bookingEditAddress" rows="3" required></textarea>
+          </label>
+          <label>
+            <span>Special Request</span>
+            <textarea name="specialRequest" id="bookingEditSpecialRequest" rows="4"></textarea>
+          </label>
+          <p class="register-form-status" id="bookingEditStatusMessage" hidden></p>
+          <div class="register-form-actions">
+            <button type="button" class="register-cancel-btn" id="bookingEditCancelBtn">Close</button>
+            <button type="submit" class="register-submit-btn" id="bookingEditSubmitBtn">Save Changes</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="logout-modal" id="bookingCancelModal" hidden>
+  <div class="logout-modal-backdrop" id="bookingCancelModalBackdrop"></div>
+  <div class="logout-modal-card" role="dialog" aria-modal="true" aria-labelledby="bookingCancelModalTitle">
+    <div class="logout-modal-icon">
+      <i class="fa-solid fa-calendar-xmark"></i>
+    </div>
+    <h3 id="bookingCancelModalTitle">Cancel this booking?</h3>
+    <p id="bookingCancelModalDescription">This will cancel your event enrollment and remove it from your active tickets.</p>
+    <div class="logout-modal-actions">
+      <button type="button" class="logout-cancel-btn" id="bookingCancelCloseBtn">Keep Booking</button>
+      <button type="button" class="logout-confirm-btn" id="bookingCancelConfirmBtn">Cancel Event</button>
+    </div>
+  </div>
+</div>
+
+<script src="user.js"></script>
+</body>
+</html>
+

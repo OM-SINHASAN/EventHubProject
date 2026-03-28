@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Help & Support</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="user.css">
+  <link rel="icon" href="../images/logo1.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+<div class="dashboard">
+  <aside class="sidebar">
+    <h2 class="logo">EventHub</h2>
+
+    <!-- -------------------sidebar actions------------------- -->
+    <ul class="menu">
+      <li>
+        <a href="user.html">
+        <i class="fa-regular fa-calendar"></i>
+      My Events</a></li>
+
+      <li>
+        <a href="browse.html">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        Browse Events </a></li>
+
+      <li><a href="tickets.html">
+        <i class="fa-solid fa-ticket"></i>
+        My Tickets</a></li>
+
+      <li>
+       <a href="bookings.html"> <i class="fa-regular fa-file"></i>
+        My Bookings</a></li>
+<li>
+        <a href="calendar.html"><i class="fa-regular fa-calendar-days"></i>
+        Event Calendar</a></li>
+
+      <li>
+       <a href="profile.html"><i class="fa-regular fa-circle-user"></i>
+        Profile Settings</a></li>
+
+      <li  class="active">
+        <a href="#"><i class="fa-regular fa-circle-question"></i>
+        Help & Support</a></li>
+    </ul>
+
+    <!-- user signout -->
+    <div class="user">
+
+  <div class="user-info">
+    <img src="https://i.pravatar.cc/40" alt="User avatar">
+
+    <div class="user-text">
+      <strong id="sidebarUserName" data-user-name>EventHub User</strong>
+      <span>Event Attendee</span>
+    </div>
+  </div>
+
+  <a href="/logout" class="logout">
+    <i class="fa-solid fa-right-from-bracket"></i>
+  </a>
+
+</div>
+  </aside>
+
+
+  <!-- ----------------Main Content---------------- -->
+  <main class="main browse-main">
+    <header class="topbar">
+
+      <button class="menu-toggle" onclick="toggleSidebar()">
+<i class="fa-solid fa-bars"></i>
+</button>
+      <h2>My Dashboard</h2>
+
+      <div class="top-actions">
+        <input type="text" placeholder="Search Events..." class="searchbox">
+        <button class="primary-btn">Browse Events</button>
+        <img class="avatar" src="https://i.pravatar.cc/40" alt="User avatar">
+      </div>
+    </header>
+
+   <!---------------- Get in touch-------------- -->
+      <section id="contact" class="contact">
+        <div class="contact-container">
+          <div class="contact-form">
+            <h2>Get in Touch</h2>
+            <p class="contact-desc">
+              Have questions or need help? Reach out to us and we'll get back to you shortly.
+            </p>
+
+            <form id="contactForm">
+              <input type="text" id="contactName" name="name" placeholder="Your Name" required>
+              <input type="email" id="contactEmail" name="email" placeholder="Your Email" required>
+              <textarea id="contactMessage" name="message" placeholder="Your Message" rows="4" required></textarea>
+              <button type="submit" id="contactSubmitButton">Send Message</button>
+              <p id="contactFormStatus" class="contact-form-status" hidden></p>
+            </form>
+          </div>
+
+          <div class="contact-visual">
+            <img src="../images/contactimg.jpg" alt="Contact EventHub">
+
+            <div class="contact-overlay">
+              <div class="overlay-item">
+                <strong>Email</strong>
+                <span>support@eventhub.com</span>
+              </div>
+              <div class="overlay-item">
+                <strong>Phone</strong>
+                <span>+91 90044 65372</span>
+              </div>
+              <div class="overlay-item">
+                <strong>Location</strong>
+                <span>Mumbai, India</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+<!-- ------------------ -->
+  </main>
+</div>
+</body>
+
+<script src="user.js"></script>
+</html>
+

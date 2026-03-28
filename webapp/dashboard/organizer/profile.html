@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Profile Settings</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="../user/user.css">
+  <link rel="icon" href="../images/logo1.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+<div class="dashboard">
+  <aside class="sidebar">
+    <h2 class="logo">EventHub</h2>
+
+    <!-- -------------------sidebar actions------------------- -->
+    <ul class="menu">
+      <li>
+        <a href="/dashboard/organizer">
+        <i class="fa-regular fa-calendar"></i>
+      My Dashboard</a></li>
+
+      <li>
+        <a href="create.html">
+        <i class="fa-solid fa-plus"></i>
+        Create Event </a></li>
+
+      <li><i class="fa-solid fa-ticket"></i>
+        Ticket Sales</li>
+
+      <li><a href="/assets/dashboard/organizer/myevents.html"><i class="fa-solid fa-chart-column"></i>
+        My Events</a></li>
+
+      <li><a href="/assets/dashboard/organizer/manageusers.html"><i class="fa-solid fa-users"></i>
+        Manage User</a></li>
+
+      <li><i class="fa-regular fa-calendar-days"></i>
+        Calendar</li>
+
+      <li class="active">
+       <a href="profile.html"><i class="fa-regular fa-circle-user"></i>
+        Profile Settings</a></li>
+
+      <li>
+        <a href="support.html"><i class="fa-regular fa-circle-question"></i>
+        Help & Support</a></li>
+    </ul>
+
+    <!-- user signout -->
+    <div class="user">
+
+  <div class="user-info">
+    <img src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar>
+
+    <div class="user-text">
+      <strong data-organizer-name>Organizer</strong>
+      <span>Event Organizer</span>
+    </div>
+  </div>
+
+  <a href="#" class="logout">
+    <i class="fa-solid fa-right-from-bracket"></i>
+  </a>
+
+</div>
+  </aside>
+
+
+  <!-- ----------------Main Content---------------- -->
+  <main class="main browse-main">
+    <header class="topbar">
+
+      <button class="menu-toggle" onclick="toggleSidebar()">
+<i class="fa-solid fa-bars"></i>
+</button>
+      <h2>Organizer Profile</h2>
+
+      <div class="top-actions">
+        <input type="text" placeholder="Search Events..." class="searchbox">
+        <button class="primary-btn" onclick="window.location.href='create.html'">Create Event</button>
+        <img class="avatar" src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar>
+      </div>
+    </header>
+
+    <!----------------- section ----------------->
+   <section class="profile-settings">
+
+<div class="profile-grid">
+
+<!-- PROFILE CARD -->
+
+<div class="profile-card">
+
+<img src="../images/logo1.png" class="profile-img" alt="Organizer profile photo" data-organizer-avatar>
+<input type="file" id="profileImageInput" accept="image/png,image/jpeg" hidden>
+
+<h3 data-organizer-name>Organizer</h3>
+<span class="role">Event Organizer</span>
+
+<p class="img-note">JPG / PNG • Max 2MB</p>
+
+<button type="button" class="upload-btn">Upload Photo</button>
+
+</div>
+
+
+<!-- RIGHT SIDE -->
+
+<div class="right-section">
+
+<!-- PERSONAL INFO -->
+
+<div class="profile-form">
+
+<h2>Personal Information</h2>
+
+<form class="form-grid" id="profileDetailsForm">
+
+<div class="field">
+<label>First Name</label>
+<input type="text" id="profileFirstName" value="">
+</div>
+
+<div class="field">
+<label>Last Name</label>
+<input type="text" id="profileLastName" value="">
+</div>
+
+<div class="field full">
+<label>Email</label>
+<input type="email" id="profileEmail" value="" disabled>
+</div>
+
+<div class="field">
+<label>Phone</label>
+<input type="tel" id="profilePhone">
+</div>
+
+<div class="field">
+<label>Role</label>
+
+<select class="dropdown" id="profileRole">
+<option value="organizer">Organizer</option>
+<option value="user">User</option>
+</select>
+
+</div>
+
+<div class="field full">
+<label>Bio</label>
+<textarea rows="4" id="profileBio"></textarea>
+</div>
+
+</form>
+<p class="register-form-status" id="profileDetailsStatus" hidden></p>
+
+<div class="form-btns">
+<button type="button" class="cancel" id="profileCancelBtn">Cancel</button>
+<button type="submit" class="save" id="profileSaveBtn" form="profileDetailsForm">Save Changes</button>
+</div>
+
+</div>
+
+
+<!-- PASSWORD SECTION -->
+
+<div class="password-card">
+
+<h2>Security</h2>
+
+<form class="form-grid" id="profilePasswordForm">
+
+<div class="field">
+<label>Current Password</label>
+<input type="password" id="profileCurrentPassword">
+</div>
+
+<div></div>
+
+<div class="field">
+<label>New Password</label>
+<input type="password" id="profileNewPassword">
+</div>
+
+<div class="field">
+<label>Confirm Password</label>
+<input type="password" id="profileConfirmPassword">
+</div>
+
+</form>
+<p class="register-form-status" id="profilePasswordStatus" hidden></p>
+
+<button type="submit" class="update-pass" id="profilePasswordSaveBtn" form="profilePasswordForm">Update Password</button>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
+
+
+<!-- ------------------ -->
+  </main>
+</div>
+</body>
+
+<script src="organizer.js"></script>
+</html>

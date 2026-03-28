@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Organizer Dashboard | EventHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/dashboard/organizer/organizer.css">
+  <link rel="icon" href="/assets/dashboard/images/logo1.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+</head>
+<body>
+<div class="dashboard">
+  <aside class="sidebar">
+    <h2 class="logo">EventHub</h2>
+
+    <ul class="menu">
+      <li class="active">
+        <a href="/dashboard/organizer"><i class="fa-regular fa-calendar"></i>My Dashboard</a>
+      </li>
+      <li>
+        <a href="/assets/dashboard/organizer/create.html"><i class="fa-solid fa-plus"></i>Create Event</a>
+      </li>
+      <li><i class="fa-solid fa-ticket"></i>Ticket Sales</li>
+      <li><a href="/assets/dashboard/organizer/myevents.html"><i class="fa-solid fa-chart-column"></i>My Events</a></li>
+      <li><a href="/assets/dashboard/organizer/manageusers.html"><i class="fa-solid fa-users"></i>Manage User</a></li>
+      <li><i class="fa-regular fa-calendar-days"></i>Calendar</li>
+      <li>
+        <a href="/assets/dashboard/organizer/profile.html"><i class="fa-regular fa-circle-user"></i>My Profile</a>
+      </li>
+      <li>
+        <a href="/assets/dashboard/organizer/support.html"><i class="fa-regular fa-circle-question"></i>Help & Support</a>
+      </li>
+    </ul>
+
+    <div class="user">
+      <div class="user-info">
+        <img src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar>
+        <div class="user-text">
+          <strong id="organizerSidebarUserName" data-organizer-name>Organizer</strong>
+          <span>Event Organizer</span>
+        </div>
+      </div>
+
+      <a href="/logout" class="logout">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+
+      <h2 id="organizerPageTitle">Organizer Dashboard</h2>
+
+      <div class="top-actions">
+        <input type="text" placeholder="Search events..." class="searchbox">
+        <button class="primary-btn" onclick="window.location.href='/assets/dashboard/organizer/create.html'">Create Event</button>
+        <img class="avatar" src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar>
+      </div>
+    </header>
+
+    <section class="stats" id="organizerStats" hidden>
+      <div class="stat-card">
+        <div class="stat-icon" id="stat-icon1">
+          <i class="fa-regular fa-calendar-days"></i>
+        </div>
+        <h3 id="organizerActiveEvents">0</h3>
+        <p>Active Events</p>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon" id="stat-icon2">
+          <i class="fa-solid fa-users"></i>
+        </div>
+        <h3 id="organizerTotalAttendees">0</h3>
+        <p>Total Attendees</p>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon" id="stat-icon3">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <h3 id="organizerCheckinRate">0%</h3>
+        <p>Check-in Rate</p>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon" id="stat-icon4">
+          <i class="fa-solid fa-indian-rupee-sign"></i>
+        </div>
+        <h3 id="organizerRevenue">Rs 0</h3>
+        <p>Total Revenue</p>
+      </div>
+    </section>
+
+    <section class="content" id="organizerContent" hidden>
+      <div class="card large">
+        <h3>Upcoming Managed Events</h3>
+        <br>
+        <hr>
+        <div id="organizerManagedEvents"></div>
+      </div>
+
+      <div class="card">
+        <h3>Quick Actions</h3>
+        <div class="actions">
+          <div class="action-card blue" onclick="window.location.href='/assets/dashboard/organizer/create.html'">
+            <i class="fa-solid fa-plus"></i>
+            <span>Create Event</span>
+          </div>
+          <div class="action-card green">
+            <i class="fa-solid fa-users"></i>
+            <span>View Attendees</span>
+          </div>
+          <div class="action-card purple">
+            <i class="fa-solid fa-bullhorn"></i>
+            <span>Promote Event</span>
+          </div>
+          <div class="action-card teal">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>View Analytics</span>
+          </div>
+          <div class="action-card orange">
+            <i class="fa-solid fa-ticket"></i>
+            <span>Manage Tickets</span>
+          </div>
+          <div class="action-card pink" onclick="window.location.href='/assets/dashboard/organizer/support.html'">
+            <i class="fa-solid fa-circle-info"></i>
+            <span>Support</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Recent Activity</h3>
+        <ul class="activity" id="organizerActivityList"></ul>
+      </div>
+
+      <div class="card revenue-card">
+        <div class="revenue-header">
+          <h3>Revenue Overview</h3>
+          <select>
+            <option>Last 6 Months</option>
+            <option>Last Year</option>
+          </select>
+        </div>
+
+        <div class="chart-area organizer-chart-placeholder">
+          <strong id="organizerRevenueHeadline">Revenue growing across active events</strong>
+          <p>Use analytics to monitor registrations, payouts, and conversion trends.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Ticket Sales Activity</h3>
+        <ul class="sales-list" id="organizerSalesList"></ul>
+      </div>
+
+      <div class="card">
+        <h3>Event Notifications</h3>
+        <ul class="notification-list" id="organizerNotificationsList"></ul>
+      </div>
+    </section>
+
+    <div class="card history" id="organizerHistorySection" hidden>
+      <h3>Completed Events</h3>
+      <div id="organizerCompletedEvents"></div>
+    </div>
+
+    <div class="dashboard-empty-state" id="organizerEmptyState" hidden>
+      <i class="fa-regular fa-face-frown"></i>
+      <h4>Unable to load organizer dashboard</h4>
+      <p>Please login with an organizer account.</p>
+    </div>
+  </main>
+</div>
+
+<script src="/assets/dashboard/organizer/organizer.js"></script>
+</body>
+</html>

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Browse Events</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="user.css">
+  <link rel="icon" href="../images/logo1.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+<div class="dashboard">
+  <aside class="sidebar">
+    <h2 class="logo">EventHub</h2>
+
+    <ul class="menu">
+      <li>
+        <a href="user.html">
+        <i class="fa-regular fa-calendar"></i>
+      My Events</a></li>
+
+      <li class="active">
+        <a href="browse.html">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        Browse Events </a></li>
+
+      <li><a href="tickets.html">
+        <i class="fa-solid fa-ticket"></i>
+        My Tickets</a></li>
+
+      <li>
+       <a href="bookings.html"> <i class="fa-regular fa-file"></i>
+        My Bookings</a></li>
+<li>
+        <a href="calendar.html"><i class="fa-regular fa-calendar-days"></i>
+        Event Calendar</a></li>
+
+      <li>
+       <a href="profile.html"><i class="fa-regular fa-circle-user"></i>
+        Profile Settings</a></li>
+
+      <li>
+        <a href="support.html"><i class="fa-regular fa-circle-question"></i>
+        Help & Support</a></li>
+    </ul>
+
+    <div class="user">
+      <div class="user-info">
+        <img src="https://i.pravatar.cc/40" alt="User avatar">
+        <div class="user-text">
+          <strong id="sidebarUserName" data-user-name>EventHub User</strong>
+          <span>Event Attendee</span>
+        </div>
+      </div>
+
+      <a href="/logout" class="logout">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </a>
+    </div>
+  </aside>
+
+  <main class="main browse-main">
+    <header class="topbar">
+      <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <h2>My Dashboard</h2>
+
+      <div class="top-actions">
+        <input type="text" placeholder="Search Events..." class="searchbox">
+        <button class="primary-btn">Browse Events</button>
+        <img class="avatar" src="https://i.pravatar.cc/40" alt="User avatar">
+      </div>
+    </header>
+
+    <section class="browse-section browse-page-section">
+      <div class="browse-container">
+        <div class="browse-heading">
+          <h2>Browse Events</h2>
+          <p>Search by event name, place, or category and explore what matches your interests.</p>
+        </div>
+
+        <div class="browse-search-panel">
+          <div class="browse-search-input">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="browseSearch" placeholder="Search events, categories, or locations">
+          </div>
+        </div>
+
+        <div class="browse-categories-wrap">
+          <div class="browse-section-head">
+            <h3>Explore by Category</h3>
+            <button type="button" class="category-reset active" id="allCategoriesBtn" data-category="all">All Categories</button>
+          </div>
+
+          <div class="category-grid browse-category-grid">
+            <button type="button" class="category-card browse-category-card" data-category="music">
+              <div class="category-icon" style="color: rgb(252, 77, 246)">
+                <i class="fa-solid fa-music"></i>
+              </div>
+              <h3>Music & Concerts</h3>
+              <span>2 Events</span>
+            </button>
+
+            <button type="button" class="category-card browse-category-card" data-category="business">
+              <div class="category-icon" style="color: blue">
+                <i class="fa-solid fa-briefcase"></i>
+              </div>
+              <h3>Business & Professional</h3>
+              <span>2 Events</span>
+            </button>
+
+            <button type="button" class="category-card browse-category-card" data-category="tech">
+              <div class="category-icon" style="color: green">
+                <i class="fa-solid fa-display"></i>
+              </div>
+              <h3>Tech</h3>
+              <span>2 Events</span>
+            </button>
+
+            <button type="button" class="category-card browse-category-card" data-category="arts">
+              <div class="category-icon" style="color: rgb(141, 7, 230)">
+                <i class="fa-solid fa-masks-theater"></i>
+              </div>
+              <h3>Arts & Culture</h3>
+              <span>1 Event</span>
+            </button>
+
+            <button type="button" class="category-card browse-category-card" data-category="food">
+              <div class="category-icon" style="color: rgb(248, 192, 9)">
+                <i class="fa-solid fa-utensils"></i>
+              </div>
+              <h3>Food & Drink</h3>
+              <span>1 Event</span>
+            </button>
+
+            <button type="button" class="category-card browse-category-card" data-category="sports">
+              <div class="category-icon" style="color: red">
+                <i class="fa-solid fa-baseball-bat-ball"></i>
+              </div>
+              <h3>Sports & Fitness</h3>
+              <span>1 Event</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="browse-results-head">
+          <h3>Results</h3>
+          <p><span id="resultsCount">8</span> events found</p>
+        </div>
+
+        <div class="browse-grid" id="browseResults">
+          <article class="browse-card" data-category="tech" data-event-id="tech-innovation-summit" data-event-name="Tech Innovation Summit" data-event-date="August 24, 2026" data-event-time="10:00 AM" data-location="Pune Convention Center" data-price="Rs 1,499" data-ticket-type="General Entry" data-seat-info="Open Seating" data-organizer-phone="+91 98765 21001" data-search="Tech Innovation Summit Pune conference AI startups networking">
+            <img src="../images/dsupimg1.jpg" alt="Tech Innovation Summit">
+            <div class="browse-info">
+              <span class="browse-badge">Tech</span>
+              <h4>Tech Innovation Summit</h4>
+              <p>10:00 AM</p>
+              <p>Rs 1,499</p>
+              <p>Pune � Aug 24</p>
+              <button type="button" class="register-event-btn">Register Now</button>
+            </div>
+          </article>
+
+          <article class="browse-card" data-category="business" data-event-id="digital-marketing-workshop" data-event-name="Digital Marketing Workshop" data-event-date="August 28, 2026" data-event-time="11:30 AM" data-location="Mumbai Business Hub" data-price="Rs 999" data-ticket-type="Workshop Pass" data-seat-info="Open Seating" data-organizer-phone="+91 98765 21002" data-search="Digital Marketing Workshop Mumbai professional branding campaigns business">
+            <img src="../images/dsupimg2.jpg" alt="Digital Marketing Workshop">
+            <div class="browse-info">
+              <span class="browse-badge">Business</span>
+              <h4>Digital Marketing Workshop</h4>
+              <p>11:30 AM</p>
+              <p>Rs 999</p>
+              <p>Mumbai � Aug 28</p>
+              <button type="button" class="register-event-btn">Register Now</button>
+            </div>
+          </article>
+
+          <article class="browse-card" data-category="music" data-event-id="indie-music-night" data-event-name="Indie Music Night" data-event-date="September 02, 2026" data-event-time="07:00 PM" data-location="Bangalore Arena" data-price="Rs 1,299" data-ticket-type="Concert Pass" data-seat-info="Standing Zone" data-organizer-phone="+91 98765 21003" data-search="Indie Music Night Bangalore concert live band music">
+            <img src="https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=900&q=80" alt="Indie Music Night">
+            <div class="browse-info">
+              <span class="browse-badge">Music</span>
+              <h4>Indie Music Night</h4>
+              <p>07:00 PM</p>
+              <p>Rs 1,299</p>
+              <p>Bangalore � Sep 02</p>
+              <button type="button" class="register-event-btn">Register Now</button>
+            </div>
+          </article>
+
+          <article class="browse-card" data-category="arts" data-event-id="art-culture-expo" data-event-name="Art &amp; Culture Expo" data-event-date="September 05, 2026" data-event-time="03:00 PM" data-location="Delhi Art Gallery" data-price="Rs 899" data-ticket-type="Premium Entry" data-seat-info="Gallery Access" data-organizer-phone="+91 98765 21004" data-search="Art and Culture Expo Delhi gallery exhibition arts culture">
+            <img src="https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?auto=format&fit=crop&w=900&q=80" alt="Art & Culture Expo">
+            <div class="browse-info">
+              <span class="browse-badge">Arts</span>
+              <h4>Art & Culture Expo</h4>
+              <p>03:00 PM</p>
+              <p>Rs 899</p>
+              <p>Delhi � Sep 05</p>
+              <button type="button" class="register-event-btn">Register Now</button>
+            </div>
+          </article>
+
+          <article class="browse-card" data-category="food" data-event-id="street-food-carnival" data-event-name="Street Food Carnival" data-event-date="September 08, 2026" data-event-time="05:30 PM" data-location="Hyderabad Food Street" data-price="Rs 699" data-ticket-type="Entry Pass" data-seat-info="Food Court Access" data-organizer-phone="+91 98765 21005" data-search="Street Food Carnival Hyderabad tasting food drink family">
+            <img src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=900&q=80" alt="Street Food Carnival">
+            <div class="browse-info">
+              <span class="browse-badge">Food</span>
+              <h4>Street Food Carnival</h4>
+              <p>05:30 PM</p>
+              <p>Rs 699</p>
+              <p>Hyderabad � Sep 08</p>
+              <button type="button" class="register-event-btn">Register Now</button>
+            </div>
+          </article>
+
+          <article class="browse-card" data-category="sports" data-event-id="morning-marathon" data-event-name="Morning Marathon" data-event-date="September 10, 2026" data-event-time="06:00 AM" data-location="Chennai Marina Track" data-price="Rs 499" data-ticket-type="Runner Pass" data-seat-info="Bib Collection On Site" data-organizer-phone="+91 98765 21006" data-search="Morning Marathon Chennai sports fitness running outdoor">
+            <img src="https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=900&q=80" alt="Morning Marathon">
+            <div class="browse-info">
+              <span class="browse-badge">Sports</span>
+              <h4>Morning Marathon</h4>
+              <p>06:00 AM</p>
+              <p>Rs 499</p>
+              <p>Chennai � Sep 10</p>
+              <button type="button" class="register-event-btn">Register Now</button>
+            </div>
+          </article>
+
+          <article class="browse-card" data-category="business" data-event-id="founder-networking-mixer" data-event-name="Founder Networking Mixer" data-event-date="September 12, 2026" data-event-time="06:30 PM" data-location="Gurgaon Startup Lounge" data-price="Rs 1,099" data-ticket-type="Networking Pass" data-seat-info="Open Networking Floor" data-organizer-phone="+91 98765 21007" data-search="Founder Networking Mixer Gurgaon investors startup business professional">
+            <img src="https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=900&q=80" alt="Founder Networking Mixer">
+            <div class="browse-info">
+              <span class="browse-badge">Business</span>
+              <h4>Founder Networking Mixer</h4>
+              <p>06:30 PM</p>
+              <p>Rs 1,099</p>
+              <p>Gurgaon � Sep 12</p>
+              <button type="button" class="register-event-btn">Register Now</button>
+            </div>
+          </article>
+
+          <article class="browse-card" data-category="music" data-event-id="classical-fusion-evening" data-event-name="Classical Fusion Evening" data-event-date="September 15, 2026" data-event-time="07:30 PM" data-location="Kolkata Grand Theatre" data-price="Rs 1,199" data-ticket-type="Evening Pass" data-seat-info="Balcony Seating" data-organizer-phone="+91 98765 21008" data-search="Classical Fusion Evening Kolkata orchestra stage performance music">
+            <img src="https://images.unsplash.com/photo-1507838153414-b4b713384a76?auto=format&fit=crop&w=900&q=80" alt="Classical Fusion Evening">
+            <div class="browse-info">
+              <span class="browse-badge">Music</span>
+              <h4>Classical Fusion Evening</h4>
+              <p>07:30 PM</p>
+              <p>Rs 1,199</p>
+              <p>Kolkata � Sep 15</p>
+              <button type="button" class="register-event-btn">Register Now</button>
+            </div>
+          </article>
+        </div>
+
+        <div class="browse-empty-state" id="browseEmptyState" hidden>
+          <i class="fa-regular fa-face-frown"></i>
+          <h4>No events found</h4>
+          <p>Try a different keyword or switch to another category.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="register-modal" id="registerModal" hidden>
+  <div class="register-modal-backdrop" id="registerModalBackdrop"></div>
+  <div class="register-modal-card" role="dialog" aria-modal="true" aria-labelledby="registerModalTitle">
+    <button type="button" class="register-modal-close" id="registerModalClose" aria-label="Close registration form">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <div class="register-modal-layout">
+      <section class="register-modal-summary">
+        <span class="register-modal-badge" id="registerModalCategory">Event</span>
+        <h3 id="registerModalTitle">Register for Event</h3>
+        <img src="" alt="" id="registerModalImage">
+        <div class="register-modal-details">
+          <div>
+            <span>Date</span>
+            <strong id="registerModalDate">-</strong>
+          </div>
+          <div>
+            <span>Time</span>
+            <strong id="registerModalTime">-</strong>
+          </div>
+          <div>
+            <span>Location</span>
+            <strong id="registerModalLocation">-</strong>
+          </div>
+          <div>
+            <span>Price</span>
+            <strong id="registerModalPrice">-</strong>
+          </div>
+          <div>
+            <span>Ticket</span>
+            <strong id="registerModalTicketType">-</strong>
+          </div>
+          <div>
+            <span>Seat Info</span>
+            <strong id="registerModalSeatInfo">-</strong>
+          </div>
+          <div>
+            <span>Organizer Contact</span>
+            <strong id="registerModalOrganizerPhone">-</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="register-modal-form-wrap">
+        <div class="register-modal-copy">
+          <h4>Registration Form</h4>
+          <p>Confirm your event details and reserve your pass.</p>
+        </div>
+        <form class="register-form" id="registerEventForm">
+          <input type="hidden" name="eventId" id="registerEventId">
+          <div class="register-form-grid">
+            <label>
+              <span>Full Name</span>
+              <input type="text" name="attendeeName" id="registerAttendeeName" placeholder="Enter your full name" required>
+            </label>
+            <label>
+              <span>Email Address</span>
+              <input type="email" name="attendeeEmail" id="registerAttendeeEmail" placeholder="Enter your email" required>
+            </label>
+            <label>
+              <span>Phone Number</span>
+              <input type="tel" name="attendeePhone" id="registerAttendeePhone" placeholder="Enter your phone number" required>
+            </label>
+            <label>
+              <span>Ticket Type</span>
+              <select name="ticketType" id="registerTicketTypeField" required>
+                <option value="">Select ticket type</option>
+              </select>
+            </label>
+            <label>
+              <span>Number of Tickets</span>
+              <select name="ticketCount" id="registerTicketCount">
+                <option value="1">1 Ticket</option>
+                <option value="2">2 Tickets</option>
+                <option value="3">3 Tickets</option>
+                <option value="4">4 Tickets</option>
+              </select>
+            </label>
+            <label>
+              <span>City</span>
+              <input type="text" name="city" id="registerCity" placeholder="Enter your city" required>
+            </label>
+            <label>
+              <span>Payment Method</span>
+              <select name="paymentMethod" id="registerPaymentMethod" required>
+                <option value="">Choose payment method</option>
+                <option value="upi">UPI</option>
+                <option value="card">Credit / Debit Card</option>
+                <option value="netbanking">Net Banking</option>
+                <option value="wallet">Wallet</option>
+                <option value="cash">Cash at Venue</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            <span>Address</span>
+            <textarea name="address" id="registerAddress" rows="3" placeholder="Enter your address" required></textarea>
+          </label>
+          <label>
+            <span>Special Request</span>
+            <textarea name="specialRequest" id="registerSpecialRequest" rows="4" placeholder="Accessibility, seating preference, or other note"></textarea>
+          </label>
+          <label class="register-consent">
+            <input type="checkbox" id="registerConsent" name="consentAccepted" required>
+            <span>I confirm the event details and agree to proceed with registration.</span>
+          </label>
+          <p class="register-form-status" id="registerFormStatus" hidden></p>
+          <div class="register-form-actions">
+            <button type="button" class="register-cancel-btn" id="registerCancelBtn">Cancel</button>
+            <button type="submit" class="register-submit-btn" id="registerSubmitBtn">Confirm Registration</button>
+          </div>
+        </form>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script src="user.js"></script>
+</body>
+</html>
+
