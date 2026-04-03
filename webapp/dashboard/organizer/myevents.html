@@ -19,12 +19,12 @@
       <li>
         <a href="/assets/dashboard/organizer/create.html"><i class="fa-solid fa-plus"></i>Create Event</a>
       </li>
-      <li><i class="fa-solid fa-ticket"></i>Ticket Sales</li>
+      <li><a href="/assets/dashboard/organizer/analytics.html"><i class="fa-solid fa-chart-line"></i>View Analytics</a></li>
       <li class="active">
         <a href="/assets/dashboard/organizer/myevents.html"><i class="fa-solid fa-chart-column"></i>My Events</a>
       </li>
       <li><a href="/assets/dashboard/organizer/manageusers.html"><i class="fa-solid fa-users"></i>Manage User</a></li>
-      <li><i class="fa-regular fa-calendar-days"></i>Calendar</li>
+      <li><a href="/assets/dashboard/organizer/calendar.html"><i class="fa-regular fa-calendar-days"></i>Calendar</a></li>
       <li>
         <a href="/assets/dashboard/organizer/profile.html"><i class="fa-regular fa-circle-user"></i>My Profile</a>
       </li>
@@ -56,11 +56,11 @@
       <div class="top-actions">
         <input type="text" placeholder="Search events..." class="searchbox" id="organizerEventsSearch">
         <button class="primary-btn" onclick="window.location.href='/assets/dashboard/organizer/create.html'">Create Event</button>
-        <img class="avatar" src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar>
+        <img class="avatar topbar-profile-link" src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar onclick="window.location.href='/assets/dashboard/organizer/profile.html'">
       </div>
     </header>
 
-    <section class="content">
+    <section class="content organizer-events-content">
       <div class="card large">
         <div class="tickets-results-head">
           <h3 id="organizerEventsHeading">Created Events</h3>
@@ -160,7 +160,10 @@
           <div><span>Occupancy</span><strong id="organizerEventDetailOccupancy">0%</strong></div>
         </div>
         <p id="organizerEventDetailDescription" class="meta"></p>
-        <button type="button" class="logout-confirm-btn" id="organizerEventDetailCancelBtn">Cancel This Event</button>
+        <div class="logout-modal-actions organizer-event-detail-actions">
+          <button type="button" class="logout-confirm-btn" id="organizerEventDetailPublishBtn" hidden>Publish Event</button>
+          <button type="button" class="logout-confirm-btn" id="organizerEventDetailCancelBtn">Cancel This Event</button>
+        </div>
       </section>
 
       <section class="organizer-event-detail-attendees">
@@ -182,3 +185,4 @@
 <script src="/assets/dashboard/organizer/organizer.js"></script>
 </body>
 </html>
+

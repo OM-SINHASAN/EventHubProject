@@ -153,8 +153,39 @@ def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
 
+def ensure_admin_account(cursor) -> None:
+    admin_email = "admin2006@gmail.com"
+    admin_password_hash = hash_password("Admin@2006")
+    admin_name = "EventHub Admin"
+
+    cursor.execute("SELECT 1 FROM users WHERE email = %s", (admin_email,))
+    if cursor.fetchone() is not None:
+        cursor.execute(
+            """
+            UPDATE users
+            SET name = %s, password = %s, role = 'admin', admin_status = 'active'
+            WHERE email = %s
+            """,
+            (admin_name, admin_password_hash, admin_email),
+        )
+        return
+
+    cursor.execute(
+        """
+        INSERT INTO users(name, email, password, role, admin_status)
+        VALUES(%s, %s, %s, 'admin', 'active')
+        """,
+        (admin_name, admin_email, admin_password_hash),
+    )
+
+
 def get_connection():
     return mysql.connector.connect(**DB_CONFIG)
+
+
+def normalize_admin_status(value: object) -> str:
+    status = str(value or "active").strip().lower()
+    return status if status in {"active", "warned", "suspended", "removed"} else "active"
 
 
 def send_contact_email(name: str, email: str, message: str) -> None:
@@ -345,7 +376,7 @@ def organizer_events_for_email(organizer_email: str) -> list[dict[str, object]]:
                 LEFT JOIN (
                     SELECT organizer_event_id, COUNT(*) AS attendee_count
                     FROM organizer_event_attendees
-                    WHERE attendee_status = 'active'
+                    WHERE attendee_status IN ('active', 'approved')
                     GROUP BY organizer_event_id
                 ) AS a ON a.organizer_event_id = e.id
                 WHERE e.organizer_email = %s
@@ -403,7 +434,12 @@ def organizer_dashboard_payload(user_name: str, organizer_email: str) -> dict[st
     managed_events = organizer_events_for_email(organizer_email)
     active_events = [event for event in managed_events if event["status"] not in {"completed", "cancelled"}]
     completed_events = [event for event in managed_events if event["status"] == "completed"]
-    total_revenue = sum(int(event.get("_priceAmount", 0)) for event in managed_events)
+    total_revenue = sum(
+        0
+        if str(event.get("ticketPricingMode", "")).lower() == "free"
+        else int(event.get("_priceAmount", 0)) * int(event.get("attendeeCount", 0))
+        for event in managed_events
+    )
     total_attendees = sum(int(event.get("attendeeCount", 0)) for event in managed_events)
     total_capacity = sum(int(event.get("capacity", 0)) for event in managed_events)
     checkin_rate = f"{int(round((total_attendees / total_capacity) * 100))}%" if total_capacity > 0 else "0%"
@@ -474,11 +510,42 @@ def organizer_event_detail_for_owner(organizer_email: str, event_id: int) -> dic
             if event_row is None:
                 return None
 
+    sync_registration_attendees_for_event(event_id)
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    id,
+                    title,
+                    category,
+                    event_date,
+                    event_time,
+                    venue,
+                    ticket_price,
+                    capacity,
+                    event_status,
+                    event_mode,
+                    ticket_pricing_mode,
+                    description,
+                    poster_url,
+                    created_at
+                FROM organizer_events
+                WHERE id = %s AND organizer_email = %s
+                """,
+                (event_id, organizer_email),
+            )
+            event_row = cursor.fetchone()
+
+            if event_row is None:
+                return None
+
             cursor.execute(
                 """
                 SELECT id, attendee_name, attendee_email, attendee_phone, created_at
                 FROM organizer_event_attendees
-                WHERE organizer_event_id = %s AND attendee_status = 'active'
+                WHERE organizer_event_id = %s AND attendee_status IN ('active', 'approved')
                 ORDER BY created_at DESC
                 """,
                 (event_id,),
@@ -536,6 +603,265 @@ def organizer_event_detail_for_owner(organizer_email: str, event_id: int) -> dic
         "occupancyPercent": occupancy_percent,
         "attendees": attendees,
     }
+
+
+def admin_organizer_summaries() -> list[dict[str, object]]:
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    u.name,
+                    u.email,
+                    COALESCE(u.phone, '') AS phone,
+                    COALESCE(u.bio, '') AS bio,
+                    COALESCE(u.profile_image, '') AS profile_image,
+                    COALESCE(u.admin_status, 'active') AS admin_status,
+                    COALESCE(u.admin_warning_count, 0) AS admin_warning_count,
+                    COALESCE(u.admin_note, '') AS admin_note,
+                    u.created_at,
+                    COUNT(DISTINCT e.id) AS event_count,
+                    COALESCE(SUM(CASE WHEN e.event_status NOT IN ('completed', 'cancelled') THEN 1 ELSE 0 END), 0) AS active_event_count,
+                    COALESCE(SUM(COALESCE(a.attendee_count, 0)), 0) AS total_attendees,
+                    COALESCE(SUM(CASE WHEN e.ticket_pricing_mode = 'free' THEN 0 ELSE COALESCE(e.ticket_price, 0) * COALESCE(a.attendee_count, 0) END), 0) AS total_revenue
+                FROM users AS u
+                LEFT JOIN organizer_events AS e ON e.organizer_email = u.email
+                LEFT JOIN (
+                    SELECT organizer_event_id, COUNT(*) AS attendee_count
+                    FROM organizer_event_attendees
+                    WHERE attendee_status IN ('active', 'approved')
+                    GROUP BY organizer_event_id
+                ) AS a ON a.organizer_event_id = e.id
+                WHERE u.role = 'organizer'
+                GROUP BY
+                    u.id,
+                    u.name,
+                    u.email,
+                    u.phone,
+                    u.bio,
+                    u.profile_image,
+                    u.admin_status,
+                    u.admin_warning_count,
+                    u.admin_note,
+                    u.created_at
+                ORDER BY u.created_at DESC
+                """
+            )
+            rows = cursor.fetchall()
+
+    organizers: list[dict[str, object]] = []
+    for row in rows:
+        (
+            name,
+            email,
+            phone,
+            bio,
+            profile_image,
+            admin_status,
+            admin_warning_count,
+            admin_note,
+            created_at,
+            event_count,
+            active_event_count,
+            total_attendees,
+            total_revenue,
+        ) = row
+        events = organizer_events_for_email(str(email or ""))
+        organizers.append(
+            {
+                "name": str(name or "Organizer"),
+                "email": str(email or ""),
+                "phone": str(phone or ""),
+                "bio": str(bio or ""),
+                "profileImage": str(profile_image or "/assets/dashboard/images/logo1.png"),
+                "status": normalize_admin_status(admin_status),
+                "warningCount": int(admin_warning_count or 0),
+                "adminNote": str(admin_note or ""),
+                "createdAt": created_at.isoformat() if created_at else "",
+                "eventCount": int(event_count or 0),
+                "activeEvents": int(active_event_count or 0),
+                "totalAttendees": int(total_attendees or 0),
+                "totalRevenue": int(total_revenue or 0),
+                "events": [{key: value for key, value in event.items() if not key.startswith("_")} for event in events[:3]],
+            }
+        )
+
+    return organizers
+
+
+def admin_organizer_detail(email: str) -> dict[str, object] | None:
+    normalized_email = str(email or "").strip().lower()
+    if not normalized_email:
+        return None
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    name,
+                    email,
+                    COALESCE(phone, '') AS phone,
+                    COALESCE(bio, '') AS bio,
+                    COALESCE(profile_image, '') AS profile_image,
+                    COALESCE(admin_status, 'active') AS admin_status,
+                    COALESCE(admin_warning_count, 0) AS admin_warning_count,
+                    COALESCE(admin_note, '') AS admin_note,
+                    created_at
+                FROM users
+                WHERE email = %s AND role = 'organizer'
+                """,
+                (normalized_email,),
+            )
+            row = cursor.fetchone()
+
+    if row is None:
+        return None
+
+    name, organizer_email, phone, bio, profile_image, admin_status, admin_warning_count, admin_note, created_at = row
+    events = organizer_events_for_email(normalized_email)
+    total_attendees = sum(int(event.get("attendeeCount", 0)) for event in events)
+    total_revenue = sum(
+        0
+        if str(event.get("ticketPricingMode", "")).lower() == "free"
+        else int(event.get("_priceAmount", 0)) * int(event.get("attendeeCount", 0))
+        for event in events
+    )
+    active_events = [event for event in events if str(event.get("status", "")).lower() not in {"completed", "cancelled"}]
+
+    return {
+        "name": str(name or "Organizer"),
+        "email": str(organizer_email or ""),
+        "phone": str(phone or ""),
+        "bio": str(bio or ""),
+        "profileImage": str(profile_image or "/assets/dashboard/images/logo1.png"),
+        "status": normalize_admin_status(admin_status),
+        "warningCount": int(admin_warning_count or 0),
+        "adminNote": str(admin_note or ""),
+        "createdAt": created_at.isoformat() if created_at else "",
+        "stats": {
+            "eventsCreated": len(events),
+            "activeEvents": len(active_events),
+            "attendees": total_attendees,
+            "revenue": total_revenue,
+        },
+        "events": [{key: value for key, value in event.items() if not key.startswith("_")} for event in events],
+    }
+
+
+def admin_user_summaries() -> list[dict[str, object]]:
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    name,
+                    email,
+                    COALESCE(profile_image, '') AS profile_image,
+                    COALESCE(admin_status, 'active') AS admin_status,
+                    COALESCE(admin_warning_count, 0) AS admin_warning_count,
+                    created_at
+                FROM users
+                WHERE role = 'user'
+                ORDER BY created_at DESC
+                """
+            )
+            rows = cursor.fetchall()
+
+    users: list[dict[str, object]] = []
+    for row in rows:
+        name, email, profile_image, admin_status, admin_warning_count, created_at = row
+        user = {
+            "name": str(name or "User"),
+            "email": str(email or ""),
+            "role": "user",
+        }
+        bookings = booking_records_for_user(user)
+        active_bookings = [booking for booking in bookings if booking["bookingStatus"] == "active"]
+        total_spend = sum(int("".join(char for char in str(booking.get("bookingPrice", "")) if char.isdigit()) or 0) for booking in active_bookings)
+        latest_city = str(active_bookings[0].get("city", "") or "") if active_bookings else ""
+
+        users.append(
+            {
+                "name": user["name"],
+                "email": user["email"],
+                "profileImage": str(profile_image or "/assets/dashboard/images/logo1.png"),
+                "status": normalize_admin_status(admin_status),
+                "warningCount": int(admin_warning_count or 0),
+                "joinedOn": created_at.isoformat() if created_at else "",
+                "city": latest_city or "N/A",
+                "tickets": len(active_bookings),
+                "totalSpend": total_spend,
+                "upcomingEvents": len(active_bookings),
+            }
+        )
+
+    return users
+
+
+def admin_user_detail(email: str) -> dict[str, object] | None:
+    profile = user_profile_for_email(str(email or "").strip().lower())
+    if profile is None or str(profile.get("role", "")).strip().lower() != "user":
+        return None
+
+    user = {
+        "name": str(profile.get("name", "") or "User"),
+        "email": str(profile.get("email", "") or ""),
+        "role": "user",
+    }
+    bookings = booking_records_for_user(user)
+    active_bookings = [booking for booking in bookings if str(booking.get("bookingStatus", "")).lower() == "active"]
+    cancelled_bookings = [booking for booking in bookings if str(booking.get("bookingStatus", "")).lower() == "cancelled"]
+    tickets = registered_tickets_for_user(user)
+    attended_events = sum(1 for ticket in tickets if str(ticket.get("status", "")).lower() == "used")
+    upcoming_events = sum(1 for ticket in tickets if str(ticket.get("status", "")).lower() != "used")
+    total_spend = sum(parse_currency_amount(str(booking.get("bookingPrice", ""))) for booking in active_bookings)
+    latest_booking = active_bookings[0] if active_bookings else (cancelled_bookings[0] if cancelled_bookings else None)
+    latest_city = str((latest_booking or {}).get("city", "") or "N/A")
+
+    return {
+        "name": user["name"],
+        "email": user["email"],
+        "phone": str(profile.get("phone", "") or ""),
+        "bio": str(profile.get("bio", "") or ""),
+        "profileImage": str(profile.get("profile_image", "") or "/assets/dashboard/images/logo1.png"),
+        "status": normalize_admin_status(profile.get("admin_status")),
+        "warningCount": int(profile.get("admin_warning_count", 0) or 0),
+        "adminNote": str(profile.get("admin_note", "") or ""),
+        "joinedOn": str(profile.get("created_at", "") or ""),
+        "city": latest_city,
+        "stats": {
+            "tickets": len(active_bookings),
+            "upcomingEvents": upcoming_events,
+            "attendedEvents": attended_events,
+            "cancelledBookings": len(cancelled_bookings),
+            "totalSpend": total_spend,
+        },
+        "bookings": bookings,
+    }
+
+
+def admin_browse_events() -> list[dict[str, object]]:
+    now = datetime.now().date()
+    events: list[dict[str, object]] = []
+
+    for event in public_event_catalog():
+        event_copy: dict[str, object] = dict(event)
+        event_date_raw = str(event_copy.get("eventDate", "") or "")
+
+        try:
+            event_date = datetime.strptime(event_date_raw, "%B %d, %Y").date()
+            is_upcoming = event_date >= now
+        except ValueError:
+            is_upcoming = str(event_copy.get("status", "")).lower() == "upcoming"
+
+        if not is_upcoming:
+            continue
+
+        event_copy["isUpcoming"] = True
+        events.append(event_copy)
+
+    return events
 
 
 def organizer_public_events() -> list[dict[str, str]]:
@@ -600,7 +926,7 @@ def organizer_public_events() -> list[dict[str, str]]:
 
         events.append(
             {
-                "id": f"org-{int(event_id)}",
+                "id": build_public_organizer_event_id(int(event_id)),
                 "eventName": str(title or "Untitled Event"),
                 "eventDate": event_date_label,
                 "eventTime": event_time_label,
@@ -629,10 +955,14 @@ def get_event_by_id(event_id: str) -> dict[str, str] | None:
     return None
 
 
+def build_registered_ticket_code(event_id: str, user_name: str) -> str:
+    digest = hashlib.sha256(f"{str(user_name or '').strip()}:{str(event_id or '').strip()}".encode("utf-8")).hexdigest()[:8].upper()
+    return f"EH-{digest}"
+
+
 def build_registered_ticket(event: dict[str, str], user_name: str) -> dict[str, str]:
     ticket = {key: value for key, value in event.items() if key != "id" and key != "category"}
-    digest = hashlib.sha256(f"{user_name}:{event['id']}".encode("utf-8")).hexdigest()[:8].upper()
-    ticket["ticketCode"] = f"EH-{digest}"
+    ticket["ticketCode"] = build_registered_ticket_code(event["id"], user_name)
     ticket["owner"] = user_name
     return ticket
 
@@ -662,6 +992,232 @@ def calculate_booking_price(event_price: str, ticket_type: str, ticket_count: in
 
 def build_organizer_ticket_id(event_id: int) -> str:
     return f"EH-{event_id}-{secrets.token_hex(4).upper()}"
+
+
+def build_public_organizer_event_id(event_id: int) -> str:
+    return f"org-{int(event_id)}"
+
+
+def parse_organizer_event_id(event_id: str) -> int | None:
+    raw_value = str(event_id or "").strip().lower()
+    if raw_value.startswith("org-"):
+        raw_value = raw_value[4:]
+    try:
+        parsed = int(raw_value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed > 0 else None
+
+
+def build_registration_attendee_ticket_id(event_id: int, user_email: str) -> str:
+    digest = hashlib.sha256(f"{event_id}:{str(user_email or '').strip().lower()}".encode("utf-8")).hexdigest()[:10].upper()
+    return f"EH-REG-{digest}"
+
+
+def get_user_name_by_email(cursor, user_email: str) -> str:
+    cursor.execute(
+        "SELECT name FROM users WHERE email = %s",
+        (str(user_email or "").strip().lower(),),
+    )
+    row = cursor.fetchone()
+    return str(row[0] or "").strip() if row else ""
+
+
+def sync_registration_attendee(
+    cursor,
+    user_email: str,
+    event_id: str,
+    attendee_name: str,
+    attendee_email: str,
+    attendee_phone: str,
+    ticket_type: str,
+    ticket_count: int,
+    booking_status: str = "active",
+) -> None:
+    resolved_event_id = str(event_id or "").strip()
+    organizer_event_id = parse_organizer_event_id(resolved_event_id)
+    if organizer_event_id is None:
+        return
+
+    cursor.execute(
+        "SELECT 1 FROM organizer_events WHERE id = %s",
+        (organizer_event_id,),
+    )
+    if cursor.fetchone() is None:
+        return
+
+    normalized_user_email = str(user_email or "").strip().lower()
+    normalized_attendee_email = str(attendee_email or "").strip().lower()
+    normalized_status = str(booking_status or "active").strip().lower()
+    ticket_owner_name = get_user_name_by_email(cursor, normalized_user_email) or attendee_name or normalized_user_email
+
+    cursor.execute(
+        """
+        UPDATE organizer_event_attendees
+        SET attendee_status = 'removed'
+        WHERE organizer_event_id = %s
+          AND attendee_source = 'registration'
+          AND user_email = %s
+        """,
+        (organizer_event_id, normalized_user_email),
+    )
+
+    if normalized_status != "active":
+        return
+
+    cursor.execute(
+        """
+        INSERT INTO organizer_event_attendees(
+            organizer_event_id,
+            attendee_name,
+            attendee_email,
+            attendee_phone,
+            attendee_status,
+            ticket_type,
+            ticket_count,
+            ticket_id,
+            attendee_source,
+            user_email
+        )
+        VALUES(%s, %s, %s, %s, 'active', %s, %s, %s, 'registration', %s)
+        ON DUPLICATE KEY UPDATE
+            attendee_name = VALUES(attendee_name),
+            attendee_phone = VALUES(attendee_phone),
+            attendee_status = 'active',
+            ticket_type = VALUES(ticket_type),
+            ticket_count = VALUES(ticket_count),
+            ticket_id = VALUES(ticket_id),
+            attendee_source = 'registration',
+            user_email = VALUES(user_email)
+        """,
+        (
+            organizer_event_id,
+            attendee_name,
+            normalized_attendee_email,
+            attendee_phone,
+            ticket_type or "Entry Pass",
+            max(int(ticket_count or 1), 1),
+            build_registered_ticket_code(resolved_event_id, ticket_owner_name),
+            normalized_user_email,
+        ),
+    )
+
+
+def sync_registration_attendees_for_event(organizer_event_id: int) -> None:
+    has_booking_status = table_has_column("user_event_registrations", "booking_status")
+    public_event_id = build_public_organizer_event_id(organizer_event_id)
+    booking_status_select = "booking_status" if has_booking_status else "'active'"
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE organizer_event_attendees
+                SET attendee_status = 'removed'
+                WHERE organizer_event_id = %s
+                  AND attendee_source = 'registration'
+                """,
+                (organizer_event_id,),
+            )
+
+            cursor.execute(
+                f"""
+                SELECT
+                    user_email,
+                    event_id,
+                    attendee_name,
+                    attendee_email,
+                    attendee_phone,
+                    ticket_type,
+                    ticket_count,
+                    {booking_status_select} AS booking_status
+                FROM user_event_registrations
+                WHERE event_id IN (%s, %s)
+                ORDER BY registered_at DESC
+                """,
+                (str(organizer_event_id), public_event_id),
+            )
+            rows = cursor.fetchall()
+
+            for row in rows:
+                sync_registration_attendee(
+                    cursor,
+                    str(row[0] or ""),
+                    str(row[1] or ""),
+                    str(row[2] or ""),
+                    str(row[3] or ""),
+                    str(row[4] or ""),
+                    str(row[5] or "Entry Pass"),
+                    int(row[6] or 1),
+                    str(row[7] or "active"),
+                )
+
+        connection.commit()
+
+
+def sync_registration_attendees_for_organizer(organizer_email: str) -> None:
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT id
+                FROM organizer_events
+                WHERE organizer_email = %s
+                ORDER BY created_at DESC
+                """,
+                (organizer_email,),
+            )
+            event_ids = [int(row[0]) for row in cursor.fetchall() if row and row[0]]
+
+    for event_id in event_ids:
+        sync_registration_attendees_for_event(event_id)
+
+
+def sync_existing_registration_attendees() -> None:
+    has_booking_status = table_has_column("user_event_registrations", "booking_status")
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE organizer_event_attendees
+                SET attendee_status = 'removed'
+                WHERE attendee_source = 'registration'
+                """
+            )
+
+            booking_status_select = "booking_status" if has_booking_status else "'active'"
+            cursor.execute(
+                f"""
+                SELECT
+                    user_email,
+                    event_id,
+                    attendee_name,
+                    attendee_email,
+                    attendee_phone,
+                    ticket_type,
+                    ticket_count,
+                    {booking_status_select} AS booking_status
+                FROM user_event_registrations
+                ORDER BY registered_at DESC
+                """
+            )
+            rows = cursor.fetchall()
+
+            for row in rows:
+                sync_registration_attendee(
+                    cursor,
+                    str(row[0] or ""),
+                    str(row[1] or ""),
+                    str(row[2] or ""),
+                    str(row[3] or ""),
+                    str(row[4] or ""),
+                    str(row[5] or "Entry Pass"),
+                    int(row[6] or 1),
+                    str(row[7] or "active"),
+                )
+
+        connection.commit()
 
 
 def upcoming_catalog_events() -> list[dict[str, str]]:
@@ -836,7 +1392,7 @@ def booking_records_for_user(user: dict[str, str]) -> list[dict[str, object]]:
     return bookings
 
 
-def user_profile_for_email(user_email: str) -> dict[str, str] | None:
+def user_profile_for_email(user_email: str) -> dict[str, object] | None:
     has_phone = table_has_column("users", "phone")
     has_bio = table_has_column("users", "bio")
     has_profile_image = table_has_column("users", "profile_image")
@@ -848,7 +1404,17 @@ def user_profile_for_email(user_email: str) -> dict[str, str] | None:
         with connection.cursor() as cursor:
             cursor.execute(
                 f"""
-                SELECT name, email, role, {phone_select} AS phone, {bio_select} AS bio, {profile_image_select} AS profile_image
+                SELECT
+                    name,
+                    email,
+                    role,
+                    {phone_select} AS phone,
+                    {bio_select} AS bio,
+                    {profile_image_select} AS profile_image,
+                    COALESCE(admin_status, 'active') AS admin_status,
+                    COALESCE(admin_warning_count, 0) AS admin_warning_count,
+                    COALESCE(admin_note, '') AS admin_note,
+                    created_at
                 FROM users
                 WHERE email = %s
                 """,
@@ -859,7 +1425,7 @@ def user_profile_for_email(user_email: str) -> dict[str, str] | None:
     if row is None:
         return None
 
-    name, email, role, phone, bio, profile_image = row
+    name, email, role, phone, bio, profile_image, admin_status, admin_warning_count, admin_note, created_at = row
     return {
         "name": str(name or ""),
         "email": str(email or ""),
@@ -867,6 +1433,10 @@ def user_profile_for_email(user_email: str) -> dict[str, str] | None:
         "phone": str(phone or ""),
         "bio": str(bio or ""),
         "profile_image": str(profile_image or ""),
+        "admin_status": normalize_admin_status(admin_status),
+        "admin_warning_count": int(admin_warning_count or 0),
+        "admin_note": str(admin_note or ""),
+        "created_at": created_at.isoformat() if created_at else "",
     }
 
 
@@ -917,16 +1487,29 @@ def init_db() -> None:
                     name VARCHAR(255) NOT NULL,
                     email VARCHAR(255) NOT NULL UNIQUE,
                     password VARCHAR(255) NOT NULL,
-                    role ENUM('user', 'organizer') NOT NULL,
+                    role ENUM('user', 'organizer', 'admin') NOT NULL,
+                    admin_status VARCHAR(20) NOT NULL DEFAULT 'active',
+                    admin_warning_count INT NOT NULL DEFAULT 0,
+                    admin_note TEXT NULL,
                     phone VARCHAR(40) NOT NULL DEFAULT '',
                     bio TEXT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
                 """
             )
+            cursor.execute(
+                """
+                ALTER TABLE users
+                MODIFY COLUMN role ENUM('user', 'organizer', 'admin') NOT NULL
+                """
+            )
+            add_column_if_missing(cursor, "users", "admin_status", "VARCHAR(20) NOT NULL DEFAULT 'active'")
+            add_column_if_missing(cursor, "users", "admin_warning_count", "INT NOT NULL DEFAULT 0")
+            add_column_if_missing(cursor, "users", "admin_note", "TEXT NULL")
             add_column_if_missing(cursor, "users", "phone", "VARCHAR(40) NOT NULL DEFAULT ''")
             add_column_if_missing(cursor, "users", "bio", "TEXT NULL")
             add_column_if_missing(cursor, "users", "profile_image", "VARCHAR(500) DEFAULT NULL")
+            add_column_if_missing(cursor, "users", "created_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS user_event_registrations (
@@ -1009,6 +1592,8 @@ def init_db() -> None:
                     attendee_email VARCHAR(255) NOT NULL,
                     attendee_phone VARCHAR(50) NOT NULL DEFAULT '',
                     attendee_status VARCHAR(20) NOT NULL DEFAULT 'active',
+                    attendee_source VARCHAR(20) NOT NULL DEFAULT 'organizer',
+                    user_email VARCHAR(255) NOT NULL DEFAULT '',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     UNIQUE KEY unique_event_attendee_email (organizer_event_id, attendee_email),
                     KEY idx_organizer_event_id (organizer_event_id)
@@ -1020,7 +1605,11 @@ def init_db() -> None:
             add_column_if_missing(cursor, "organizer_event_attendees", "ticket_type", "VARCHAR(100) NOT NULL DEFAULT 'Entry Pass'")
             add_column_if_missing(cursor, "organizer_event_attendees", "ticket_count", "INT NOT NULL DEFAULT 1")
             add_column_if_missing(cursor, "organizer_event_attendees", "ticket_id", "VARCHAR(120) NOT NULL DEFAULT ''")
+            add_column_if_missing(cursor, "organizer_event_attendees", "attendee_source", "VARCHAR(20) NOT NULL DEFAULT 'organizer'")
+            add_column_if_missing(cursor, "organizer_event_attendees", "user_email", "VARCHAR(255) NOT NULL DEFAULT ''")
+            ensure_admin_account(cursor)
         connection.commit()
+    sync_existing_registration_attendees()
 
 
 def render_template(relative_path: str, context: dict[str, str] | None = None) -> bytes:
@@ -1067,12 +1656,34 @@ class EventHubHandler(BaseHTTPRequestHandler):
             user = self.require_session()
             if user is None:
                 return
+            if user["role"] == "organizer":
+                self.redirect("/dashboard/organizer")
+                return
+            if user["role"] == "admin":
+                self.redirect("/dashboard/admin")
+                return
             self.serve_html("dashboard/user/user.html")
+            return
+
+        if path == "/dashboard/admin":
+            user = self.require_session()
+            if user is None:
+                return
+            if user["role"] != "admin":
+                if user["role"] == "organizer":
+                    self.redirect("/dashboard/organizer")
+                    return
+                self.redirect("/dashboard/user")
+                return
+            self.serve_html("dashboard/admin/admin.html")
             return
 
         if path == "/dashboard/organizer":
             user = self.require_session()
             if user is None:
+                return
+            if user["role"] == "admin":
+                self.redirect("/dashboard/admin")
                 return
             if user["role"] != "organizer":
                 self.redirect("/dashboard/user")
@@ -1120,6 +1731,26 @@ class EventHubHandler(BaseHTTPRequestHandler):
 
         if path == "/organizerdashboardservlet":
             self.serve_organizer_dashboard_data()
+            return
+
+        if path == "/adminorganizersservlet":
+            self.serve_admin_organizers_data()
+            return
+
+        if path == "/adminorganizerdetailservlet":
+            self.serve_admin_organizer_detail(query)
+            return
+
+        if path == "/adminusersservlet":
+            self.serve_admin_users_data()
+            return
+
+        if path == "/adminuserdetailservlet":
+            self.serve_admin_user_detail(query)
+            return
+
+        if path == "/adminbrowseeventsservlet":
+            self.serve_admin_browse_events()
             return
 
         if path == "/organizereventsservlet":
@@ -1232,6 +1863,14 @@ class EventHubHandler(BaseHTTPRequestHandler):
             return
 
         if parsed.path in (
+            "/publish-organizer-event",
+            "/assets/publish-organizer-event",
+            "/assets/dashboard/organizer/publish-organizer-event",
+        ):
+            self.handle_organizer_event_publish()
+            return
+
+        if parsed.path in (
             "/organizer-event-attendee-add",
             "/assets/organizer-event-attendee-add",
             "/assets/dashboard/organizer/organizer-event-attendee-add",
@@ -1253,6 +1892,14 @@ class EventHubHandler(BaseHTTPRequestHandler):
             "/assets/dashboard/organizer/organizer-event-attendee-status",
         ):
             self.handle_organizer_event_attendee_status_update()
+            return
+
+        if parsed.path == "/admin-organizer-status":
+            self.handle_admin_organizer_status_update()
+            return
+
+        if parsed.path == "/admin-user-status":
+            self.handle_admin_user_status_update()
             return
 
         self.send_error(HTTPStatus.NOT_FOUND, "Page not found.")
@@ -1361,7 +2008,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
         with get_connection() as connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT name, role, password FROM users WHERE email = %s",
+                    "SELECT name, role, password, COALESCE(admin_status, 'active') FROM users WHERE email = %s",
                     (email,),
                 )
                 user = cursor.fetchone()
@@ -1370,11 +2017,22 @@ class EventHubHandler(BaseHTTPRequestHandler):
             self.redirect_with_query("/login", {"email": email, "error": "Invalid email or password."})
             return
 
-        name, role, stored_password = user
+        name, role, stored_password, admin_status = user
         hashed_password = hash_password(password)
 
         if hashed_password != stored_password and password != stored_password:
             self.redirect_with_query("/login", {"email": email, "error": "Invalid email or password."})
+            return
+
+        normalized_admin_status = normalize_admin_status(admin_status)
+        if role in {"user", "organizer"} and normalized_admin_status in {"suspended", "removed"}:
+            self.redirect_with_query(
+                "/login",
+                {
+                    "email": email,
+                    "error": "This account is currently unavailable. Please contact EventHub admin support.",
+                },
+            )
             return
 
         session_id = secrets.token_urlsafe(32)
@@ -1383,6 +2041,10 @@ class EventHubHandler(BaseHTTPRequestHandler):
             "email": email,
             "role": role,
         }
+
+        if role == "admin":
+            self.redirect("/dashboard/admin", cookie=f"session_id={session_id}; Path=/; HttpOnly; SameSite=Lax")
+            return
 
         if role == "organizer":
             self.redirect("/dashboard/organizer", cookie=f"session_id={session_id}; Path=/; HttpOnly; SameSite=Lax")
@@ -1434,10 +2096,39 @@ class EventHubHandler(BaseHTTPRequestHandler):
         if session_data is None:
             return None
 
+        session_email = str(session_data["email"]).strip().lower()
+
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT name, role, COALESCE(admin_status, 'active')
+                    FROM users
+                    WHERE email = %s
+                    """,
+                    (session_email,),
+                )
+                row = cursor.fetchone()
+
+        if row is None:
+            SESSIONS.pop(session.value, None)
+            return None
+
+        name, role, admin_status = row
+        normalized_role = str(role or "").strip().lower()
+        normalized_admin_status = normalize_admin_status(admin_status)
+
+        session_data["name"] = str(name or session_data["name"])
+        session_data["role"] = normalized_role
+
+        if normalized_role in {"user", "organizer"} and normalized_admin_status in {"suspended", "removed"}:
+            SESSIONS.pop(session.value, None)
+            return None
+
         return {
             "name": str(session_data["name"]),
-            "email": str(session_data["email"]),
-            "role": str(session_data["role"]),
+            "email": session_email,
+            "role": normalized_role,
         }
 
     def require_session(self) -> dict[str, str] | None:
@@ -1457,6 +2148,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
             self.send_json({"error": "Forbidden"}, HTTPStatus.FORBIDDEN)
             return
 
+        profile = user_profile_for_email(user["email"])
         tickets = registered_tickets_for_user(user)
         registered_upcoming_events = [ticket for ticket in tickets if ticket["status"] != "used"]
         upcoming_events = upcoming_catalog_events()
@@ -1479,6 +2171,9 @@ class EventHubHandler(BaseHTTPRequestHandler):
             "userName": user["name"],
             "userEmail": user["email"],
             "userRole": user["role"],
+            "adminStatus": str((profile or {}).get("admin_status", "active")),
+            "adminWarningCount": int((profile or {}).get("admin_warning_count", 0) or 0),
+            "adminNote": str((profile or {}).get("admin_note", "") or ""),
             "stats": {
                 "registeredEvents": len(registered_upcoming_events),
                 "ticketsPurchased": len(tickets),
@@ -1501,7 +2196,15 @@ class EventHubHandler(BaseHTTPRequestHandler):
             self.send_json({"error": "Forbidden"}, HTTPStatus.FORBIDDEN)
             return
 
-        self.send_json(organizer_dashboard_payload(user["name"], user["email"]))
+        sync_registration_attendees_for_organizer(user["email"])
+        profile = user_profile_for_email(user["email"])
+        payload = organizer_dashboard_payload(user["name"], user["email"])
+        payload["userEmail"] = user["email"]
+        payload["userRole"] = user["role"]
+        payload["adminStatus"] = str((profile or {}).get("admin_status", "active"))
+        payload["adminWarningCount"] = int((profile or {}).get("admin_warning_count", 0) or 0)
+        payload["adminNote"] = str((profile or {}).get("admin_note", "") or "")
+        self.send_json(payload)
 
     def serve_organizer_events_data(self) -> None:
         user = self.current_user()
@@ -1513,6 +2216,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
             self.send_json({"error": "Forbidden"}, HTTPStatus.FORBIDDEN)
             return
 
+        sync_registration_attendees_for_organizer(user["email"])
         events = organizer_events_for_email(user["email"])
         self.send_json(
             {
@@ -1587,15 +2291,22 @@ class EventHubHandler(BaseHTTPRequestHandler):
                     self.send_json({"error": "Event not found."}, HTTPStatus.NOT_FOUND)
                     return
 
+        sync_registration_attendees_for_event(event_id)
+
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
                 cursor.execute(
                     """
                     SELECT
                         id,
                         attendee_name,
+                        attendee_email,
+                        attendee_phone,
                         ticket_type,
                         ticket_count,
                         ticket_id,
-                        attendee_status
+                        attendee_status,
+                        attendee_source
                     FROM organizer_event_attendees
                     WHERE organizer_event_id = %s AND attendee_status <> 'removed'
                     ORDER BY created_at DESC
@@ -1608,10 +2319,13 @@ class EventHubHandler(BaseHTTPRequestHandler):
             {
                 "id": int(row[0]),
                 "name": str(row[1] or ""),
-                "ticketType": str(row[2] or "Entry Pass"),
-                "ticketCount": int(row[3] or 1),
-                "ticketId": str(row[4] or ""),
-                "status": str(row[5] or "active"),
+                "email": str(row[2] or ""),
+                "phone": str(row[3] or ""),
+                "ticketType": str(row[4] or "Entry Pass"),
+                "ticketCount": int(row[5] or 1),
+                "ticketId": str(row[6] or ""),
+                "status": str(row[7] or "active"),
+                "source": str(row[8] or "organizer"),
             }
             for row in attendee_rows
         ]
@@ -1622,6 +2336,119 @@ class EventHubHandler(BaseHTTPRequestHandler):
                 "eventName": str(event_row[0] or "Event"),
                 "attendees": attendees,
                 "totalAttendees": len(attendees),
+            }
+        )
+
+    def serve_admin_organizers_data(self) -> None:
+        user = self.current_user()
+        if user is None:
+            self.send_json({"error": "Unauthorized"}, HTTPStatus.UNAUTHORIZED)
+            return
+
+        if user["role"] != "admin":
+            self.send_json({"error": "Forbidden"}, HTTPStatus.FORBIDDEN)
+            return
+
+        organizers = admin_organizer_summaries()
+        self.send_json(
+            {
+                "userName": user["name"],
+                "userEmail": user["email"],
+                "userRole": user["role"],
+                "organizers": organizers,
+                "totalOrganizers": len(organizers),
+            }
+        )
+
+    def serve_admin_organizer_detail(self, query: dict[str, list[str]]) -> None:
+        user = self.current_user()
+        if user is None:
+            self.send_json({"error": "Unauthorized"}, HTTPStatus.UNAUTHORIZED)
+            return
+
+        if user["role"] != "admin":
+            self.send_json({"error": "Forbidden"}, HTTPStatus.FORBIDDEN)
+            return
+
+        organizer_email = self.query_value(query, "email").strip().lower()
+        organizer = admin_organizer_detail(organizer_email)
+        if organizer is None:
+            self.send_json({"error": "Organizer not found."}, HTTPStatus.NOT_FOUND)
+            return
+
+        self.send_json(
+            {
+                "userName": user["name"],
+                "userEmail": user["email"],
+                "userRole": user["role"],
+                "organizer": organizer,
+            }
+        )
+
+    def serve_admin_users_data(self) -> None:
+        user = self.current_user()
+        if user is None:
+            self.send_json({"error": "Unauthorized"}, HTTPStatus.UNAUTHORIZED)
+            return
+
+        if user["role"] != "admin":
+            self.send_json({"error": "Forbidden"}, HTTPStatus.FORBIDDEN)
+            return
+
+        users = admin_user_summaries()
+        self.send_json(
+            {
+                "userName": user["name"],
+                "userEmail": user["email"],
+                "userRole": user["role"],
+                "users": users,
+                "totalUsers": len(users),
+            }
+        )
+
+    def serve_admin_user_detail(self, query: dict[str, list[str]]) -> None:
+        user = self.current_user()
+        if user is None:
+            self.send_json({"error": "Unauthorized"}, HTTPStatus.UNAUTHORIZED)
+            return
+
+        if user["role"] != "admin":
+            self.send_json({"error": "Forbidden"}, HTTPStatus.FORBIDDEN)
+            return
+
+        account_email = self.query_value(query, "email").strip().lower()
+        account = admin_user_detail(account_email)
+        if account is None:
+            self.send_json({"error": "User not found."}, HTTPStatus.NOT_FOUND)
+            return
+
+        self.send_json(
+            {
+                "userName": user["name"],
+                "userEmail": user["email"],
+                "userRole": user["role"],
+                "account": account,
+            }
+        )
+
+    def serve_admin_browse_events(self) -> None:
+        user = self.current_user()
+        if user is None:
+            self.send_json({"error": "Unauthorized"}, HTTPStatus.UNAUTHORIZED)
+            return
+
+        if user["role"] != "admin":
+            self.send_json({"error": "Forbidden"}, HTTPStatus.FORBIDDEN)
+            return
+
+        events = admin_browse_events()
+        self.send_json(
+            {
+                "userName": user["name"],
+                "userEmail": user["email"],
+                "userRole": user["role"],
+                "events": events,
+                "totalEvents": len(events),
             }
         )
 
@@ -1759,6 +2586,9 @@ class EventHubHandler(BaseHTTPRequestHandler):
                 "phone": profile["phone"],
                 "bio": profile["bio"],
                 "profileImage": profile["profile_image"],
+                "adminStatus": profile["admin_status"],
+                "adminWarningCount": profile["admin_warning_count"],
+                "adminNote": profile["admin_note"],
             }
         )
 
@@ -1853,6 +2683,17 @@ class EventHubHandler(BaseHTTPRequestHandler):
                         consent_accepted,
                     ),
                 )
+                sync_registration_attendee(
+                    cursor,
+                    user["email"],
+                    event_id,
+                    attendee_name,
+                    attendee_email,
+                    attendee_phone,
+                    ticket_type,
+                    ticket_count,
+                    "active",
+                )
             connection.commit()
 
         ticket = build_registered_ticket(event, user["name"])
@@ -1902,6 +2743,20 @@ class EventHubHandler(BaseHTTPRequestHandler):
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
+                    SELECT event_id
+                    FROM user_event_registrations
+                    WHERE id = %s AND user_email = %s
+                    """,
+                    (booking_id, user["email"]),
+                )
+                booking_row = cursor.fetchone()
+                if booking_row is None:
+                    self.send_json({"error": "Booking not found."}, HTTPStatus.NOT_FOUND)
+                    return
+
+                event_id = str(booking_row[0] or "")
+                cursor.execute(
+                    """
                     UPDATE user_event_registrations
                     SET
                         attendee_name = %s,
@@ -1933,6 +2788,18 @@ class EventHubHandler(BaseHTTPRequestHandler):
                     ),
                 )
                 updated_rows = cursor.rowcount
+                if updated_rows > 0:
+                    sync_registration_attendee(
+                        cursor,
+                        user["email"],
+                        event_id,
+                        attendee_name,
+                        attendee_email,
+                        attendee_phone,
+                        ticket_type,
+                        ticket_count,
+                        "active",
+                    )
             connection.commit()
 
         if updated_rows == 0:
@@ -1962,6 +2829,21 @@ class EventHubHandler(BaseHTTPRequestHandler):
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
+                    SELECT event_id, attendee_email
+                    FROM user_event_registrations
+                    WHERE id = %s AND user_email = %s
+                    """,
+                    (booking_id, user["email"]),
+                )
+                booking_row = cursor.fetchone()
+                if booking_row is None:
+                    self.send_json({"error": "Booking not found."}, HTTPStatus.NOT_FOUND)
+                    return
+
+                event_id = str(booking_row[0] or "")
+                attendee_email = str(booking_row[1] or "")
+                cursor.execute(
+                    """
                     UPDATE user_event_registrations
                     SET booking_status = 'cancelled', canceled_at = CURRENT_TIMESTAMP
                     WHERE id = %s AND user_email = %s
@@ -1969,6 +2851,18 @@ class EventHubHandler(BaseHTTPRequestHandler):
                     (booking_id, user["email"]),
                 )
                 updated_rows = cursor.rowcount
+                if updated_rows > 0:
+                    sync_registration_attendee(
+                        cursor,
+                        user["email"],
+                        event_id,
+                        "",
+                        attendee_email,
+                        "",
+                        "Entry Pass",
+                        1,
+                        "cancelled",
+                    )
             connection.commit()
 
         if updated_rows == 0:
@@ -2222,6 +3116,60 @@ class EventHubHandler(BaseHTTPRequestHandler):
 
         self.send_json({"message": "Event cancelled successfully."})
 
+    def handle_organizer_event_publish(self) -> None:
+        user = self.current_user()
+        if user is None:
+            self.send_json({"error": "Unauthorized"}, HTTPStatus.UNAUTHORIZED)
+            return
+
+        if user["role"] != "organizer":
+            self.send_json({"error": "Forbidden"}, HTTPStatus.FORBIDDEN)
+            return
+
+        form = self.read_form_data()
+        event_id = form.get("eventId", "").strip()
+        if not event_id:
+            self.send_json({"error": "Event ID is required."}, HTTPStatus.BAD_REQUEST)
+            return
+
+        try:
+            event_id_value = int(event_id)
+        except ValueError:
+            self.send_json({"error": "Invalid event ID."}, HTTPStatus.BAD_REQUEST)
+            return
+
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT event_status
+                    FROM organizer_events
+                    WHERE id = %s AND organizer_email = %s
+                    """,
+                    (event_id_value, user["email"]),
+                )
+                row = cursor.fetchone()
+                if row is None:
+                    self.send_json({"error": "Event not found."}, HTTPStatus.NOT_FOUND)
+                    return
+
+                current_status = str(row[0] or "draft").lower()
+                if current_status != "draft":
+                    self.send_json({"error": "Only draft events can be published."}, HTTPStatus.BAD_REQUEST)
+                    return
+
+                cursor.execute(
+                    """
+                    UPDATE organizer_events
+                    SET event_status = 'published'
+                    WHERE id = %s AND organizer_email = %s
+                    """,
+                    (event_id_value, user["email"]),
+                )
+            connection.commit()
+
+        self.send_json({"message": "Event published successfully."})
+
     def handle_organizer_event_attendee_add(self) -> None:
         user = self.current_user()
         if user is None:
@@ -2279,16 +3227,20 @@ class EventHubHandler(BaseHTTPRequestHandler):
                         ticket_type,
                         ticket_count,
                         ticket_id,
-                        attendee_status
+                        attendee_status,
+                        attendee_source,
+                        user_email
                     )
-                    VALUES(%s, %s, %s, %s, %s, %s, %s, 'active')
+                    VALUES(%s, %s, %s, %s, %s, %s, %s, 'active', 'organizer', '')
                     ON DUPLICATE KEY UPDATE
                         attendee_name = VALUES(attendee_name),
                         attendee_phone = VALUES(attendee_phone),
                         ticket_type = VALUES(ticket_type),
                         ticket_count = VALUES(ticket_count),
                         ticket_id = VALUES(ticket_id),
-                        attendee_status = 'active'
+                        attendee_status = 'active',
+                        attendee_source = 'organizer',
+                        user_email = ''
                     """,
                     (event_id, attendee_name, attendee_email, attendee_phone, ticket_type, ticket_count, resolved_ticket_id),
                 )
@@ -2322,6 +3274,29 @@ class EventHubHandler(BaseHTTPRequestHandler):
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
+                    SELECT
+                        a.organizer_event_id,
+                        a.attendee_email,
+                        a.attendee_source,
+                        a.user_email
+                    FROM organizer_event_attendees AS a
+                    JOIN organizer_events AS e ON e.id = a.organizer_event_id
+                    WHERE a.id = %s AND e.organizer_email = %s
+                    """,
+                    (attendee_id, user["email"]),
+                )
+                attendee_row = cursor.fetchone()
+                if attendee_row is None:
+                    self.send_json({"error": "Attendee not found."}, HTTPStatus.NOT_FOUND)
+                    return
+
+                organizer_event_id = int(attendee_row[0])
+                attendee_email = str(attendee_row[1] or "").strip().lower()
+                attendee_source = str(attendee_row[2] or "organizer").strip().lower()
+                linked_user_email = str(attendee_row[3] or "").strip().lower()
+
+                cursor.execute(
+                    """
                     UPDATE organizer_event_attendees AS a
                     JOIN organizer_events AS e ON e.id = a.organizer_event_id
                     SET a.attendee_status = 'removed'
@@ -2330,6 +3305,24 @@ class EventHubHandler(BaseHTTPRequestHandler):
                     (attendee_id, user["email"]),
                 )
                 updated_rows = cursor.rowcount
+                if updated_rows > 0 and attendee_source == "registration":
+                    cursor.execute(
+                        """
+                        UPDATE user_event_registrations
+                        SET booking_status = 'cancelled', canceled_at = CURRENT_TIMESTAMP
+                        WHERE event_id IN (%s, %s)
+                          AND (
+                              user_email = %s
+                              OR attendee_email = %s
+                          )
+                        """,
+                        (
+                            str(organizer_event_id),
+                            build_public_organizer_event_id(organizer_event_id),
+                            linked_user_email,
+                            attendee_email,
+                        ),
+                    )
             connection.commit()
 
         if updated_rows == 0:
@@ -2371,6 +3364,29 @@ class EventHubHandler(BaseHTTPRequestHandler):
             with connection.cursor() as cursor:
                 cursor.execute(
                     """
+                    SELECT
+                        a.organizer_event_id,
+                        a.attendee_email,
+                        a.attendee_source,
+                        a.user_email
+                    FROM organizer_event_attendees AS a
+                    JOIN organizer_events AS e ON e.id = a.organizer_event_id
+                    WHERE a.id = %s AND e.organizer_email = %s
+                    """,
+                    (attendee_id, user["email"]),
+                )
+                attendee_row = cursor.fetchone()
+                if attendee_row is None:
+                    self.send_json({"error": "Attendee not found."}, HTTPStatus.NOT_FOUND)
+                    return
+
+                organizer_event_id = int(attendee_row[0])
+                attendee_email = str(attendee_row[1] or "").strip().lower()
+                attendee_source = str(attendee_row[2] or "organizer").strip().lower()
+                linked_user_email = str(attendee_row[3] or "").strip().lower()
+
+                cursor.execute(
+                    """
                     UPDATE organizer_event_attendees AS a
                     JOIN organizer_events AS e ON e.id = a.organizer_event_id
                     SET a.attendee_status = %s
@@ -2379,6 +3395,43 @@ class EventHubHandler(BaseHTTPRequestHandler):
                     (next_status, attendee_id, user["email"]),
                 )
                 updated_rows = cursor.rowcount
+                if updated_rows > 0 and attendee_source == "registration":
+                    if next_status == "approved":
+                        cursor.execute(
+                            """
+                            UPDATE user_event_registrations
+                            SET booking_status = 'active', canceled_at = NULL
+                            WHERE event_id IN (%s, %s)
+                              AND (
+                                  user_email = %s
+                                  OR attendee_email = %s
+                              )
+                            """,
+                            (
+                                str(organizer_event_id),
+                                build_public_organizer_event_id(organizer_event_id),
+                                linked_user_email,
+                                attendee_email,
+                            ),
+                        )
+                    else:
+                        cursor.execute(
+                            """
+                            UPDATE user_event_registrations
+                            SET booking_status = 'cancelled', canceled_at = CURRENT_TIMESTAMP
+                            WHERE event_id IN (%s, %s)
+                              AND (
+                                  user_email = %s
+                                  OR attendee_email = %s
+                              )
+                            """,
+                            (
+                                str(organizer_event_id),
+                                build_public_organizer_event_id(organizer_event_id),
+                                linked_user_email,
+                                attendee_email,
+                            ),
+                        )
             connection.commit()
 
         if updated_rows == 0:
@@ -2475,6 +3528,171 @@ class EventHubHandler(BaseHTTPRequestHandler):
         image_url = f"/assets/dashboard/images/posters/{filename}"
         self.send_json({"message": "Poster uploaded successfully.", "imageUrl": image_url})
 
+    def handle_admin_organizer_status_update(self) -> None:
+        user = self.current_user()
+        if user is None:
+            self.send_json({"error": "Unauthorized"}, HTTPStatus.UNAUTHORIZED)
+            return
+
+        if user["role"] != "admin":
+            self.send_json({"error": "Forbidden"}, HTTPStatus.FORBIDDEN)
+            return
+
+        form = self.read_form_data()
+        organizer_email = form.get("organizerEmail", "").strip().lower()
+        action = form.get("action", "").strip().lower()
+        note = form.get("note", "").strip()
+
+        if not organizer_email:
+            self.send_json({"error": "Organizer email is required."}, HTTPStatus.BAD_REQUEST)
+            return
+
+        if action not in {"warn", "suspend", "remove", "activate"}:
+            self.send_json({"error": "Invalid organizer action."}, HTTPStatus.BAD_REQUEST)
+            return
+
+        if action == "warn":
+            next_status = "warned"
+            success_message = "Warning issued successfully."
+        elif action == "suspend":
+            next_status = "suspended"
+            success_message = "Organizer suspended successfully."
+        elif action == "remove":
+            next_status = "removed"
+            success_message = "Organizer removed successfully."
+        else:
+            next_status = "active"
+            success_message = "Organizer reactivated successfully."
+
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT 1 FROM users WHERE email = %s AND role = 'organizer'",
+                    (organizer_email,),
+                )
+                if cursor.fetchone() is None:
+                    self.send_json({"error": "Organizer not found."}, HTTPStatus.NOT_FOUND)
+                    return
+
+                if action == "warn":
+                    cursor.execute(
+                        """
+                        UPDATE users
+                        SET
+                            admin_status = %s,
+                            admin_warning_count = COALESCE(admin_warning_count, 0) + 1,
+                            admin_note = %s
+                        WHERE email = %s AND role = 'organizer'
+                        """,
+                        (next_status, note, organizer_email),
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        UPDATE users
+                        SET
+                            admin_status = %s,
+                            admin_note = %s
+                        WHERE email = %s AND role = 'organizer'
+                        """,
+                        (next_status, note, organizer_email),
+                    )
+            connection.commit()
+
+        if next_status in {"suspended", "removed"}:
+            for session_id, session_data in list(SESSIONS.items()):
+                if str(session_data.get("email", "")).strip().lower() == organizer_email:
+                    SESSIONS.pop(session_id, None)
+
+        organizer = admin_organizer_detail(organizer_email)
+        self.send_json(
+            {
+                "message": success_message,
+                "organizer": organizer,
+            }
+        )
+
+    def handle_admin_user_status_update(self) -> None:
+        user = self.current_user()
+        if user is None:
+            self.send_json({"error": "Unauthorized"}, HTTPStatus.UNAUTHORIZED)
+            return
+
+        if user["role"] != "admin":
+            self.send_json({"error": "Forbidden"}, HTTPStatus.FORBIDDEN)
+            return
+
+        form = self.read_form_data()
+        account_email = form.get("userEmail", "").strip().lower()
+        action = form.get("action", "").strip().lower()
+        note = form.get("note", "").strip()
+
+        if not account_email:
+            self.send_json({"error": "User email is required."}, HTTPStatus.BAD_REQUEST)
+            return
+
+        if action not in {"warn", "remove", "activate"}:
+            self.send_json({"error": "Invalid user action."}, HTTPStatus.BAD_REQUEST)
+            return
+
+        if action == "warn":
+            next_status = "warned"
+            success_message = "Warning issued successfully."
+        elif action == "remove":
+            next_status = "removed"
+            success_message = "User removed successfully."
+        else:
+            next_status = "active"
+            success_message = "User reactivated successfully."
+
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT 1 FROM users WHERE email = %s AND role = 'user'",
+                    (account_email,),
+                )
+                if cursor.fetchone() is None:
+                    self.send_json({"error": "User not found."}, HTTPStatus.NOT_FOUND)
+                    return
+
+                if action == "warn":
+                    cursor.execute(
+                        """
+                        UPDATE users
+                        SET
+                            admin_status = %s,
+                            admin_warning_count = COALESCE(admin_warning_count, 0) + 1,
+                            admin_note = %s
+                        WHERE email = %s AND role = 'user'
+                        """,
+                        (next_status, note, account_email),
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        UPDATE users
+                        SET
+                            admin_status = %s,
+                            admin_note = %s
+                        WHERE email = %s AND role = 'user'
+                        """,
+                        (next_status, note, account_email),
+                    )
+            connection.commit()
+
+        if next_status in {"suspended", "removed"}:
+            for session_id, session_data in list(SESSIONS.items()):
+                if str(session_data.get("email", "")).strip().lower() == account_email:
+                    SESSIONS.pop(session_id, None)
+
+        account = admin_user_detail(account_email)
+        self.send_json(
+            {
+                "message": success_message,
+                "account": account,
+            }
+        )
+
     def handle_profile_update(self) -> None:
         user = self.current_user()
         if user is None:
@@ -2492,7 +3710,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
             self.send_json({"error": "First name is required."}, HTTPStatus.BAD_REQUEST)
             return
 
-        if role not in {"user", "organizer"}:
+        if role not in {"user", "organizer", "admin"}:
             self.send_json({"error": "Invalid role selected."}, HTTPStatus.BAD_REQUEST)
             return
 

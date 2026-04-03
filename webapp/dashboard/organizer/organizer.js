@@ -38,6 +38,9 @@ const organizerStats = document.getElementById("organizerStats");
 const organizerContent = document.getElementById("organizerContent");
 const organizerHistorySection = document.getElementById("organizerHistorySection");
 const organizerEmptyState = document.getElementById("organizerEmptyState");
+const organizerAccountBanner = document.getElementById("organizerAccountBanner");
+const organizerAccountBannerTitle = document.getElementById("organizerAccountBannerTitle");
+const organizerAccountBannerText = document.getElementById("organizerAccountBannerText");
 const organizerManagedEvents = document.getElementById("organizerManagedEvents");
 const organizerActivityList = document.getElementById("organizerActivityList");
 const organizerSalesList = document.getElementById("organizerSalesList");
@@ -47,6 +50,31 @@ const organizerActiveEvents = document.getElementById("organizerActiveEvents");
 const organizerTotalAttendees = document.getElementById("organizerTotalAttendees");
 const organizerCheckinRate = document.getElementById("organizerCheckinRate");
 const organizerRevenue = document.getElementById("organizerRevenue");
+const organizerQuickCreateAction = document.getElementById("organizerQuickCreateAction");
+const organizerQuickCreateMeta = document.getElementById("organizerQuickCreateMeta");
+const organizerQuickAttendeesMeta = document.getElementById("organizerQuickAttendeesMeta");
+const organizerQuickPromoteMeta = document.getElementById("organizerQuickPromoteMeta");
+const organizerQuickAnalyticsMeta = document.getElementById("organizerQuickAnalyticsMeta");
+const organizerQuickTicketsMeta = document.getElementById("organizerQuickTicketsMeta");
+const organizerQuickSupportMeta = document.getElementById("organizerQuickSupportMeta");
+const organizerRevenueOverviewFilter = document.getElementById("organizerRevenueOverviewFilter");
+const organizerRevenueHeadline = document.getElementById("organizerRevenueHeadline");
+const organizerRevenueSummary = document.getElementById("organizerRevenueSummary");
+const organizerRevenueMetrics = document.getElementById("organizerRevenueMetrics");
+const organizerDashboardSearch = document.getElementById("organizerDashboardSearch");
+const openOrganizerAnalyticsAction = document.getElementById("openOrganizerAnalyticsAction");
+const organizerAnalyticsKpis = document.getElementById("organizerAnalyticsKpis");
+const organizerAnalyticsEvents = document.getElementById("organizerAnalyticsEvents");
+const organizerAnalyticsSearch = document.getElementById("organizerAnalyticsSearch");
+const organizerAnalyticsPageTitle = document.getElementById("organizerAnalyticsPageTitle");
+const organizerAnalyticsSummaryText = document.getElementById("organizerAnalyticsSummaryText");
+const organizerAnalyticsOverviewTitle = document.getElementById("organizerAnalyticsOverviewTitle");
+const organizerAnalyticsOverviewText = document.getElementById("organizerAnalyticsOverviewText");
+const organizerAnalyticsGraph = document.getElementById("organizerAnalyticsGraph");
+const organizerAnalyticsEventCount = document.getElementById("organizerAnalyticsEventCount");
+const organizerAnalyticsCategoryBody = document.getElementById("organizerAnalyticsCategoryBody");
+const organizerAnalyticsStatusList = document.getElementById("organizerAnalyticsStatusList");
+const organizerNavbarSearch = document.getElementById("organizerNavbarSearch");
 const logoutLink = document.querySelector(".logout");
 const createEventForm = document.getElementById("createEventForm");
 const createEventStatus = document.getElementById("createEventStatus");
@@ -117,6 +145,7 @@ const organizerEventDetailAttendeeCount = document.getElementById("organizerEven
 const organizerEventDetailCapacity = document.getElementById("organizerEventDetailCapacity");
 const organizerEventDetailOccupancy = document.getElementById("organizerEventDetailOccupancy");
 const organizerEventDetailDescription = document.getElementById("organizerEventDetailDescription");
+const organizerEventDetailPublishBtn = document.getElementById("organizerEventDetailPublishBtn");
 const organizerEventDetailCancelBtn = document.getElementById("organizerEventDetailCancelBtn");
 const organizerAttendeeList = document.getElementById("organizerAttendeeList");
 const organizerAddAttendeeForm = document.getElementById("organizerAddAttendeeForm");
@@ -146,6 +175,19 @@ const profilePasswordSaveBtn = document.getElementById("profilePasswordSaveBtn")
 const profilePasswordStatus = document.getElementById("profilePasswordStatus");
 const profileImageInput = document.getElementById("profileImageInput");
 const profileUploadBtn = document.querySelector(".upload-btn");
+const organizerCalendarSearch = document.getElementById("organizerCalendarSearch");
+const organizerCalendarSearchTop = document.getElementById("organizerCalendarSearchTop");
+const organizerCalendarDateSearch = document.getElementById("organizerCalendarDateSearch");
+const organizerCalendarClearDateBtn = document.getElementById("organizerCalendarClearDateBtn");
+const organizerCalendarFilterButtons = document.querySelectorAll("[data-organizer-calendar-filter]");
+const organizerCalendarMonthTitle = document.getElementById("organizerCalendarMonthTitle");
+const organizerCalendarPrevMonthBtn = document.getElementById("organizerCalendarPrevMonthBtn");
+const organizerCalendarNextMonthBtn = document.getElementById("organizerCalendarNextMonthBtn");
+const organizerCalendarDateStrip = document.getElementById("organizerCalendarDateStrip");
+const organizerCalendarTimelineTitle = document.getElementById("organizerCalendarTimelineTitle");
+const organizerCalendarEventCount = document.getElementById("organizerCalendarEventCount");
+const organizerCalendarTimeline = document.getElementById("organizerCalendarTimeline");
+const organizerCalendarEmptyState = document.getElementById("organizerCalendarEmptyState");
 
 let organizerEventsCache = [];
 let manageUsersAttendeesCache = [];
@@ -153,6 +195,18 @@ let manageUsersSelectedEventId = "";
 let pendingCancelEvent = null;
 let organizerProfileSnapshot = null;
 let activeOrganizerEventDetail = null;
+let organizerDashboardManagedEvents = [];
+let organizerAnalyticsEventsCache = [];
+const organizerCalendarState = {
+  allEvents: [],
+  filteredEvents: [],
+  activeFilter: "all",
+  searchText: "",
+  dateSearchKey: "",
+  monthKeys: [],
+  monthIndex: 0,
+  selectedDateKey: "",
+};
 
 const escapeHtml = value => String(value ?? "")
   .replace(/&/g, "&amp;")
@@ -160,6 +214,271 @@ const escapeHtml = value => String(value ?? "")
   .replace(/>/g, "&gt;")
   .replace(/"/g, "&quot;")
   .replace(/'/g, "&#39;");
+
+const parseCurrencyAmount = value => {
+  const digits = String(value ?? "").replace(/[^\d]/g, "");
+  return digits ? Number.parseInt(digits, 10) : 0;
+};
+
+const formatCurrency = amount => {
+  const safeAmount = Number.isFinite(Number(amount)) ? Number(amount) : 0;
+  return `Rs ${Math.round(safeAmount).toLocaleString("en-IN")}`;
+};
+
+const computeEventAnalytics = event => {
+  const ticketMode = String(event.ticketPricingMode || "").toLowerCase();
+  const capacity = Math.max(0, Number.parseInt(String(event.capacity ?? 0), 10) || 0);
+  const attendees = Math.max(0, Number.parseInt(String(event.attendeeCount ?? 0), 10) || 0);
+  const perTicket = ticketMode === "free"
+    ? 0
+    : (Number(event._priceAmount) || parseCurrencyAmount(event.price));
+  const grossRevenue = perTicket * attendees;
+  const platformFee = Math.round(grossRevenue * 0.08);
+  const operationalCost = ticketMode === "free"
+    ? attendees * 25
+    : Math.round(grossRevenue * 0.45) + (attendees * 15);
+  const netPayout = grossRevenue - platformFee;
+  const profitLoss = netPayout - operationalCost;
+  const occupancyRate = capacity > 0 ? Math.round((attendees / capacity) * 100) : 0;
+  const breakEvenAttendees = perTicket > 0 ? Math.ceil(operationalCost / perTicket) : 0;
+  const remainingToBreakEven = Math.max(0, breakEvenAttendees - attendees);
+
+  return {
+    grossRevenue,
+    platformFee,
+    operationalCost,
+    netPayout,
+    profitLoss,
+    occupancyRate,
+    breakEvenAttendees,
+    remainingToBreakEven,
+    isProfit: profitLoss >= 0,
+  };
+};
+
+const renderAnalyticsKpis = events => {
+  if (!organizerAnalyticsKpis) {
+    return;
+  }
+
+  if (!events.length) {
+    organizerAnalyticsKpis.innerHTML = "<p class=\"meta\">No events found. Create an event to unlock analytics.</p>";
+    if (organizerAnalyticsGraph) {
+      organizerAnalyticsGraph.innerHTML = "";
+    }
+    if (organizerAnalyticsOverviewTitle) {
+      organizerAnalyticsOverviewTitle.textContent = "No analytics available yet";
+    }
+    if (organizerAnalyticsOverviewText) {
+      organizerAnalyticsOverviewText.textContent = "Create your first event to start tracking revenue, attendance, and event health.";
+    }
+    return;
+  }
+
+  const totals = events.reduce((acc, event) => {
+    const analytics = computeEventAnalytics(event);
+    acc.grossRevenue += analytics.grossRevenue;
+    acc.profitLoss += analytics.profitLoss;
+    acc.netPayout += analytics.netPayout;
+    acc.attendees += Number.parseInt(String(event.attendeeCount ?? 0), 10) || 0;
+    acc.capacity += Number.parseInt(String(event.capacity ?? 0), 10) || 0;
+    acc.statusCounts[String(event.status || "draft").toLowerCase()] = (acc.statusCounts[String(event.status || "draft").toLowerCase()] || 0) + 1;
+    return acc;
+  }, { grossRevenue: 0, profitLoss: 0, netPayout: 0, attendees: 0, capacity: 0, statusCounts: {} });
+
+  const occupancyRate = totals.capacity > 0 ? Math.round((totals.attendees / totals.capacity) * 100) : 0;
+  const dominantStatus = Object.entries(totals.statusCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "draft";
+  const publishedCount = totals.statusCounts.published || 0;
+  const graphItems = [
+    { label: "Revenue", value: totals.grossRevenue, display: formatCurrency(totals.grossRevenue), tone: "blue" },
+    { label: "Attendees", value: totals.attendees, display: String(totals.attendees), tone: "green" },
+    { label: "Fill Rate", value: occupancyRate, display: `${occupancyRate}%`, tone: "amber" },
+    { label: "Published", value: publishedCount, display: `${publishedCount} events`, tone: "purple" },
+  ];
+  const graphMax = Math.max(...graphItems.map(item => item.value), 1);
+
+  if (organizerAnalyticsOverviewTitle) {
+    organizerAnalyticsOverviewTitle.textContent = `${events.length} event${events.length === 1 ? "" : "s"} tracked across your organizer account`;
+  }
+  if (organizerAnalyticsOverviewText) {
+    organizerAnalyticsOverviewText.textContent = `${totals.attendees} attendees across all events, ${occupancyRate}% overall fill rate, and ${dominantStatus} as the most common status in your organizer portfolio.`;
+  }
+  if (organizerAnalyticsGraph) {
+    organizerAnalyticsGraph.innerHTML = graphItems.map(item => `
+      <div class="organizer-analytics-graph-item">
+        <div class="organizer-analytics-graph-track">
+          <div class="organizer-analytics-graph-bar ${item.tone}" style="height:${Math.max(26, Math.round((item.value / graphMax) * 100))}%"></div>
+        </div>
+        <strong>${escapeHtml(item.display)}</strong>
+        <span>${escapeHtml(item.label)}</span>
+      </div>
+    `).join("");
+  }
+
+  organizerAnalyticsKpis.innerHTML = `
+    <div class="organizer-analytics-kpi-card">
+      <span>Total Revenue</span>
+      <strong>${escapeHtml(formatCurrency(totals.grossRevenue))}</strong>
+    </div>
+    <div class="organizer-analytics-kpi-card ${totals.profitLoss < 0 ? "loss" : "profit"}">
+      <span>Est. Profit/Loss</span>
+      <strong>${escapeHtml(formatCurrency(totals.profitLoss))}</strong>
+    </div>
+    <div class="organizer-analytics-kpi-card">
+      <span>Attendees Attended</span>
+      <strong>${escapeHtml(String(totals.attendees))}</strong>
+    </div>
+    <div class="organizer-analytics-kpi-card">
+      <span>Overall Status</span>
+      <strong>${escapeHtml(dominantStatus)}</strong>
+    </div>
+    <div class="organizer-analytics-kpi-card">
+      <span>Net Payout</span>
+      <strong>${escapeHtml(formatCurrency(totals.netPayout))}</strong>
+    </div>
+    <div class="organizer-analytics-kpi-card">
+      <span>Fill Rate</span>
+      <strong>${escapeHtml(String(occupancyRate))}%</strong>
+    </div>
+  `;
+};
+
+const renderAnalyticsEvents = events => {
+  if (!organizerAnalyticsEvents) {
+    return;
+  }
+
+  if (!events.length) {
+    organizerAnalyticsEvents.innerHTML = "<p class=\"meta\">No events match your current search.</p>";
+    if (organizerAnalyticsEventCount) {
+      organizerAnalyticsEventCount.textContent = "0";
+    }
+    return;
+  }
+
+  if (organizerAnalyticsEventCount) {
+    organizerAnalyticsEventCount.textContent = String(events.length);
+  }
+
+  organizerAnalyticsEvents.innerHTML = events.map(event => {
+    const analytics = computeEventAnalytics(event);
+    const category = String(event.category || "event").trim().toLowerCase();
+    const browseBadge = category ? `${category.charAt(0).toUpperCase()}${category.slice(1)}` : "Event";
+    return `
+      <article class="browse-card organizer-analytics-event-card" data-event-id="${escapeHtml(event.id || "")}">
+        <img src="${escapeHtml(event.imageUrl || "/assets/dashboard/images/dsupimg1.jpg")}" alt="${escapeHtml(event.eventName || "Event")}">
+        <div class="browse-info organizer-analytics-event-card-body">
+          <div class="organizer-analytics-event-head">
+            <span class="browse-badge">${escapeHtml(browseBadge)}</span>
+            <span class="booking-status ${escapeHtml(event.status || "draft")}">${escapeHtml(event.status || "draft")}</span>
+          </div>
+          <h4>${escapeHtml(event.eventName || "Event")}</h4>
+          <p>${escapeHtml(event.eventTime || "-")}</p>
+          <p>${escapeHtml(event.location || "Online Event")} - ${escapeHtml(event.eventDate || "-")}</p>
+          <div class="organizer-analytics-card-grid">
+            <div class="booking-field">
+              <span>Revenue</span>
+              <strong>${escapeHtml(formatCurrency(analytics.grossRevenue))}</strong>
+            </div>
+            <div class="booking-field">
+              <span>Profit/Loss</span>
+              <strong class="${analytics.isProfit ? "profit" : "loss"}">${escapeHtml(formatCurrency(analytics.profitLoss))}</strong>
+            </div>
+            <div class="booking-field">
+              <span>Attendees</span>
+              <strong>${escapeHtml(String(event.attendeeCount || 0))}</strong>
+            </div>
+            <div class="booking-field">
+              <span>Occupancy</span>
+              <strong>${escapeHtml(String(analytics.occupancyRate))}%</strong>
+            </div>
+          </div>
+        </div>
+      </article>
+    `;
+  }).join("");
+};
+
+const getAnalyticsPagePath = eventId => {
+  const basePath = "/assets/dashboard/organizer/analytics.html";
+  return eventId ? `${basePath}?eventId=${encodeURIComponent(String(eventId))}` : basePath;
+};
+
+const goToEventAnalyticsPage = eventData => {
+  const eventId = eventData?.id || "";
+  window.location.href = getAnalyticsPagePath(eventId);
+};
+
+const renderAnalyticsCategoryPerformance = events => {
+  if (!organizerAnalyticsCategoryBody) {
+    return;
+  }
+
+  const categoryMap = new Map();
+  events.forEach(event => {
+    const key = String(event.category || "general").toLowerCase();
+    const analytics = computeEventAnalytics(event);
+    const attendees = Number.parseInt(String(event.attendeeCount ?? 0), 10) || 0;
+    const capacity = Number.parseInt(String(event.capacity ?? 0), 10) || 0;
+    if (!categoryMap.has(key)) {
+      categoryMap.set(key, { events: 0, revenue: 0, attendees: 0, capacity: 0 });
+    }
+    const item = categoryMap.get(key);
+    item.events += 1;
+    item.revenue += analytics.grossRevenue;
+    item.attendees += attendees;
+    item.capacity += capacity;
+  });
+
+  const rows = Array.from(categoryMap.entries()).map(([category, item]) => {
+    const fillRate = item.capacity > 0 ? Math.round((item.attendees / item.capacity) * 100) : 0;
+    return `
+      <tr>
+        <td>${escapeHtml(category)}</td>
+        <td>${escapeHtml(String(item.events))}</td>
+        <td>${escapeHtml(formatCurrency(item.revenue))}</td>
+        <td>${escapeHtml(String(item.attendees))}</td>
+        <td>${escapeHtml(String(fillRate))}%</td>
+      </tr>
+    `;
+  });
+
+  organizerAnalyticsCategoryBody.innerHTML = rows.length
+    ? rows.join("")
+    : "<tr><td colspan=\"5\" class=\"manage-users-no-data\">No category analytics available.</td></tr>";
+};
+
+const renderAnalyticsStatusBreakdown = events => {
+  if (!organizerAnalyticsStatusList) {
+    return;
+  }
+
+  const statusMap = events.reduce((acc, event) => {
+    const status = String(event.status || "draft").toLowerCase();
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {});
+
+  const items = Object.entries(statusMap);
+  organizerAnalyticsStatusList.innerHTML = items.length
+    ? items.map(([status, count]) => `
+      <li>
+        <i class="fa-solid fa-circle-info"></i>
+        <div>
+          <p>${escapeHtml(status.charAt(0).toUpperCase() + status.slice(1))}</p>
+          <span>${escapeHtml(String(count))} events</span>
+        </div>
+      </li>
+    `).join("")
+    : "<p class=\"meta\">No status analytics available.</p>";
+};
+
+const renderAnalyticsPage = (allEvents, filteredEvents) => {
+  renderAnalyticsKpis(allEvents);
+  renderAnalyticsEvents(filteredEvents);
+  renderAnalyticsCategoryPerformance(allEvents);
+  renderAnalyticsStatusBreakdown(allEvents);
+};
 
 const getContextPath = () => {
   return "";
@@ -218,7 +537,7 @@ const parseApiJson = async response => {
 };
 
 const renderManagedEvent = event => `
-  <div class="event-card">
+  <div class="event-card" data-event-id="${escapeHtml(event.id || "")}">
     <img src="${escapeHtml(event.imageUrl)}" alt="${escapeHtml(event.eventName)}">
     <div class="event-info">
       <h4>${escapeHtml(event.eventName)}</h4>
@@ -227,7 +546,7 @@ const renderManagedEvent = event => `
       <p class="meta"><i class="fa-solid fa-ticket"></i> ${escapeHtml(event.price || "Rs 0")} &bull; Capacity ${escapeHtml(event.capacity || 0)}</p>
       <div class="event-bottom">
         <span class="badge ${event.status === "draft" ? "badge-yellow" : "badge-green"}">${escapeHtml(event.status.charAt(0).toUpperCase() + event.status.slice(1))}</span>
-        <a href="#" class="ticket-link">Manage Event</a>
+        <a href="${escapeHtml(getAnalyticsPagePath(event.id || ""))}" class="ticket-link view-organizer-analytics">View Analytics</a>
       </div>
     </div>
   </div>
@@ -311,6 +630,593 @@ const normalizeTimeToInput = value => {
   return `${hours}:${minutes}`;
 };
 
+const parseCalendarDate = dateText => {
+  const raw = String(dateText || "").trim();
+  if (!raw) {
+    return null;
+  }
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed;
+};
+
+const getCalendarMonthKey = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+const getCalendarDateKey = date => `${getCalendarMonthKey(date)}-${String(date.getDate()).padStart(2, "0")}`;
+
+const formatCalendarMonth = date => date.toLocaleDateString("en-US", {
+  month: "long",
+  year: "numeric",
+});
+
+const formatCalendarDayLabel = date => date.toLocaleDateString("en-US", {
+  weekday: "short",
+});
+
+const formatCalendarTimelineDate = date => date.toLocaleDateString("en-US", {
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+});
+
+const parseDateNumber = value => {
+  const number = Number.parseInt(String(value || "").trim(), 10);
+  return Number.isNaN(number) ? null : number;
+};
+
+const organizerEventMatchesDateSearch = (event, rawSearchText) => {
+  const text = String(rawSearchText || "").trim().toLowerCase();
+  if (!text) {
+    return false;
+  }
+
+  const directDate = new Date(text);
+  if (!Number.isNaN(directDate.getTime())) {
+    return event.parsedDate.getFullYear() === directDate.getFullYear()
+      && event.parsedDate.getMonth() === directDate.getMonth()
+      && event.parsedDate.getDate() === directDate.getDate();
+  }
+
+  const singleDayMatch = text.match(/^\d{1,2}$/);
+  if (singleDayMatch) {
+    const day = parseDateNumber(singleDayMatch[0]);
+    return day !== null && event.parsedDate.getDate() === day;
+  }
+
+  const slashOrDashMatch = text.match(/^(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?$/);
+  if (!slashOrDashMatch) {
+    return false;
+  }
+
+  const first = parseDateNumber(slashOrDashMatch[1]);
+  const second = parseDateNumber(slashOrDashMatch[2]);
+  let year = parseDateNumber(slashOrDashMatch[3]);
+
+  if (first === null || second === null) {
+    return false;
+  }
+
+  if (year !== null && year < 100) {
+    year += 2000;
+  }
+
+  const candidates = [
+    { day: first, month: second },
+    { day: second, month: first },
+  ];
+
+  return candidates.some(candidate => {
+    if (candidate.day < 1 || candidate.day > 31 || candidate.month < 1 || candidate.month > 12) {
+      return false;
+    }
+
+    if (year !== null && event.parsedDate.getFullYear() !== year) {
+      return false;
+    }
+
+    return event.parsedDate.getDate() === candidate.day
+      && event.parsedDate.getMonth() + 1 === candidate.month;
+  });
+};
+
+const normalizeDateInputKey = value => {
+  const dateText = String(value || "").trim();
+  if (!dateText) {
+    return "";
+  }
+
+  const parsed = new Date(dateText);
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+
+  return getCalendarDateKey(parsed);
+};
+
+const formatOrganizerStatusLabel = status => {
+  const text = String(status || "draft").trim().toLowerCase();
+  return text ? `${text.charAt(0).toUpperCase()}${text.slice(1)}` : "Draft";
+};
+
+const isOrganizerActiveStatus = status => {
+  const normalized = String(status || "").trim().toLowerCase();
+  return normalized !== "completed" && normalized !== "cancelled";
+};
+
+const resolveOrganizerDashboardEvents = () => (
+  organizerEventsCache.length ? organizerEventsCache : organizerDashboardManagedEvents
+);
+
+const buildOrganizerCalendarSearchText = event => [
+  event.eventName,
+  event.location,
+  event.category,
+  event.eventDate,
+  event.eventTime,
+  event.status,
+  event.price,
+].join(" ").toLowerCase();
+
+const buildOrganizerCalendarAction = event => {
+  const status = String(event.status || "").trim().toLowerCase();
+  if (status === "published") {
+    return {
+      label: "Open Analytics",
+      href: getAnalyticsPagePath(event.id),
+    };
+  }
+
+  return {
+    label: "Open My Events",
+    href: "/assets/dashboard/organizer/myevents.html",
+  };
+};
+
+const renderOrganizerCalendarEventItem = event => {
+  const action = buildOrganizerCalendarAction(event);
+  const analytics = computeEventAnalytics(event);
+  return `
+    <div class="organizer-calendar-event-item">
+      <div class="organizer-calendar-time">${escapeHtml(event.eventTime || "-")}</div>
+      <div class="organizer-calendar-event-card">
+        <img src="${escapeHtml(event.imageUrl || "/assets/dashboard/images/dsupimg1.jpg")}" alt="${escapeHtml(event.eventName || "Event")}">
+        <div class="organizer-calendar-event-info">
+          <h4>${escapeHtml(event.eventName || "-")}</h4>
+          <p>${escapeHtml(event.eventDate || "-")} &bull; ${escapeHtml(event.eventTime || "-")}</p>
+          <p>${escapeHtml(event.location || "Online Event")}</p>
+          <p>${escapeHtml(event.attendeeCount || 0)} attendees &bull; ${escapeHtml(event.price || "Rs 0")} &bull; Fill ${escapeHtml(`${analytics.occupancyRate}%`)}</p>
+          <div class="organizer-calendar-event-bottom">
+            <span class="organizer-calendar-tag ${escapeHtml(String(event.status || "draft").toLowerCase())}">${escapeHtml(formatOrganizerStatusLabel(event.status))}</span>
+            <button type="button" onclick="window.location.href='${escapeHtml(action.href)}'">${escapeHtml(action.label)}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+const updateOrganizerQuickActions = events => {
+  if (!organizerQuickCreateAction) {
+    return;
+  }
+
+  const allEvents = Array.isArray(events) ? events : [];
+  const publishedEvents = allEvents.filter(event => String(event.status || "").toLowerCase() === "published");
+  const draftEvents = allEvents.filter(event => String(event.status || "").toLowerCase() === "draft");
+  const cancelledEvents = allEvents.filter(event => String(event.status || "").toLowerCase() === "cancelled");
+  const totalAttendees = allEvents.reduce((sum, event) => sum + (Number.parseInt(String(event.attendeeCount ?? 0), 10) || 0), 0);
+  const paidEvents = allEvents.filter(event => String(event.ticketPricingMode || "").toLowerCase() !== "free");
+  const projectedRevenue = allEvents.reduce((sum, event) => sum + computeEventAnalytics(event).grossRevenue, 0);
+  const topAttendanceEvent = [...allEvents].sort((left, right) => {
+    const leftCount = Number.parseInt(String(left.attendeeCount ?? 0), 10) || 0;
+    const rightCount = Number.parseInt(String(right.attendeeCount ?? 0), 10) || 0;
+    return rightCount - leftCount;
+  })[0];
+  const nextPublishedEvent = publishedEvents
+    .map(event => ({ ...event, parsedDate: parseCalendarDate(event.eventDate) }))
+    .filter(event => event.parsedDate)
+    .sort((left, right) => left.parsedDate.getTime() - right.parsedDate.getTime())[0];
+
+  if (organizerQuickCreateMeta) {
+    organizerQuickCreateMeta.textContent = draftEvents.length
+      ? `${draftEvents.length} draft ${draftEvents.length === 1 ? "event" : "events"} waiting to go live`
+      : "Start your next event from scratch";
+  }
+
+  if (organizerQuickAttendeesMeta) {
+    organizerQuickAttendeesMeta.textContent = publishedEvents.length
+      ? `${totalAttendees} attendee${totalAttendees === 1 ? "" : "s"} across ${publishedEvents.length} live event${publishedEvents.length === 1 ? "" : "s"}`
+      : "Publish an event to start collecting attendees";
+  }
+
+  if (organizerQuickPromoteMeta) {
+    organizerQuickPromoteMeta.textContent = nextPublishedEvent
+      ? `${nextPublishedEvent.eventName} is your next live event to push`
+      : "Publish an event to unlock promotion momentum";
+  }
+
+  if (organizerQuickAnalyticsMeta) {
+    organizerQuickAnalyticsMeta.textContent = allEvents.length
+      ? `${formatCurrency(projectedRevenue)} projected from ${paidEvents.length} paid event${paidEvents.length === 1 ? "" : "s"}`
+      : "Create an event to start tracking performance";
+  }
+
+  if (organizerQuickTicketsMeta) {
+    organizerQuickTicketsMeta.textContent = topAttendanceEvent
+      ? `${topAttendanceEvent.eventName} leads with ${topAttendanceEvent.attendeeCount || 0} attendees`
+      : "No ticket activity yet";
+  }
+
+  if (organizerQuickSupportMeta) {
+    organizerQuickSupportMeta.textContent = cancelledEvents.length
+      ? `${cancelledEvents.length} cancelled ${cancelledEvents.length === 1 ? "event needs" : "events need"} follow-up`
+      : "Everything looks ready for your next launch";
+  }
+};
+
+const renderOrganizerRevenueOverview = events => {
+  if (!organizerRevenueMetrics || !organizerRevenueSummary || !organizerRevenueHeadline) {
+    return;
+  }
+
+  const allEvents = Array.isArray(events) ? events : [];
+  const filterValue = String(organizerRevenueOverviewFilter?.value || "all").toLowerCase();
+  const filteredEvents = allEvents.filter(event => {
+    const status = String(event.status || "").toLowerCase();
+    if (filterValue === "published") {
+      return status === "published";
+    }
+    if (filterValue === "active") {
+      return isOrganizerActiveStatus(status);
+    }
+    return true;
+  });
+
+  if (!filteredEvents.length) {
+    organizerRevenueHeadline.textContent = "No revenue data for this filter yet";
+    organizerRevenueSummary.textContent = "Create or publish events to start tracking revenue, attendance, and payouts here.";
+    organizerRevenueMetrics.innerHTML = "";
+    return;
+  }
+
+  const totals = filteredEvents.reduce((accumulator, event) => {
+    const analytics = computeEventAnalytics(event);
+    accumulator.grossRevenue += analytics.grossRevenue;
+    accumulator.netPayout += analytics.netPayout;
+    accumulator.attendees += Number.parseInt(String(event.attendeeCount ?? 0), 10) || 0;
+    accumulator.capacity += Number.parseInt(String(event.capacity ?? 0), 10) || 0;
+    accumulator.fillRate = accumulator.capacity > 0
+      ? Math.round((accumulator.attendees / accumulator.capacity) * 100)
+      : 0;
+    return accumulator;
+  }, { grossRevenue: 0, netPayout: 0, attendees: 0, capacity: 0, fillRate: 0 });
+
+  const topRevenueEvent = [...filteredEvents].sort((left, right) => {
+    return computeEventAnalytics(right).grossRevenue - computeEventAnalytics(left).grossRevenue;
+  })[0];
+
+  organizerRevenueHeadline.textContent = `${formatCurrency(totals.grossRevenue)} projected from ${filteredEvents.length} event${filteredEvents.length === 1 ? "" : "s"}`;
+  organizerRevenueSummary.textContent = topRevenueEvent
+    ? `${topRevenueEvent.eventName} is leading this view with ${formatCurrency(computeEventAnalytics(topRevenueEvent).grossRevenue)} in gross revenue and ${topRevenueEvent.attendeeCount || 0} attendees.`
+    : "Revenue updates will appear here as attendee counts change.";
+
+  organizerRevenueMetrics.innerHTML = [
+    { label: "Gross Revenue", value: formatCurrency(totals.grossRevenue) },
+    { label: "Net Payout", value: formatCurrency(totals.netPayout) },
+    { label: "Attendees", value: String(totals.attendees) },
+    { label: "Fill Rate", value: `${totals.fillRate}%` },
+  ].map(metric => `
+    <article class="organizer-revenue-metric">
+      <span>${escapeHtml(metric.label)}</span>
+      <strong>${escapeHtml(metric.value)}</strong>
+    </article>
+  `).join("");
+};
+
+const updateOrganizerCalendarTimeline = () => {
+  if (!organizerCalendarTimeline || !organizerCalendarTimelineTitle || !organizerCalendarEventCount) {
+    return;
+  }
+
+  const eventsForDate = organizerCalendarState.filteredEvents.filter(event => event.dateKey === organizerCalendarState.selectedDateKey);
+  const selectedDate = eventsForDate[0]?.parsedDate
+    || organizerCalendarState.filteredEvents.find(event => event.dateKey === organizerCalendarState.selectedDateKey)?.parsedDate;
+
+  if (!eventsForDate.length || !selectedDate) {
+    organizerCalendarTimeline.innerHTML = "";
+    organizerCalendarTimelineTitle.textContent = "No events for selected date";
+    organizerCalendarEventCount.textContent = "0";
+    if (organizerCalendarEmptyState) {
+      organizerCalendarEmptyState.hidden = false;
+    }
+    return;
+  }
+
+  const sortedEvents = [...eventsForDate].sort((left, right) => left.eventTime.localeCompare(right.eventTime));
+  organizerCalendarTimeline.innerHTML = sortedEvents.map(renderOrganizerCalendarEventItem).join("");
+  organizerCalendarTimelineTitle.textContent = `Events on ${formatCalendarTimelineDate(selectedDate)}`;
+  organizerCalendarEventCount.textContent = String(sortedEvents.length);
+  if (organizerCalendarEmptyState) {
+    organizerCalendarEmptyState.hidden = true;
+  }
+};
+
+const updateOrganizerCalendarDateStrip = () => {
+  if (!organizerCalendarDateStrip || !organizerCalendarMonthTitle) {
+    return;
+  }
+
+  const monthKey = organizerCalendarState.monthKeys[organizerCalendarState.monthIndex];
+  if (!monthKey) {
+    organizerCalendarDateStrip.innerHTML = "";
+    organizerCalendarMonthTitle.textContent = "No Events";
+    organizerCalendarState.selectedDateKey = "";
+    updateOrganizerCalendarTimeline();
+    return;
+  }
+
+  const monthEvents = organizerCalendarState.filteredEvents.filter(event => event.monthKey === monthKey);
+  const uniqueDateMap = new Map();
+  monthEvents.forEach(event => {
+    if (!uniqueDateMap.has(event.dateKey)) {
+      uniqueDateMap.set(event.dateKey, {
+        date: event.parsedDate,
+        count: 0,
+      });
+    }
+    uniqueDateMap.get(event.dateKey).count += 1;
+  });
+
+  const uniqueDates = [...uniqueDateMap.entries()]
+    .map(([key, value]) => ({ key, ...value }))
+    .sort((left, right) => left.date.getTime() - right.date.getTime());
+
+  organizerCalendarMonthTitle.textContent = formatCalendarMonth(uniqueDates[0]?.date || monthEvents[0]?.parsedDate || new Date());
+
+  if (!uniqueDates.length) {
+    organizerCalendarDateStrip.innerHTML = "";
+    organizerCalendarState.selectedDateKey = "";
+    updateOrganizerCalendarTimeline();
+    return;
+  }
+
+  if (!uniqueDates.some(item => item.key === organizerCalendarState.selectedDateKey)) {
+    organizerCalendarState.selectedDateKey = uniqueDates[0].key;
+  }
+
+  organizerCalendarDateStrip.innerHTML = uniqueDates.map(item => `
+    <button type="button" class="organizer-date-pill ${item.key === organizerCalendarState.selectedDateKey ? "active" : ""} ${item.count > 0 ? "has-event" : ""}" data-organizer-date-key="${item.key}">
+      <span>${escapeHtml(formatCalendarDayLabel(item.date))}</span>
+      <strong>${escapeHtml(String(item.date.getDate()))}</strong>
+    </button>
+  `).join("");
+
+  updateOrganizerCalendarTimeline();
+};
+
+const updateOrganizerCalendarResults = () => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const normalizedSearch = organizerCalendarState.searchText.trim().toLowerCase();
+
+  let filtered = organizerCalendarState.allEvents.filter(event => {
+    const status = String(event.status || "").toLowerCase();
+
+    if (organizerCalendarState.activeFilter === "published" && status !== "published") {
+      return false;
+    }
+
+    if (organizerCalendarState.activeFilter === "draft" && status !== "draft") {
+      return false;
+    }
+
+    if (organizerCalendarState.activeFilter === "active" && event.parsedDate < today) {
+      return false;
+    }
+
+    if (!normalizedSearch) {
+      return !organizerCalendarState.dateSearchKey || event.dateKey === organizerCalendarState.dateSearchKey;
+    }
+
+    const matchesTextOrDate = buildOrganizerCalendarSearchText(event).includes(normalizedSearch)
+      || organizerEventMatchesDateSearch(event, normalizedSearch);
+    const matchesDatePicker = !organizerCalendarState.dateSearchKey || event.dateKey === organizerCalendarState.dateSearchKey;
+    return matchesTextOrDate && matchesDatePicker;
+  });
+
+  filtered = filtered.sort((left, right) => left.parsedDate.getTime() - right.parsedDate.getTime());
+  organizerCalendarState.filteredEvents = filtered;
+
+  const monthKeys = [...new Set(filtered.map(event => event.monthKey))];
+  organizerCalendarState.monthKeys = monthKeys;
+
+  if (!monthKeys.length) {
+    organizerCalendarState.monthIndex = 0;
+    organizerCalendarState.selectedDateKey = "";
+    updateOrganizerCalendarDateStrip();
+    return;
+  }
+
+  if (organizerCalendarState.monthIndex >= monthKeys.length) {
+    organizerCalendarState.monthIndex = monthKeys.length - 1;
+  }
+
+  if (organizerCalendarState.dateSearchKey) {
+    const targetMonthKey = organizerCalendarState.dateSearchKey.slice(0, 7);
+    const targetMonthIndex = monthKeys.findIndex(key => key === targetMonthKey);
+    if (targetMonthIndex >= 0) {
+      organizerCalendarState.monthIndex = targetMonthIndex;
+      organizerCalendarState.selectedDateKey = organizerCalendarState.dateSearchKey;
+    }
+  }
+
+  updateOrganizerCalendarDateStrip();
+};
+
+const initializeOrganizerCalendarFilters = () => {
+  if (!organizerCalendarSearch || !organizerCalendarDateStrip) {
+    return;
+  }
+
+  if (organizerCalendarSearch.dataset.filtersBound !== "true") {
+    organizerCalendarSearch.addEventListener("input", () => {
+      organizerCalendarState.searchText = organizerCalendarSearch.value;
+      if (organizerCalendarSearchTop) {
+        organizerCalendarSearchTop.value = organizerCalendarSearch.value;
+      }
+      updateOrganizerCalendarResults();
+    });
+    organizerCalendarSearch.dataset.filtersBound = "true";
+  }
+
+  if (organizerCalendarSearchTop && organizerCalendarSearchTop.dataset.filtersBound !== "true") {
+    organizerCalendarSearchTop.addEventListener("input", () => {
+      organizerCalendarSearch.value = organizerCalendarSearchTop.value;
+      organizerCalendarState.searchText = organizerCalendarSearchTop.value;
+      updateOrganizerCalendarResults();
+    });
+    organizerCalendarSearchTop.dataset.filtersBound = "true";
+  }
+
+  if (organizerCalendarDateSearch && organizerCalendarDateSearch.dataset.filtersBound !== "true") {
+    organizerCalendarDateSearch.addEventListener("change", () => {
+      organizerCalendarState.dateSearchKey = normalizeDateInputKey(organizerCalendarDateSearch.value);
+      updateOrganizerCalendarResults();
+    });
+    organizerCalendarDateSearch.dataset.filtersBound = "true";
+  }
+
+  if (organizerCalendarClearDateBtn && organizerCalendarClearDateBtn.dataset.bound !== "true") {
+    organizerCalendarClearDateBtn.addEventListener("click", () => {
+      if (organizerCalendarDateSearch) {
+        organizerCalendarDateSearch.value = "";
+      }
+      organizerCalendarState.dateSearchKey = "";
+      updateOrganizerCalendarResults();
+    });
+    organizerCalendarClearDateBtn.dataset.bound = "true";
+  }
+
+  organizerCalendarFilterButtons.forEach(button => {
+    if (button.dataset.bound === "true") {
+      return;
+    }
+
+    button.addEventListener("click", () => {
+      organizerCalendarFilterButtons.forEach(item => item.classList.remove("active"));
+      button.classList.add("active");
+      organizerCalendarState.activeFilter = button.dataset.organizerCalendarFilter || "all";
+      organizerCalendarState.monthIndex = 0;
+      updateOrganizerCalendarResults();
+    });
+
+    button.dataset.bound = "true";
+  });
+
+  if (organizerCalendarPrevMonthBtn && organizerCalendarPrevMonthBtn.dataset.bound !== "true") {
+    organizerCalendarPrevMonthBtn.addEventListener("click", () => {
+      if (organizerCalendarState.monthIndex <= 0) {
+        return;
+      }
+      organizerCalendarState.monthIndex -= 1;
+      updateOrganizerCalendarDateStrip();
+    });
+    organizerCalendarPrevMonthBtn.dataset.bound = "true";
+  }
+
+  if (organizerCalendarNextMonthBtn && organizerCalendarNextMonthBtn.dataset.bound !== "true") {
+    organizerCalendarNextMonthBtn.addEventListener("click", () => {
+      if (organizerCalendarState.monthIndex >= organizerCalendarState.monthKeys.length - 1) {
+        return;
+      }
+      organizerCalendarState.monthIndex += 1;
+      updateOrganizerCalendarDateStrip();
+    });
+    organizerCalendarNextMonthBtn.dataset.bound = "true";
+  }
+
+  if (organizerCalendarDateStrip && organizerCalendarDateStrip.dataset.bound !== "true") {
+    organizerCalendarDateStrip.addEventListener("click", event => {
+      const dateButton = event.target.closest("[data-organizer-date-key]");
+      if (!dateButton) {
+        return;
+      }
+
+      organizerCalendarState.selectedDateKey = dateButton.dataset.organizerDateKey || "";
+      updateOrganizerCalendarDateStrip();
+    });
+    organizerCalendarDateStrip.dataset.bound = "true";
+  }
+};
+
+const syncOrganizerCalendarEvents = events => {
+  if (!organizerCalendarTimeline || !organizerCalendarDateStrip) {
+    return;
+  }
+
+  const previousState = {
+    activeFilter: organizerCalendarState.activeFilter || "all",
+    searchText: organizerCalendarState.searchText || "",
+    dateSearchKey: organizerCalendarState.dateSearchKey || "",
+    monthIndex: organizerCalendarState.monthIndex || 0,
+    selectedDateKey: organizerCalendarState.selectedDateKey || "",
+  };
+  const wasInitialized = organizerCalendarDateStrip.dataset.initialized === "true";
+  const normalizedEvents = (Array.isArray(events) ? events : [])
+    .map(event => {
+      const parsedDate = parseCalendarDate(event.eventDate);
+      if (!parsedDate) {
+        return null;
+      }
+
+      return {
+        ...event,
+        parsedDate,
+        monthKey: getCalendarMonthKey(parsedDate),
+        dateKey: getCalendarDateKey(parsedDate),
+      };
+    })
+    .filter(Boolean);
+
+  organizerCalendarState.allEvents = normalizedEvents;
+  organizerCalendarState.filteredEvents = normalizedEvents;
+  organizerCalendarState.activeFilter = wasInitialized ? previousState.activeFilter : "all";
+  organizerCalendarState.searchText = wasInitialized ? previousState.searchText : "";
+  organizerCalendarState.dateSearchKey = wasInitialized ? previousState.dateSearchKey : "";
+  organizerCalendarState.monthIndex = wasInitialized ? previousState.monthIndex : 0;
+  organizerCalendarState.selectedDateKey = wasInitialized ? previousState.selectedDateKey : "";
+
+  if (organizerCalendarSearch) {
+    organizerCalendarSearch.value = organizerCalendarState.searchText;
+  }
+  if (organizerCalendarSearchTop) {
+    organizerCalendarSearchTop.value = organizerCalendarState.searchText;
+  }
+  if (organizerCalendarDateSearch) {
+    organizerCalendarDateSearch.value = organizerCalendarState.dateSearchKey
+      ? organizerCalendarState.dateSearchKey
+      : "";
+  }
+
+  organizerCalendarFilterButtons.forEach(button => {
+    button.classList.toggle("active", (button.dataset.organizerCalendarFilter || "all") === organizerCalendarState.activeFilter);
+  });
+
+  initializeOrganizerCalendarFilters();
+  organizerCalendarDateStrip.dataset.initialized = "true";
+  updateOrganizerCalendarResults();
+};
+
+const updateOrganizerDashboardDynamicViews = events => {
+  const eventCollection = Array.isArray(events) ? events : [];
+  updateOrganizerQuickActions(eventCollection);
+  renderOrganizerRevenueOverview(eventCollection);
+  syncOrganizerCalendarEvents(eventCollection);
+};
+
 const setOrganizerEventEditStatus = (message = "", isError = false) => {
   if (!organizerEventEditStatus) {
     return;
@@ -336,6 +1242,49 @@ const setProfileStatus = (element, message = "", isError = false) => {
   element.hidden = !message;
   element.textContent = message;
   element.classList.toggle("error", isError);
+};
+
+const applyOrganizerAccountBanner = data => {
+  if (!organizerAccountBanner) {
+    return;
+  }
+
+  const adminStatus = String(data.adminStatus || data.admin_status || "").trim().toLowerCase();
+  const warningCount = Number(data.adminWarningCount || data.admin_warning_count || 0);
+  const adminNote = String(data.adminNote || data.admin_note || "").trim();
+
+  if (adminStatus === "warned") {
+    organizerAccountBanner.hidden = false;
+    organizerAccountBanner.classList.remove("is-error");
+    if (organizerAccountBannerTitle) {
+      organizerAccountBannerTitle.textContent = warningCount > 1
+        ? `Organizer account warned (${warningCount} notices)`
+        : "Organizer account warned";
+    }
+    if (organizerAccountBannerText) {
+      organizerAccountBannerText.textContent = adminNote
+        ? `EventHub admin warned your organizer account. Note: ${adminNote}`
+        : "EventHub admin has warned your organizer account. Please review your recent activity or contact support.";
+    }
+    return;
+  }
+
+  if (adminStatus === "suspended" || adminStatus === "removed") {
+    organizerAccountBanner.hidden = false;
+    organizerAccountBanner.classList.add("is-error");
+    if (organizerAccountBannerTitle) {
+      organizerAccountBannerTitle.textContent = "Organizer access restricted";
+    }
+    if (organizerAccountBannerText) {
+      organizerAccountBannerText.textContent = adminNote
+        ? adminNote
+        : "Your organizer account currently has restricted access. Please contact EventHub support.";
+    }
+    return;
+  }
+
+  organizerAccountBanner.hidden = true;
+  organizerAccountBanner.classList.remove("is-error");
 };
 
 const applyOrganizerProfile = data => {
@@ -366,6 +1315,7 @@ const applyOrganizerProfile = data => {
   if (profilePhone && "phone" in data) profilePhone.value = String(data.phone || "");
   if (profileRole) profileRole.value = userRole;
   if (profileBio && "bio" in data) profileBio.value = String(data.bio || "");
+  applyOrganizerAccountBanner(data);
 
   organizerProfileSnapshot = {
     firstName,
@@ -466,6 +1416,7 @@ const renderOrganizerMyEventCard = event => `
     data-price="${escapeHtml(String(event.price || "Rs 0"))}"
     data-capacity="${escapeHtml(String(event.capacity || 0))}"
     data-attendee-count="${escapeHtml(String(event.attendeeCount || 0))}"
+    data-status="${escapeHtml(event.status || "published")}"
     data-description="${escapeHtml(event.description || "")}"
     data-image-url="${escapeHtml(event.imageUrl || "/assets/dashboard/images/dsupimg1.jpg")}"
   >
@@ -506,6 +1457,7 @@ const renderOrganizerMyEventCard = event => `
       </div>
       <div class="booking-actions organizer-event-actions">
         <button type="button" class="booking-action-btn view-organizer-event">View Details</button>
+        <button type="button" class="booking-action-btn view-organizer-analytics">View Analytics</button>
         <button type="button" class="booking-action-btn edit-organizer-event" ${event.status === "cancelled" ? "disabled" : ""}>Edit Event</button>
         <button type="button" class="booking-action-btn cancel-organizer-event" ${event.status === "cancelled" ? "disabled" : ""}>Cancel Event</button>
       </div>
@@ -534,15 +1486,17 @@ const renderManageUserAttendeeRows = attendees => {
   if (!attendees.length) {
     manageUsersAttendeeBody.innerHTML = `
       <tr>
-        <td colspan="5" class="manage-users-no-data">No attendees for this event yet.</td>
+        <td colspan="7" class="manage-users-no-data">No attendees for this event yet.</td>
       </tr>
     `;
     return;
   }
 
   manageUsersAttendeeBody.innerHTML = attendees.map(attendee => `
-    <tr data-attendee-id="${escapeHtml(attendee.id)}">
+    <tr data-attendee-id="${escapeHtml(attendee.id)}" data-ticket-count="${escapeHtml(attendee.ticketCount || 1)}">
       <td>${escapeHtml(attendee.name || "-")}</td>
+      <td>${escapeHtml(attendee.email || "-")}</td>
+      <td>${escapeHtml(attendee.phone || "-")}</td>
       <td>${escapeHtml(attendee.ticketType || "Entry Pass")}</td>
       <td>${escapeHtml(attendee.ticketCount || 1)}</td>
       <td>${escapeHtml(attendee.ticketId || "-")}</td>
@@ -566,10 +1520,7 @@ const applyManageUserAttendeeFilter = () => {
   let visibleCount = 0;
 
   rows.forEach(row => {
-    const text = [
-      row.children[0]?.textContent || "",
-      row.children[3]?.textContent || "",
-    ].join(" ").toLowerCase();
+    const text = (row.textContent || "").toLowerCase();
     const show = !term || text.includes(term);
     row.hidden = !show;
     if (show) {
@@ -663,7 +1614,17 @@ const applyOrganizerEventFilter = () => {
 };
 
 const loadOrganizerEvents = async () => {
-  if (!organizerEventsList && !manageUsersEventsList) {
+  const needsOrganizerEventFeed = Boolean(
+    organizerEventsList
+    || manageUsersEventsList
+    || organizerRevenueMetrics
+    || organizerRevenueOverviewFilter
+    || organizerQuickCreateAction
+    || organizerCalendarTimeline
+    || organizerCalendarDateStrip
+  );
+
+  if (!needsOrganizerEventFeed) {
     return;
   }
 
@@ -687,6 +1648,7 @@ const loadOrganizerEvents = async () => {
 
     const data = await parseApiJson(response);
     organizerEventsCache = Array.isArray(data.events) ? data.events : [];
+    updateOrganizerDashboardDynamicViews(organizerEventsCache);
 
     if (organizerSidebarUserName && data.userName) {
       organizerSidebarUserName.textContent = data.userName;
@@ -703,11 +1665,29 @@ const loadOrganizerEvents = async () => {
     }
 
     if (manageUsersEventsList) {
-      manageUsersEventsList.innerHTML = organizerEventsCache.length
-        ? organizerEventsCache.map(renderManageUserEventCard).join("")
-        : "<p class=\"meta\">No events available. Create an event first.</p>";
+      const publishedEvents = organizerEventsCache.filter(event => String(event.status || "").toLowerCase() === "published");
+      manageUsersEventsList.innerHTML = publishedEvents.length
+        ? publishedEvents.map(renderManageUserEventCard).join("")
+        : "<p class=\"meta\">No published events available yet.</p>";
       if (manageUsersEventCount) {
-        manageUsersEventCount.textContent = String(organizerEventsCache.length);
+        manageUsersEventCount.textContent = String(publishedEvents.length);
+      }
+      if (manageUsersSelectedEventId && !publishedEvents.some(event => String(event.id) === String(manageUsersSelectedEventId))) {
+        manageUsersSelectedEventId = "";
+        manageUsersAttendeesCache = [];
+        renderManageUserAttendeeRows([]);
+        if (manageUsersAttendeeSection) {
+          manageUsersAttendeeSection.hidden = true;
+        }
+        if (manageUsersSelectedEvent) {
+          manageUsersSelectedEvent.textContent = "Attendees";
+        }
+        if (manageUsersSelectedEventRight) {
+          manageUsersSelectedEventRight.textContent = "-";
+        }
+        if (manageUsersAttendeeCount) {
+          manageUsersAttendeeCount.textContent = "0";
+        }
       }
     }
   } catch (error) {
@@ -727,6 +1707,22 @@ const loadOrganizerEvents = async () => {
 
     if (organizerEventsEmptyState) {
       organizerEventsEmptyState.hidden = false;
+    }
+
+    if (organizerCalendarTimeline) {
+      organizerCalendarTimeline.innerHTML = "";
+    }
+    if (organizerCalendarMonthTitle) {
+      organizerCalendarMonthTitle.textContent = "Unable to load calendar";
+    }
+    if (organizerCalendarTimelineTitle) {
+      organizerCalendarTimelineTitle.textContent = "Calendar unavailable";
+    }
+    if (organizerCalendarEventCount) {
+      organizerCalendarEventCount.textContent = "0";
+    }
+    if (organizerCalendarEmptyState) {
+      organizerCalendarEmptyState.hidden = false;
     }
   }
 };
@@ -782,19 +1778,26 @@ const renderOrganizerEventDetail = eventDetail => {
   }
 
   activeOrganizerEventDetail = eventDetail;
+  const normalizedStatus = String(eventDetail.status || "published").toLowerCase();
   if (organizerAddAttendeeEventId) {
     organizerAddAttendeeEventId.value = String(eventDetail.id);
   }
   if (organizerEventDetailImage) organizerEventDetailImage.src = eventDetail.imageUrl || "/assets/dashboard/images/dsupimg1.jpg";
   if (organizerEventDetailTitle) organizerEventDetailTitle.textContent = eventDetail.eventName || "Event Details";
   if (organizerEventDetailMeta) organizerEventDetailMeta.textContent = `${eventDetail.eventDate} • ${eventDetail.eventTime} • ${eventDetail.location}`;
-  if (organizerEventDetailStatus) organizerEventDetailStatus.textContent = String(eventDetail.status || "published");
+  if (organizerEventDetailStatus) organizerEventDetailStatus.textContent = normalizedStatus;
   if (organizerEventDetailAttendeeCount) organizerEventDetailAttendeeCount.textContent = String(eventDetail.attendeeCount ?? 0);
   if (organizerEventDetailCapacity) organizerEventDetailCapacity.textContent = String(eventDetail.capacity ?? 0);
   if (organizerEventDetailOccupancy) organizerEventDetailOccupancy.textContent = `${eventDetail.occupancyPercent ?? 0}%`;
   if (organizerEventDetailDescription) organizerEventDetailDescription.textContent = eventDetail.description || "No description added yet.";
+  if (organizerEventDetailPublishBtn) {
+    const isDraft = normalizedStatus === "draft";
+    organizerEventDetailPublishBtn.hidden = !isDraft;
+    organizerEventDetailPublishBtn.disabled = !isDraft;
+    organizerEventDetailPublishBtn.textContent = "Publish Event";
+  }
   if (organizerEventDetailCancelBtn) {
-    const isCancelled = String(eventDetail.status || "").toLowerCase() === "cancelled";
+    const isCancelled = normalizedStatus === "cancelled";
     organizerEventDetailCancelBtn.disabled = isCancelled;
     organizerEventDetailCancelBtn.textContent = isCancelled ? "Event Cancelled" : "Cancel This Event";
   }
@@ -1067,6 +2070,34 @@ const uploadPosterImage = async file => {
   return data.imageUrl || "";
 };
 
+const applyDashboardEventSearch = () => {
+  if (!organizerManagedEvents) {
+    return;
+  }
+
+  if (!organizerDashboardManagedEvents.length) {
+    organizerManagedEvents.innerHTML = "<p class=\"meta\">No events created yet. Create your first event from Create Event.</p>";
+    return;
+  }
+
+  const searchTerm = String(organizerDashboardSearch?.value || "").trim().toLowerCase();
+  const filteredEvents = organizerDashboardManagedEvents.filter(event => {
+    const haystack = [
+      event.eventName,
+      event.category,
+      event.eventDate,
+      event.eventTime,
+      event.location,
+      event.status,
+    ].join(" ").toLowerCase();
+    return !searchTerm || haystack.includes(searchTerm);
+  });
+
+  organizerManagedEvents.innerHTML = filteredEvents.length
+    ? filteredEvents.map(renderManagedEvent).join("")
+    : "<p class=\"meta\">No matching events found in upcoming events.</p>";
+};
+
 const loadOrganizerDashboard = async () => {
   if (!organizerManagedEvents) {
     return;
@@ -1103,22 +2134,26 @@ const loadOrganizerDashboard = async () => {
       organizerPageTitle.textContent = `${data.userName}'s Organizer Dashboard`;
     }
 
+    applyOrganizerAccountBanner(data);
+
     if (organizerActiveEvents) organizerActiveEvents.textContent = data.stats?.activeEvents ?? "0";
     if (organizerTotalAttendees) organizerTotalAttendees.textContent = data.stats?.totalAttendees ?? "0";
     if (organizerCheckinRate) organizerCheckinRate.textContent = data.stats?.checkInRate ?? "0%";
     if (organizerRevenue) organizerRevenue.textContent = data.stats?.totalRevenue ?? "Rs 0";
 
     const managedEvents = Array.isArray(data.managedEvents) ? data.managedEvents : [];
+    organizerDashboardManagedEvents = managedEvents;
+    updateOrganizerDashboardDynamicViews(resolveOrganizerDashboardEvents());
+    if (organizerDashboardSearch && organizerDashboardSearch.value.trim() === "") {
+      const query = new URLSearchParams(window.location.search).get("search") || "";
+      organizerDashboardSearch.value = query;
+    }
     const recentActivity = Array.isArray(data.recentActivity) ? data.recentActivity : [];
     const salesActivity = Array.isArray(data.salesActivity) ? data.salesActivity : [];
     const notifications = Array.isArray(data.notifications) ? data.notifications : [];
     const completedEvents = Array.isArray(data.completedEvents) ? data.completedEvents : [];
 
-    if (organizerManagedEvents) {
-      organizerManagedEvents.innerHTML = managedEvents.length
-        ? managedEvents.map(renderManagedEvent).join("")
-        : "<p class=\"meta\">No events created yet. Create your first event from Create Event.</p>";
-    }
+    applyDashboardEventSearch();
 
     if (organizerActivityList) {
       organizerActivityList.innerHTML = recentActivity.length
@@ -1129,7 +2164,7 @@ const loadOrganizerDashboard = async () => {
     if (organizerSalesList) {
       organizerSalesList.innerHTML = salesActivity.length
         ? salesActivity.map(renderSalesItem).join("")
-        : "<p class=\"meta\">No ticket sales yet.</p>";
+        : "<p class=\"meta\">No analytics activity yet.</p>";
     }
 
     if (organizerNotificationsList) {
@@ -1155,9 +2190,103 @@ const loadOrganizerDashboard = async () => {
   }
 };
 
+const applyOrganizerAnalyticsSearch = () => {
+  const term = String(organizerAnalyticsSearch?.value || "").trim().toLowerCase();
+  const filteredEvents = organizerAnalyticsEventsCache.filter(event => {
+    const eventName = String(event.eventName || "").trim().toLowerCase();
+    return !term || eventName.includes(term);
+  });
+
+  if (organizerAnalyticsSummaryText) {
+    if (!organizerAnalyticsEventsCache.length) {
+      organizerAnalyticsSummaryText.textContent = "No events available yet.";
+    } else if (term) {
+      organizerAnalyticsSummaryText.textContent = filteredEvents.length
+        ? `Showing ${filteredEvents.length} event(s) matching "${term}" by event name.`
+        : `No events found for "${term}".`;
+    } else {
+      organizerAnalyticsSummaryText.textContent = "See your combined revenue, attendance, and event status across every event.";
+    }
+  }
+
+  renderAnalyticsPage(organizerAnalyticsEventsCache, filteredEvents);
+};
+
+const loadOrganizerAnalyticsPage = async () => {
+  if (!organizerAnalyticsKpis) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${getContextPath()}/organizereventsservlet`, {
+      cache: "no-store",
+      headers: {
+        "Accept": "application/json",
+      }
+    });
+
+    if (response.status === 401) {
+      window.location.href = `${getContextPath()}/login`;
+      return;
+    }
+    if (response.status === 403) {
+      window.location.href = `${getContextPath()}/dashboard/user`;
+      return;
+    }
+
+    const data = await parseApiJson(response);
+    organizerAnalyticsEventsCache = Array.isArray(data.events) ? data.events : [];
+
+    if (organizerSidebarUserName && data.userName) {
+      organizerSidebarUserName.textContent = data.userName;
+    }
+    if (organizerAnalyticsPageTitle && data.userName) {
+      organizerAnalyticsPageTitle.textContent = `${data.userName}'s Analytics`;
+    }
+
+    applyOrganizerAnalyticsSearch();
+  } catch (error) {
+    organizerAnalyticsKpis.innerHTML = "<p class=\"meta\">Unable to load analytics right now.</p>";
+  }
+};
+
+const refreshOrganizerLiveData = async () => {
+  if (document.hidden) {
+    return;
+  }
+
+  const tasks = [];
+  if (organizerManagedEvents) {
+    tasks.push(loadOrganizerDashboard());
+  }
+  if (organizerEventsList || manageUsersEventsList || organizerRevenueMetrics || organizerCalendarTimeline) {
+    tasks.push(loadOrganizerEvents());
+  }
+  if (organizerAnalyticsKpis) {
+    tasks.push(loadOrganizerAnalyticsPage());
+  }
+  if (manageUsersSelectedEventId) {
+    tasks.push(loadManageUsersAttendees(manageUsersSelectedEventId));
+  }
+  if (activeOrganizerEventDetail?.id) {
+    tasks.push(loadOrganizerEventDetail(activeOrganizerEventDetail.id));
+  }
+
+  if (tasks.length) {
+    await Promise.allSettled(tasks);
+  }
+};
+
 loadOrganizerDashboard();
 loadOrganizerEvents();
+loadOrganizerAnalyticsPage();
 loadOrganizerProfile();
+
+if (organizerManagedEvents || organizerEventsList || manageUsersEventsList || organizerAnalyticsKpis || organizerRevenueMetrics || organizerCalendarTimeline) {
+  window.setInterval(() => {
+    refreshOrganizerLiveData();
+  }, 20000);
+}
 
 bindToggleGroup(eventModeGroup, "eventMode", mode => {
   setEventModeUI(mode);
@@ -1307,7 +2436,27 @@ createEventForm?.addEventListener("submit", async event => {
 createEventForm?.addEventListener("input", persistCreateEventDraft);
 createEventForm?.addEventListener("change", persistCreateEventDraft);
 
+organizerDashboardSearch?.addEventListener("input", applyDashboardEventSearch);
+organizerAnalyticsSearch?.addEventListener("input", applyOrganizerAnalyticsSearch);
+organizerRevenueOverviewFilter?.addEventListener("change", () => {
+  renderOrganizerRevenueOverview(resolveOrganizerDashboardEvents());
+});
+
 organizerEventsSearch?.addEventListener("input", applyOrganizerEventFilter);
+
+const handleTopbarSearchRedirect = inputElement => {
+  inputElement?.addEventListener("keydown", event => {
+    if (event.key !== "Enter") {
+      return;
+    }
+    const term = String(inputElement.value || "").trim();
+    window.location.href = term
+      ? `/dashboard/organizer?search=${encodeURIComponent(term)}`
+      : "/dashboard/organizer";
+  });
+};
+
+handleTopbarSearchRedirect(organizerNavbarSearch);
 
 manageUsersEventSearch?.addEventListener("input", () => {
   if (!manageUsersEventsList) {
@@ -1348,6 +2497,8 @@ organizerEventsList?.addEventListener("click", event => {
     ticketPricingMode: card.dataset.ticketPricingMode || "paid",
     price: card.dataset.price || "Rs 0",
     capacity: card.dataset.capacity || "0",
+    attendeeCount: card.dataset.attendeeCount || "0",
+    status: card.dataset.status || "published",
     description: card.dataset.description || "",
   };
 
@@ -1369,6 +2520,13 @@ organizerEventsList?.addEventListener("click", event => {
   if (viewButton) {
     event.preventDefault();
     loadOrganizerEventDetail(eventData.id);
+    return;
+  }
+
+  const analyticsButton = event.target.closest(".view-organizer-analytics");
+  if (analyticsButton) {
+    event.preventDefault();
+    goToEventAnalyticsPage(eventData);
     return;
   }
 
@@ -1396,6 +2554,26 @@ organizerEventCancelBackdrop?.addEventListener("click", closeOrganizerEventCance
 organizerEventCancelClose?.addEventListener("click", closeOrganizerEventCancelModal);
 organizerEventDetailBackdrop?.addEventListener("click", closeOrganizerEventDetailModal);
 organizerEventDetailClose?.addEventListener("click", closeOrganizerEventDetailModal);
+
+organizerManagedEvents?.addEventListener("click", event => {
+  const analyticsLink = event.target.closest(".view-organizer-analytics");
+  if (!analyticsLink) {
+    return;
+  }
+  event.preventDefault();
+
+  const card = event.target.closest(".event-card");
+  const eventName = card?.querySelector("h4")?.textContent?.trim() || "";
+  const matchedEvent = organizerDashboardManagedEvents.find(item => item.eventName === eventName)
+    || organizerDashboardManagedEvents[0];
+  if (matchedEvent) {
+    goToEventAnalyticsPage(matchedEvent);
+  }
+});
+
+openOrganizerAnalyticsAction?.addEventListener("click", () => {
+  window.location.href = getAnalyticsPagePath();
+});
 
 bindOrganizerToggleGroup(organizerEventModeToggle, "eventMode", setOrganizerEditEventMode);
 bindOrganizerToggleGroup(organizerEventTicketToggle, "ticketMode", setOrganizerEditTicketMode);
@@ -1480,6 +2658,45 @@ organizerEventDetailCancelBtn?.addEventListener("click", () => {
     return;
   }
   openOrganizerEventCancelModal(activeOrganizerEventDetail);
+});
+
+organizerEventDetailPublishBtn?.addEventListener("click", async () => {
+  const eventId = String(activeOrganizerEventDetail?.id || "");
+  if (!eventId) {
+    return;
+  }
+
+  organizerEventDetailPublishBtn.disabled = true;
+  organizerEventDetailPublishBtn.textContent = "Publishing...";
+  setAddAttendeeStatus("");
+
+  try {
+    const response = await fetchWithPathFallback("/publish-organizer-event", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        "Accept": "application/json",
+      },
+      body: new URLSearchParams({ eventId }).toString(),
+    });
+
+    if (response.status === 401) {
+      window.location.href = `${getContextPath()}/login`;
+      return;
+    }
+
+    const data = await parseApiJson(response);
+    await loadOrganizerEvents();
+    await loadOrganizerEventDetail(eventId);
+    setAddAttendeeStatus(data.message || "Event published successfully.");
+  } catch (error) {
+    setAddAttendeeStatus(error.message || "Unable to publish event.", true);
+  } finally {
+    if (organizerEventDetailPublishBtn && organizerEventDetailPublishBtn.hidden === false) {
+      organizerEventDetailPublishBtn.disabled = false;
+      organizerEventDetailPublishBtn.textContent = "Publish Event";
+    }
+  }
 });
 
 organizerAddAttendeeForm?.addEventListener("submit", async event => {

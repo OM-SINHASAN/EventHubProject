@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>View Analytics | EventHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/dashboard/organizer/organizer.css">
+  <link rel="icon" href="/assets/dashboard/images/logo1.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+</head>
+<body>
+<div class="dashboard">
+  <aside class="sidebar">
+    <h2 class="logo">EventHub</h2>
+    <ul class="menu">
+      <li>
+        <a href="/dashboard/organizer"><i class="fa-regular fa-calendar"></i>My Dashboard</a>
+      </li>
+      <li>
+        <a href="/assets/dashboard/organizer/create.html"><i class="fa-solid fa-plus"></i>Create Event</a>
+      </li>
+      <li class="active">
+        <a href="/assets/dashboard/organizer/analytics.html"><i class="fa-solid fa-chart-line"></i>View Analytics</a>
+      </li>
+      <li><a href="/assets/dashboard/organizer/myevents.html"><i class="fa-solid fa-chart-column"></i>My Events</a></li>
+      <li><a href="/assets/dashboard/organizer/manageusers.html"><i class="fa-solid fa-users"></i>Manage User</a></li>
+      <li><a href="/assets/dashboard/organizer/calendar.html"><i class="fa-regular fa-calendar-days"></i>Calendar</a></li>
+      <li>
+        <a href="/assets/dashboard/organizer/profile.html"><i class="fa-regular fa-circle-user"></i>My Profile</a>
+      </li>
+      <li>
+        <a href="/assets/dashboard/organizer/support.html"><i class="fa-regular fa-circle-question"></i>Help & Support</a>
+      </li>
+    </ul>
+
+    <div class="user">
+      <div class="user-info">
+        <img src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar>
+        <div class="user-text">
+          <strong data-organizer-name>Organizer</strong>
+          <span>Event Organizer</span>
+        </div>
+      </div>
+      <a href="/logout" class="logout">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </a>
+    </div>
+  </aside>
+
+  <main class="main browse-main">
+    <header class="topbar">
+      <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      <h2 id="organizerAnalyticsPageTitle">View Analytics</h2>
+      <div class="top-actions">
+        <button class="primary-btn" onclick="window.location.href='/assets/dashboard/organizer/create.html'">Create Event</button>
+        <img class="avatar topbar-profile-link" src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar onclick="window.location.href='/assets/dashboard/organizer/profile.html'">
+      </div>
+    </header>
+
+    <section class="content organizer-analytics-content">
+      <div class="card large">
+        <div class="tickets-results-head">
+          <h3>Overall Analytics Status</h3>
+          <p id="organizerAnalyticsSummaryText">See your combined revenue, attendance, and event status across every event.</p>
+        </div>
+        <div class="organizer-analytics-overview-card" id="organizerAnalyticsOverviewCard">
+          <div class="organizer-analytics-overview-copy">
+            <span class="organizer-analytics-overview-label">All Events Summary</span>
+            <h3 id="organizerAnalyticsOverviewTitle">Your organizer performance at a glance</h3>
+            <p id="organizerAnalyticsOverviewText">Track total revenue, attendee turnout, and how your events are performing overall.</p>
+          </div>
+          <div class="organizer-analytics-overview-visual">
+            <div class="organizer-analytics-graph" id="organizerAnalyticsGraph"></div>
+            <div class="organizer-analytics-kpis organizer-analytics-kpis-horizontal" id="organizerAnalyticsKpis"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card large">
+        <div class="tickets-results-head">
+          <h3>Search Events</h3>
+          <p><span id="organizerAnalyticsEventCount">0</span> events shown</p>
+        </div>
+        <div class="organizer-analytics-search-row">
+          <input type="text" placeholder="Search event by name..." class="searchbox organizer-analytics-search-input" id="organizerAnalyticsSearch">
+        </div>
+      </div>
+
+      <div class="card large">
+        <div class="tickets-results-head">
+          <h3>Events Analytics</h3>
+        </div>
+        <div class="organizer-analytics-events" id="organizerAnalyticsEvents"></div>
+      </div>
+
+      <div class="card large">
+        <h3>Category Performance</h3>
+        <div class="manage-users-table-scroll">
+          <table class="manage-users-table">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Events</th>
+                <th>Revenue</th>
+                <th>Attendees</th>
+                <th>Avg Fill Rate</th>
+              </tr>
+            </thead>
+            <tbody id="organizerAnalyticsCategoryBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Status Breakdown</h3>
+        <ul class="notification-list" id="organizerAnalyticsStatusList"></ul>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="/assets/dashboard/organizer/organizer.js"></script>
+</body>
+</html>

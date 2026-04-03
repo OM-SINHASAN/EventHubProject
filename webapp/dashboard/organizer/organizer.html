@@ -20,10 +20,10 @@
       <li>
         <a href="/assets/dashboard/organizer/create.html"><i class="fa-solid fa-plus"></i>Create Event</a>
       </li>
-      <li><i class="fa-solid fa-ticket"></i>Ticket Sales</li>
+      <li><a href="/assets/dashboard/organizer/analytics.html"><i class="fa-solid fa-chart-line"></i>View Analytics</a></li>
       <li><a href="/assets/dashboard/organizer/myevents.html"><i class="fa-solid fa-chart-column"></i>My Events</a></li>
       <li><a href="/assets/dashboard/organizer/manageusers.html"><i class="fa-solid fa-users"></i>Manage User</a></li>
-      <li><i class="fa-regular fa-calendar-days"></i>Calendar</li>
+      <li><a href="/assets/dashboard/organizer/calendar.html"><i class="fa-regular fa-calendar-days"></i>Calendar</a></li>
       <li>
         <a href="/assets/dashboard/organizer/profile.html"><i class="fa-regular fa-circle-user"></i>My Profile</a>
       </li>
@@ -56,11 +56,18 @@
       <h2 id="organizerPageTitle">Organizer Dashboard</h2>
 
       <div class="top-actions">
-        <input type="text" placeholder="Search events..." class="searchbox">
+        <input type="text" placeholder="Search events..." class="searchbox" id="organizerDashboardSearch">
         <button class="primary-btn" onclick="window.location.href='/assets/dashboard/organizer/create.html'">Create Event</button>
-        <img class="avatar" src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar>
+        <img class="avatar topbar-profile-link" src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar onclick="window.location.href='/assets/dashboard/organizer/profile.html'">
       </div>
     </header>
+
+    <section class="organizer-account-banner" id="organizerAccountBanner" hidden>
+      <div class="organizer-account-banner-copy">
+        <strong id="organizerAccountBannerTitle">Account update</strong>
+        <p id="organizerAccountBannerText">Your organizer account has an admin update.</p>
+      </div>
+    </section>
 
     <section class="stats" id="organizerStats" hidden>
       <div class="stat-card">
@@ -107,29 +114,35 @@
       <div class="card">
         <h3>Quick Actions</h3>
         <div class="actions">
-          <div class="action-card blue" onclick="window.location.href='/assets/dashboard/organizer/create.html'">
+          <div class="action-card blue" id="organizerQuickCreateAction" onclick="window.location.href='/assets/dashboard/organizer/create.html'">
             <i class="fa-solid fa-plus"></i>
             <span>Create Event</span>
+            <small id="organizerQuickCreateMeta">Start a new event</small>
           </div>
-          <div class="action-card green">
+          <div class="action-card green" id="organizerQuickAttendeesAction" onclick="window.location.href='/assets/dashboard/organizer/manageusers.html'">
             <i class="fa-solid fa-users"></i>
             <span>View Attendees</span>
+            <small id="organizerQuickAttendeesMeta">Track registrations live</small>
           </div>
-          <div class="action-card purple">
+          <div class="action-card purple" id="organizerQuickPromoteAction" onclick="window.location.href='/assets/dashboard/organizer/myevents.html'">
             <i class="fa-solid fa-bullhorn"></i>
             <span>Promote Event</span>
+            <small id="organizerQuickPromoteMeta">Highlight your next event</small>
           </div>
-          <div class="action-card teal">
+          <div class="action-card teal" id="openOrganizerAnalyticsAction" onclick="window.location.href='/assets/dashboard/organizer/analytics.html'">
             <i class="fa-solid fa-chart-line"></i>
             <span>View Analytics</span>
+            <small id="organizerQuickAnalyticsMeta">Measure performance</small>
           </div>
-          <div class="action-card orange">
+          <div class="action-card orange" id="organizerQuickTicketsAction" onclick="window.location.href='/assets/dashboard/organizer/manageusers.html'">
             <i class="fa-solid fa-ticket"></i>
             <span>Manage Tickets</span>
+            <small id="organizerQuickTicketsMeta">Review attendee tickets</small>
           </div>
           <div class="action-card pink" onclick="window.location.href='/assets/dashboard/organizer/support.html'">
             <i class="fa-solid fa-circle-info"></i>
             <span>Support</span>
+            <small id="organizerQuickSupportMeta">Help and setup tips</small>
           </div>
         </div>
       </div>
@@ -142,20 +155,22 @@
       <div class="card revenue-card">
         <div class="revenue-header">
           <h3>Revenue Overview</h3>
-          <select>
-            <option>Last 6 Months</option>
-            <option>Last Year</option>
+          <select id="organizerRevenueOverviewFilter">
+            <option value="all">All Events</option>
+            <option value="published">Published Only</option>
+            <option value="active">Active Only</option>
           </select>
         </div>
 
         <div class="chart-area organizer-chart-placeholder">
           <strong id="organizerRevenueHeadline">Revenue growing across active events</strong>
-          <p>Use analytics to monitor registrations, payouts, and conversion trends.</p>
+          <p id="organizerRevenueSummary">Use analytics to monitor registrations, payouts, and conversion trends.</p>
+          <div class="organizer-revenue-metrics" id="organizerRevenueMetrics"></div>
         </div>
       </div>
 
       <div class="card">
-        <h3>Ticket Sales Activity</h3>
+        <h3>Analytics Activity</h3>
         <ul class="sales-list" id="organizerSalesList"></ul>
       </div>
 

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard | EventHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/dashboard/organizer/organizer.css">
+  <link rel="stylesheet" href="/assets/dashboard/admin/admin.css">
+  <link rel="icon" href="/assets/dashboard/images/logo1.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+</head>
+<body>
+<div class="dashboard">
+  <aside class="sidebar">
+    <h2 class="logo">EventHub</h2>
+
+    <ul class="menu">
+      <li class="active" data-admin-nav-item>
+        <button type="button" class="admin-menu-btn" data-section-target="dashboard">
+          <i class="fa-regular fa-calendar"></i>
+          My Dashboard
+        </button>
+      </li>
+      <li data-admin-nav-item>
+        <button type="button" class="admin-menu-btn" data-section-target="organizers">
+          <i class="fa-solid fa-user-tie"></i>
+          Manage Organizer
+        </button>
+      </li>
+      <li data-admin-nav-item>
+        <button type="button" class="admin-menu-btn" data-section-target="users">
+          <i class="fa-solid fa-users"></i>
+          Manage User
+        </button>
+      </li>
+      <li data-admin-nav-item>
+        <button type="button" class="admin-menu-btn" data-section-target="browse">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          Browse
+        </button>
+      </li>
+      <li>
+        <a href="/assets/dashboard/admin/profile.html">
+          <i class="fa-regular fa-circle-user"></i>
+          My Profile
+        </a>
+      </li>
+      <li>
+        <a href="/assets/dashboard/admin/support.html">
+          <i class="fa-regular fa-circle-question"></i>
+          Help & Support
+        </a>
+      </li>
+    </ul>
+
+    <div class="user">
+      <div class="user-info">
+        <img src="/assets/dashboard/images/logo1.png" alt="Admin avatar" data-admin-avatar>
+        <div class="user-text">
+          <strong id="adminSidebarUserName" data-admin-name>EventHub Admin</strong>
+          <span>Platform Administrator</span>
+        </div>
+      </div>
+
+      <a href="/logout" class="logout">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </a>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="menu-toggle" id="adminMenuToggle" type="button">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+
+      <h2 id="adminSectionTitle">Admin Dashboard</h2>
+
+      <div class="top-actions">
+        <input type="text" placeholder="Search organizers, users, events..." class="searchbox" id="adminGlobalSearch">
+        <button class="primary-btn" type="button" id="adminPrimaryAction">Browse Events</button>
+        <img class="avatar topbar-profile-link" src="/assets/dashboard/images/logo1.png" alt="Admin avatar" data-admin-avatar onclick="window.location.href='/assets/dashboard/admin/profile.html'">
+      </div>
+    </header>
+
+    <section class="stats" id="adminStats">
+      <div class="stat-card">
+        <div class="stat-icon" id="adminStatRevenueIcon">
+          <i class="fa-solid fa-indian-rupee-sign"></i>
+        </div>
+        <h3 id="adminStatRevenue">Rs 0</h3>
+        <p>Platform Revenue</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" id="adminStatOrganizerIcon">
+          <i class="fa-solid fa-user-tie"></i>
+        </div>
+        <h3 id="adminStatOrganizers">0</h3>
+        <p>Active Organizers</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" id="adminStatUserIcon">
+          <i class="fa-solid fa-users"></i>
+        </div>
+        <h3 id="adminStatUsers">0</h3>
+        <p>Registered Users</p>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon" id="adminStatEventIcon">
+          <i class="fa-regular fa-calendar-days"></i>
+        </div>
+        <h3 id="adminStatEvents">0</h3>
+        <p>Live & Published Events</p>
+      </div>
+    </section>
+
+    <section class="content admin-dashboard-content admin-section" data-section="dashboard">
+      <div class="card large">
+        <div class="admin-section-head">
+          <div>
+            <h3>Platform Overview</h3>
+            <p>Track revenue momentum, payouts, and platform health from one control center.</p>
+          </div>
+          <span class="admin-status-pill success">Healthy</span>
+        </div>
+
+        <div class="chart-area organizer-chart-placeholder admin-overview-visual">
+          <strong id="adminRevenueHeadline">Revenue growing across active communities</strong>
+          <p id="adminRevenueSummary">Stay ahead of organizer performance, user growth, and support pressure with one quick view.</p>
+          <div class="organizer-revenue-metrics admin-kpi-grid" id="adminRevenueMetrics"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Quick Actions</h3>
+        <div class="actions admin-actions-grid">
+          <div class="action-card blue" data-section-shortcut="organizers">
+            <i class="fa-solid fa-user-tie"></i>
+            <span>Review Organizers</span>
+            <small>Inspect organizer health and event performance.</small>
+          </div>
+          <div class="action-card green" data-section-shortcut="users">
+            <i class="fa-solid fa-user-check"></i>
+            <span>Audit Users</span>
+            <small>Check signups, spend, and flagged accounts.</small>
+          </div>
+          <div class="action-card teal" data-section-shortcut="browse">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span>Browse Events</span>
+            <small>Inspect the same live event feed visible to attendees.</small>
+          </div>
+          <div class="action-card orange" id="adminRevenueAction">
+            <i class="fa-solid fa-wallet"></i>
+            <span>Revenue Snapshot</span>
+            <small>Highlight the strongest revenue drivers this cycle.</small>
+          </div>
+          <div class="action-card pink" id="adminSupportAction">
+            <i class="fa-solid fa-headset"></i>
+            <span>Support Queue</span>
+            <small>Review open support pressure and admin tasks.</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Recent Activity</h3>
+        <ul class="activity" id="adminActivityList"></ul>
+      </div>
+
+      <div class="card revenue-card">
+        <div class="revenue-header">
+          <h3>Platform Health</h3>
+          <span class="admin-inline-caption">Operational metrics</span>
+        </div>
+        <div class="admin-health-grid" id="adminHealthGrid"></div>
+      </div>
+
+      <div class="card">
+        <h3>Revenue Trend</h3>
+        <div class="admin-revenue-bars" id="adminRevenueBars"></div>
+      </div>
+    </section>
+
+    <section class="admin-section admin-directory-section" data-section="organizers" hidden>
+      <div class="card">
+        <div class="admin-section-head">
+          <div>
+            <h3>Manage Organizer</h3>
+            <p>Review organizer activity, track event performance, and take action on accounts that need attention.</p>
+          </div>
+          <div class="admin-inline-tools">
+            <input type="search" id="organizerSearch" class="admin-inline-search" placeholder="Search organizer or event name">
+          </div>
+        </div>
+
+        <div class="organizer-revenue-metrics admin-kpi-grid admin-mini-grid" id="organizerMiniStats"></div>
+        <div class="admin-directory-grid" id="organizerGrid"></div>
+      </div>
+    </section>
+
+    <section class="admin-section admin-directory-section" data-section="users" hidden>
+      <div class="card">
+        <div class="admin-section-head">
+          <div>
+            <h3>Manage User</h3>
+            <p>Monitor user registrations, spend, status, and upcoming event activity from one table.</p>
+          </div>
+          <div class="admin-inline-tools">
+            <input type="search" id="userSearch" class="admin-inline-search" placeholder="Search user, city, or email">
+          </div>
+        </div>
+
+        <div class="organizer-revenue-metrics admin-kpi-grid admin-mini-grid" id="userMiniStats"></div>
+        <div class="admin-user-table-wrap">
+          <div class="admin-table-head">
+            <h3>Users</h3>
+            <span id="userResultsCount">0 users</span>
+          </div>
+          <div class="manage-users-table-scroll">
+            <table class="manage-users-table admin-user-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>City</th>
+                  <th>Status</th>
+                  <th>Tickets</th>
+                  <th>Spend</th>
+                  <th>Upcoming</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="userTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-section admin-directory-section" data-section="browse" hidden>
+      <div class="card">
+        <div class="admin-section-head">
+          <div>
+            <h3>Browse Events</h3>
+            <p>Inspect the live event listings visible to attendees and review what is currently published on the platform.</p>
+          </div>
+          <div class="admin-inline-tools">
+            <input type="search" id="adminBrowseSearch" class="admin-inline-search" placeholder="Search event name, category, or location">
+          </div>
+        </div>
+
+        <div class="admin-browse-head">
+          <h3>Live Event Feed</h3>
+          <span id="adminBrowseResultsCount">0 events</span>
+        </div>
+        <div class="admin-browse-grid" id="adminBrowseResults"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="logout-modal" id="adminOrganizerReviewModal" hidden>
+  <div class="logout-modal-backdrop" id="adminOrganizerReviewBackdrop"></div>
+  <div class="logout-modal-card admin-review-modal-card" role="dialog" aria-modal="true" aria-labelledby="adminOrganizerReviewTitle">
+    <button type="button" class="register-modal-close" id="adminOrganizerReviewClose" aria-label="Close organizer review">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <div class="admin-review-header">
+      <div class="admin-review-profile">
+        <img src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" id="adminOrganizerReviewAvatar">
+        <div>
+          <h3 id="adminOrganizerReviewTitle">Organizer Review</h3>
+          <p id="adminOrganizerReviewMeta">Organizer details</p>
+        </div>
+      </div>
+      <span class="booking-status" id="adminOrganizerReviewStatus">active</span>
+    </div>
+
+    <div class="admin-review-grid" id="adminOrganizerReviewStats"></div>
+
+    <div class="admin-review-block">
+      <h4>Recent Events</h4>
+      <div class="admin-review-events" id="adminOrganizerReviewEvents"></div>
+    </div>
+
+    <div class="admin-review-block">
+      <h4>Admin Note</h4>
+      <textarea id="adminOrganizerReviewNote" class="review-input review-textarea" rows="4" placeholder="Add a warning note, suspension reason, or admin remark..."></textarea>
+      <p class="register-form-status" id="adminOrganizerReviewMessage" hidden></p>
+    </div>
+
+    <div class="logout-modal-actions admin-review-actions">
+      <button type="button" class="logout-cancel-btn" id="adminOrganizerWarnBtn">Give Warning</button>
+      <button type="button" class="logout-cancel-btn" id="adminOrganizerSuspendBtn">Suspend</button>
+      <button type="button" class="logout-cancel-btn" id="adminOrganizerActivateBtn">Activate</button>
+      <button type="button" class="logout-confirm-btn" id="adminOrganizerRemoveBtn">Remove</button>
+    </div>
+  </div>
+</div>
+
+<div class="logout-modal" id="adminUserReviewModal" hidden>
+  <div class="logout-modal-backdrop" id="adminUserReviewBackdrop"></div>
+  <div class="logout-modal-card admin-review-modal-card" role="dialog" aria-modal="true" aria-labelledby="adminUserReviewTitle">
+    <button type="button" class="register-modal-close" id="adminUserReviewClose" aria-label="Close user review">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <div class="admin-review-header">
+      <div class="admin-review-profile">
+        <img src="/assets/dashboard/images/logo1.png" alt="User avatar" id="adminUserReviewAvatar">
+        <div>
+          <h3 id="adminUserReviewTitle">User Review</h3>
+          <p id="adminUserReviewMeta">User details</p>
+        </div>
+      </div>
+      <span class="booking-status" id="adminUserReviewStatus">active</span>
+    </div>
+
+    <div class="admin-review-grid" id="adminUserReviewStats"></div>
+
+    <div class="admin-review-block">
+      <h4>Booked Events</h4>
+      <div class="admin-review-events" id="adminUserReviewBookings"></div>
+    </div>
+
+    <div class="admin-review-block">
+      <h4>Admin Note</h4>
+      <textarea id="adminUserReviewNote" class="review-input review-textarea" rows="4" placeholder="Add a warning note, access note, or removal reason..."></textarea>
+      <p class="register-form-status" id="adminUserReviewMessage" hidden></p>
+    </div>
+
+    <div class="logout-modal-actions admin-review-actions">
+      <button type="button" class="logout-cancel-btn" id="adminUserWarnBtn">Give Warning</button>
+      <button type="button" class="logout-cancel-btn" id="adminUserActivateBtn">Activate</button>
+      <button type="button" class="logout-confirm-btn" id="adminUserRemoveBtn">Remove</button>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/dashboard/admin/admin.js"></script>
+</body>
+</html>

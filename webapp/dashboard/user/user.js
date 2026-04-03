@@ -250,6 +250,7 @@ const profilePasswordStatus = document.getElementById("profilePasswordStatus");
 const profileImageInput = document.getElementById("profileImageInput");
 const profileImg = document.querySelector(".profile-img");
 const uploadBtn = document.querySelector(".upload-btn");
+const userAvatarNodes = document.querySelectorAll("[data-user-avatar]");
 const bookingEditModal = document.getElementById("bookingEditModal");
 const bookingEditModalBackdrop = document.getElementById("bookingEditModalBackdrop");
 const bookingEditModalClose = document.getElementById("bookingEditModalClose");
@@ -288,12 +289,16 @@ const dashboardContent = document.getElementById("dashboardContent");
 const dashboardTicketsSection = document.getElementById("dashboardTicketsSection");
 const dashboardHistorySection = document.getElementById("dashboardHistorySection");
 const dashboardEmptyState = document.getElementById("dashboardEmptyState");
+const dashboardAccountBanner = document.getElementById("dashboardAccountBanner");
+const dashboardAccountBannerTitle = document.getElementById("dashboardAccountBannerTitle");
+const dashboardAccountBannerText = document.getElementById("dashboardAccountBannerText");
 const dashboardPageTitle = document.getElementById("dashboardPageTitle");
 const registeredEventsCount = document.getElementById("registeredEventsCount");
 const ticketsPurchasedCount = document.getElementById("ticketsPurchasedCount");
 const eventsAttendedCount = document.getElementById("eventsAttendedCount");
 const totalSpentCount = document.getElementById("totalSpentCount");
 const dashboardUpcomingEvents = document.getElementById("dashboardUpcomingEvents");
+const dashboardUpcomingEventsLoadMoreBtn = document.getElementById("dashboardUpcomingEventsLoadMoreBtn");
 const dashboardTicketsGrid = document.getElementById("dashboardTicketsGrid");
 const dashboardHistoryBody = document.getElementById("dashboardHistoryBody");
 const dashboardActivityList = document.getElementById("dashboardActivityList");
@@ -351,11 +356,14 @@ let pendingCancelBooking = null;
 let activeProfileSnapshot = null;
 let currentUserEmail = "";
 let userHasRegisteredEvents = false;
+let dashboardUpcomingEventsData = [];
+let dashboardUpcomingEventsExpanded = false;
 
 const LEGACY_REGISTERED_TICKETS_STORAGE_KEY = "eventhub_registered_tickets";
 const REGISTERED_TICKETS_STORAGE_KEY_PREFIX = "eventhub_registered_tickets:";
 const LAST_ACTIVE_USER_STORAGE_KEY = "eventhub_last_active_user_email";
 const restrictedMenuHrefSuffixes = ["tickets.html", "bookings.html", "profile.html"];
+const DASHBOARD_UPCOMING_EVENTS_INITIAL_COUNT = 5;
 
 const updateRestrictedNavigationVisibility = () => {
   const sidebarMenuItems = document.querySelectorAll(".menu li");
@@ -416,6 +424,49 @@ const formatUserRole = role => {
   return role.charAt(0).toUpperCase() + role.slice(1);
 };
 
+const applyDashboardAccountBanner = data => {
+  if (!dashboardAccountBanner) {
+    return;
+  }
+
+  const adminStatus = String(data.adminStatus || data.admin_status || "").trim().toLowerCase();
+  const warningCount = Number(data.adminWarningCount || data.admin_warning_count || 0);
+  const adminNote = String(data.adminNote || data.admin_note || "").trim();
+
+  if (adminStatus === "warned") {
+    dashboardAccountBanner.hidden = false;
+    dashboardAccountBanner.classList.remove("is-error");
+    if (dashboardAccountBannerTitle) {
+      dashboardAccountBannerTitle.textContent = warningCount > 1
+        ? `Admin warning active (${warningCount} notices)`
+        : "Admin warning active";
+    }
+    if (dashboardAccountBannerText) {
+      dashboardAccountBannerText.textContent = adminNote
+        ? `Your EventHub account has been warned by admin. Note: ${adminNote}`
+        : "Your EventHub account has been warned by admin. Please review your recent activity or contact support if you need help.";
+    }
+    return;
+  }
+
+  if (adminStatus === "suspended" || adminStatus === "removed") {
+    dashboardAccountBanner.hidden = false;
+    dashboardAccountBanner.classList.add("is-error");
+    if (dashboardAccountBannerTitle) {
+      dashboardAccountBannerTitle.textContent = "Account access restricted";
+    }
+    if (dashboardAccountBannerText) {
+      dashboardAccountBannerText.textContent = adminNote
+        ? adminNote
+        : "Your account currently has restricted access. Please contact EventHub support.";
+    }
+    return;
+  }
+
+  dashboardAccountBanner.hidden = true;
+  dashboardAccountBanner.classList.remove("is-error");
+};
+
 const applyUserProfile = data => {
   if (!data) {
     return;
@@ -424,7 +475,7 @@ const applyUserProfile = data => {
   const userName = String(data.userName || "").trim();
   const userEmail = String(data.userEmail || "").trim();
   const userRole = formatUserRole(String(data.userRole || "").trim());
-  const profileImage = data.profileImage || data.profile_image || "../images/logo1.png";
+  const profileImage = data.profileImage || data.profile_image || "/assets/dashboard/images/logo1.png";
   const { firstName, lastName } = splitUserName(userName);
 
   if (userEmail) {
@@ -450,10 +501,12 @@ const applyUserProfile = data => {
     }
   });
 
-  if (profileImg) {
-    profileImg.src = profileImage;
-    profileImg.alt = `${userName}'s profile photo`;
-  }
+  userAvatarNodes.forEach(node => {
+    if (node.tagName === "IMG") {
+      node.src = profileImage;
+      node.alt = `${userName || "User"} avatar`;
+    }
+  });
 
   document.querySelectorAll("[data-user-first-name]").forEach(element => {
     if (!firstName) {
@@ -510,6 +563,8 @@ const applyUserProfile = data => {
   if (profileBio && "bio" in data) {
     profileBio.value = String(data.bio || "");
   }
+
+  applyDashboardAccountBanner(data);
 
   activeProfileSnapshot = {
     firstName,
@@ -644,6 +699,27 @@ const renderDashboardEventCard = ticket => {
     </div>
   </div>
 `;
+};
+
+const renderDashboardUpcomingEventsSection = () => {
+  if (!dashboardUpcomingEvents) {
+    return;
+  }
+
+  const totalUpcomingEvents = dashboardUpcomingEventsData.length;
+  const hasMoreThanInitialView = totalUpcomingEvents > DASHBOARD_UPCOMING_EVENTS_INITIAL_COUNT;
+  const visibleEvents = dashboardUpcomingEventsExpanded
+    ? dashboardUpcomingEventsData
+    : dashboardUpcomingEventsData.slice(0, DASHBOARD_UPCOMING_EVENTS_INITIAL_COUNT);
+
+  dashboardUpcomingEvents.innerHTML = totalUpcomingEvents
+    ? visibleEvents.map(renderDashboardEventCard).join("")
+    : "<p class=\"meta\">No upcoming events yet.</p>";
+  dashboardUpcomingEvents.classList.toggle("is-scrollable", dashboardUpcomingEventsExpanded && hasMoreThanInitialView);
+
+  if (dashboardUpcomingEventsLoadMoreBtn) {
+    dashboardUpcomingEventsLoadMoreBtn.hidden = !hasMoreThanInitialView || dashboardUpcomingEventsExpanded;
+  }
 };
 
 const renderDashboardMiniTicket = ticket => `
@@ -1744,14 +1820,8 @@ const downloadTicketFile = async ticket => {
 
   const eventSlug = sanitizeFileName(ticket.eventName);
   const codeSlug = sanitizeFileName(ticket.ticketCode);
-  const fileName = `${eventSlug || "eventhub-ticket"}-${codeSlug || "ticket"}.html`;
-  const ticketWithResolvedImage = {
-    ...ticket,
-    imageUrl: await resolveTicketDownloadImage(ticket.imageUrl),
-  };
-  const blob = new Blob([buildTicketDownloadMarkup(ticketWithResolvedImage)], {
-    type: "text/html;charset=utf-8",
-  });
+  const fileName = `${eventSlug || "eventhub-ticket"}-${codeSlug || "ticket"}.pdf`;
+  const blob = buildTicketPdfBlob(ticket);
   const downloadUrl = URL.createObjectURL(blob);
   const link = document.createElement("a");
 
@@ -1893,42 +1963,283 @@ const escapePdfText = value => String(value ?? "")
   .replace(/\)/g, "\\)")
   .replace(/\r?\n/g, " ");
 
+const normalizePdfValue = (value, fallback = "-") => {
+  const text = String(value ?? "").trim();
+  return text || fallback;
+};
+
+const wrapPdfText = (value, maxCharsPerLine = 28, maxLines = 2) => {
+  const text = normalizePdfValue(value);
+  const words = text.split(/\s+/).filter(Boolean);
+
+  if (!words.length) {
+    return [text];
+  }
+
+  const lines = [];
+  let currentLine = "";
+
+  const pushLongWord = word => {
+    let remaining = word;
+
+    while (remaining.length > maxCharsPerLine) {
+      if (currentLine) {
+        lines.push(currentLine);
+        currentLine = "";
+      }
+
+      lines.push(`${remaining.slice(0, maxCharsPerLine - 1)}-`);
+      remaining = remaining.slice(maxCharsPerLine - 1);
+    }
+
+    return remaining;
+  };
+
+  words.forEach(rawWord => {
+    const word = pushLongWord(rawWord);
+    const nextLine = currentLine ? `${currentLine} ${word}` : word;
+
+    if (nextLine.length <= maxCharsPerLine) {
+      currentLine = nextLine;
+      return;
+    }
+
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
+    currentLine = word;
+  });
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  if (lines.length <= maxLines) {
+    return lines;
+  }
+
+  const visibleLines = lines.slice(0, maxLines);
+  const lastVisibleLine = visibleLines[maxLines - 1];
+  visibleLines[maxLines - 1] = `${lastVisibleLine.slice(0, Math.max(maxCharsPerLine - 3, 1)).trimEnd()}...`;
+  return visibleLines;
+};
+
+const pdfColor = rgb => rgb
+  .map(channel => Number(channel).toFixed(3).replace(/0+$/g, "").replace(/\.$/, ""))
+  .join(" ");
+
+const addPdfRect = (commands, x, y, width, height, fill) => {
+  commands.push(`${pdfColor(fill)} rg`);
+  commands.push(`${x} ${y} ${width} ${height} re f`);
+};
+
+const addPdfText = (commands, { text, x, y, size = 12, font = "F1", color = [0, 0, 0] }) => {
+  commands.push(`${pdfColor(color)} rg`);
+  commands.push("BT");
+  commands.push(`/${font} ${size} Tf`);
+  commands.push(`1 0 0 1 ${x} ${y} Tm`);
+  commands.push(`(${escapePdfText(text)}) Tj`);
+  commands.push("ET");
+};
+
 const buildTicketPdfBlob = ticket => {
-  const pdfLines = [
-    { size: 26, text: "EventHub Ticket", x: 50, y: 790 },
-    { size: 20, text: ticket.eventName || "Event", x: 50, y: 754 },
-    { size: 12, text: "Admission pass generated by EventHub", x: 50, y: 732 },
-    { size: 14, text: `Ticket ID: ${ticket.ticketCode || "-"}`, x: 50, y: 688 },
-    { size: 14, text: `Date: ${ticket.eventDate || "-"}`, x: 50, y: 664 },
-    { size: 14, text: `Time: ${ticket.eventTime || "-"}`, x: 50, y: 640 },
-    { size: 14, text: `Location: ${ticket.location || "-"}`, x: 50, y: 616 },
-    { size: 14, text: `Ticket Type: ${ticket.ticketType || "-"}`, x: 50, y: 592 },
-    { size: 14, text: `Seat / Access: ${ticket.seatInfo || "-"}`, x: 50, y: 568 },
-    { size: 14, text: `Price: ${ticket.price || "-"}`, x: 50, y: 544 },
-    { size: 14, text: `Guest: ${ticket.owner || "EventHub Guest"}`, x: 50, y: 520 },
-    { size: 12, text: `Issued on ${new Date().toLocaleString()}`, x: 50, y: 474 },
-    { size: 12, text: "Present this PDF ticket at entry or share it with your group.", x: 50, y: 450 },
+  const commands = [];
+  const eventTitleLines = wrapPdfText(ticket.eventName || "EventHub Event", 24, 2);
+  const issueDateText = new Date().toLocaleString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  const detailRows = [
+    { label: "DATE", value: normalizePdfValue(ticket.eventDate) },
+    { label: "TIME", value: normalizePdfValue(ticket.eventTime) },
+    { label: "LOCATION", value: normalizePdfValue(ticket.location) },
+    { label: "TICKET TYPE", value: normalizePdfValue(ticket.ticketType) },
+    { label: "SEAT / ACCESS", value: normalizePdfValue(ticket.seatInfo) },
+    { label: "GUEST", value: normalizePdfValue(ticket.owner, "EventHub Guest") },
   ];
 
-  const contentStream = [
-    "0.15 0.14 0.36 rg",
-    "50 806 220 2 re f",
-    "0 0 0 rg",
-    ...pdfLines.flatMap(line => [
-      "BT",
-      `/F1 ${line.size} Tf`,
-      `${line.x} ${line.y} Td`,
-      `(${escapePdfText(line.text)}) Tj`,
-      "ET",
-    ]),
-  ].join("\n");
+  addPdfRect(commands, 0, 0, 595, 842, [0.965, 0.976, 0.992]);
+  addPdfRect(commands, 32, 42, 531, 758, [1, 1, 1]);
+  addPdfRect(commands, 32, 640, 531, 160, [0.118, 0.161, 0.329]);
+  addPdfRect(commands, 32, 634, 531, 8, [0.969, 0.514, 0.341]);
+  addPdfRect(commands, 378, 168, 151, 368, [0.129, 0.192, 0.404]);
+  addPdfRect(commands, 394, 438, 119, 62, [1, 1, 1]);
+  addPdfRect(commands, 64, 575, 270, 1.5, [0.859, 0.89, 0.941]);
+
+  addPdfText(commands, {
+    text: "EVENTHUB ADMISSION PASS",
+    x: 64,
+    y: 764,
+    size: 11,
+    font: "F2",
+    color: [0.847, 0.886, 0.969],
+  });
+
+  eventTitleLines.forEach((line, index) => {
+    addPdfText(commands, {
+      text: line,
+      x: 64,
+      y: 714 - (index * 30),
+      size: 26,
+      font: "F2",
+      color: [1, 1, 1],
+    });
+  });
+
+  addPdfText(commands, {
+    text: "Your verified EventHub ticket is ready for entry.",
+    x: 64,
+    y: 648,
+    size: 12,
+    font: "F1",
+    color: [0.933, 0.945, 0.984],
+  });
+
+  addPdfText(commands, {
+    text: "Ticket Details",
+    x: 64,
+    y: 592,
+    size: 18,
+    font: "F2",
+    color: [0.118, 0.161, 0.329],
+  });
+
+  detailRows.forEach((row, index) => {
+    const rowTop = 548 - (index * 72);
+
+    addPdfText(commands, {
+      text: row.label,
+      x: 64,
+      y: rowTop,
+      size: 10,
+      font: "F2",
+      color: [0.42, 0.482, 0.592],
+    });
+
+    wrapPdfText(row.value, 30, 2).forEach((line, lineIndex) => {
+      addPdfText(commands, {
+        text: line,
+        x: 64,
+        y: rowTop - 22 - (lineIndex * 18),
+        size: 16,
+        font: "F1",
+        color: [0.11, 0.129, 0.188],
+      });
+    });
+  });
+
+  addPdfText(commands, {
+    text: "Ticket Code",
+    x: 394,
+    y: 510,
+    size: 10,
+    font: "F2",
+    color: [0.8, 0.855, 0.965],
+  });
+
+  wrapPdfText(ticket.ticketCode, 12, 2).forEach((line, index) => {
+    addPdfText(commands, {
+      text: line,
+      x: 394,
+      y: 484 - (index * 22),
+      size: 18,
+      font: "F2",
+      color: [1, 1, 1],
+    });
+  });
+
+  addPdfText(commands, {
+    text: "PRICE",
+    x: 410,
+    y: 478,
+    size: 10,
+    font: "F2",
+    color: [0.42, 0.482, 0.592],
+  });
+
+  addPdfText(commands, {
+    text: normalizePdfValue(ticket.price),
+    x: 410,
+    y: 454,
+    size: 20,
+    font: "F2",
+    color: [0.118, 0.161, 0.329],
+  });
+
+  addPdfText(commands, {
+    text: "STATUS",
+    x: 394,
+    y: 396,
+    size: 10,
+    font: "F2",
+    color: [0.8, 0.855, 0.965],
+  });
+
+  addPdfText(commands, {
+    text: "Ready for entry",
+    x: 394,
+    y: 372,
+    size: 16,
+    font: "F2",
+    color: [1, 1, 1],
+  });
+
+  wrapPdfText("Show this PDF at the venue or keep it saved on your phone.", 18, 4).forEach((line, index) => {
+    addPdfText(commands, {
+      text: line,
+      x: 394,
+      y: 316 - (index * 18),
+      size: 11,
+      font: "F1",
+      color: [0.89, 0.918, 0.973],
+    });
+  });
+
+  addPdfText(commands, {
+    text: "Issued",
+    x: 394,
+    y: 214,
+    size: 10,
+    font: "F2",
+    color: [0.8, 0.855, 0.965],
+  });
+
+  wrapPdfText(issueDateText, 18, 2).forEach((line, index) => {
+    addPdfText(commands, {
+      text: line,
+      x: 394,
+      y: 190 - (index * 16),
+      size: 11,
+      font: "F1",
+      color: [1, 1, 1],
+    });
+  });
+
+  wrapPdfText("Keep this ticket with you. EventHub staff may ask for the ticket code during check-in.", 66, 2).forEach((line, index) => {
+    addPdfText(commands, {
+      text: line,
+      x: 64,
+      y: 110 - (index * 16),
+      size: 11,
+      font: "F1",
+      color: [0.365, 0.42, 0.51],
+    });
+  });
+
+  const contentStream = commands.join("\n");
 
   const objects = [
     "<< /Type /Catalog /Pages 2 0 R >>",
     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> >>",
     `<< /Length ${contentStream.length} >>\nstream\n${contentStream}\nendstream`,
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>",
   ];
 
   let pdf = "%PDF-1.4\n";
@@ -2404,8 +2715,8 @@ const loadTickets = async () => {
     const data = await response.json();
     applyUserProfile(data);
     const serverTickets = Array.isArray(data.tickets) ? data.tickets : [];
-    const storedTickets = serverTickets.length ? readStoredRegisteredTickets() : [];
-    const tickets = mergeTicketsByCode([...serverTickets, ...storedTickets]);
+    writeStoredRegisteredTickets(serverTickets);
+    const tickets = mergeTicketsByCode(serverTickets);
     const summary = {
       upcoming: tickets.filter(ticket => ticket.status === "upcoming").length,
       used: tickets.filter(ticket => ticket.status === "used").length,
@@ -2524,11 +2835,9 @@ const loadUserDashboard = async () => {
       totalSpentCount.textContent = stats.totalSpent ?? "$0";
     }
 
-    if (dashboardUpcomingEvents) {
-      dashboardUpcomingEvents.innerHTML = upcomingEvents.length
-        ? upcomingEvents.map(renderDashboardEventCard).join("")
-        : "<p class=\"meta\">No upcoming events yet.</p>";
-    }
+    dashboardUpcomingEventsData = upcomingEvents;
+    dashboardUpcomingEventsExpanded = false;
+    renderDashboardUpcomingEventsSection();
 
     const hasTickets = tickets.length > 0;
     const hasHistory = history.length > 0;
@@ -2569,6 +2878,13 @@ const loadUserDashboard = async () => {
     }
   }
 };
+
+if (dashboardUpcomingEventsLoadMoreBtn) {
+  dashboardUpcomingEventsLoadMoreBtn.addEventListener("click", () => {
+    dashboardUpcomingEventsExpanded = true;
+    renderDashboardUpcomingEventsSection();
+  });
+}
 
 const setBookingEditStatus = (message = "", isError = false) => {
   if (!bookingEditStatusMessage) {
@@ -2957,8 +3273,37 @@ if (dateStrip && calendarTimeline) {
   loadCalendarEvents();
 }
 
+const refreshUserLiveData = async () => {
+  if (document.hidden) {
+    return;
+  }
+
+  const tasks = [];
+  if (dashboardUpcomingEvents || dashboardTicketsGrid || dashboardHistoryBody) {
+    tasks.push(loadUserDashboard());
+  }
+  if (ticketsList) {
+    tasks.push(loadTickets());
+  }
+  if (bookingsList) {
+    tasks.push(loadBookings());
+  }
+  if (browseResults || browseCards.length) {
+    tasks.push(syncRegisteredBrowseEvents());
+  }
+  if (tasks.length) {
+    await Promise.allSettled(tasks);
+  }
+};
+
+if (dashboardUpcomingEvents || dashboardTicketsGrid || dashboardHistoryBody || ticketsList || bookingsList || browseResults || browseCards.length) {
+  window.setInterval(() => {
+    refreshUserLiveData();
+  }, 20000);
+}
+
 // Profile image upload
-if (uploadBtn && profileImageInput && profileImg) {
+if (uploadBtn && profileImageInput) {
   uploadBtn.addEventListener("click", (e) => {
     e.preventDefault();
     profileImageInput.click();
@@ -3004,12 +3349,14 @@ if (uploadBtn && profileImageInput && profileImg) {
       const cacheSafeImageUrl = imageUrl ? `${imageUrl}?t=${Date.now()}` : "";
 
       applyUserProfile({
-        ...data,
+        userName: document.querySelector("[data-user-name]")?.textContent || "EventHub User",
+        userEmail: profileEmail?.value || currentUserEmail || "",
+        userRole: profileRole?.value || "user",
+        phone: profilePhone?.value || "",
+        bio: profileBio?.value || "",
         profileImage: cacheSafeImageUrl || data.profileImage || data.profile_image || "",
       });
       setProfileStatus(profileDetailsStatus, data.message || "Profile image uploaded successfully.");
-
-      await loadProfile();
     } catch (error) {
       setProfileStatus(profileDetailsStatus, error.message || "Upload failed. Please try again.", true);
     } finally {

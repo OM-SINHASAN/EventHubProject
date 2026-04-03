@@ -16,7 +16,7 @@
     <ul class="menu">
       <li class="active">
         <a href="/dashboard/user"><i class="fa-regular fa-calendar"></i>
-      My Events</a></li>
+      My Dashboard</a></li>
 
       <li>
         <a href="/assets/dashboard/user/browse.html">
@@ -45,7 +45,7 @@
 
     <div class="user">
       <div class="user-info">
-        <img src="https://i.pravatar.cc/40" alt="User avatar">
+        <img src="https://i.pravatar.cc/40" alt="User avatar" data-user-avatar>
 
         <div class="user-text">
           <strong id="dashboardSidebarUserName">EventHub User</strong>
@@ -71,9 +71,16 @@
       <div class="top-actions">
         <input type="text" placeholder="Search Events..." class="searchbox">
         <button class="primary-btn" onclick="window.location.href='/assets/dashboard/user/browse.html'">Browse Events</button>
-        <img class="avatar topbar-profile-link" src="https://i.pravatar.cc/40" alt="User profile" onclick="window.location.href='/assets/dashboard/user/profile.html'">
+        <img class="avatar topbar-profile-link" src="https://i.pravatar.cc/40" alt="User profile" data-user-avatar onclick="window.location.href='/assets/dashboard/user/profile.html'">
       </div>
     </header>
+
+    <section class="dashboard-account-banner" id="dashboardAccountBanner" hidden>
+      <div class="dashboard-account-banner-copy">
+        <strong id="dashboardAccountBannerTitle">Account update</strong>
+        <p id="dashboardAccountBannerText">Your account has an admin update.</p>
+      </div>
+    </section>
 
     <section class="stats" id="dashboardStats" hidden>
       <div class="stat-card">
@@ -100,10 +107,13 @@
 
     <section class="content" id="dashboardContent" hidden>
       <div class="card large">
-        <h3>My Upcoming Events</h3>
+        <h3>Upcoming Events</h3>
         <br>
         <hr>
-        <div id="dashboardUpcomingEvents"></div>
+        <div id="dashboardUpcomingEvents" class="dashboard-upcoming-events"></div>
+        <button type="button" class="dashboard-load-more-btn" id="dashboardUpcomingEventsLoadMoreBtn" hidden>
+          Load More
+        </button>
       </div>
 
       <div class="card">
