@@ -19,14 +19,14 @@
       <li>
         <a href="/assets/dashboard/organizer/create.html"><i class="fa-solid fa-plus"></i>Create Event</a>
       </li>
-      <li><i class="fa-solid fa-ticket"></i>Ticket Sales</li>
+      <li><a href="/assets/dashboard/organizer/analytics.html"><i class="fa-solid fa-chart-line"></i>View Analytics</a></li>
       <li>
         <a href="/assets/dashboard/organizer/myevents.html"><i class="fa-solid fa-chart-column"></i>My Events</a>
       </li>
       <li class="active">
         <a href="/assets/dashboard/organizer/manageusers.html"><i class="fa-solid fa-users"></i>Manage User</a>
       </li>
-      <li><i class="fa-regular fa-calendar-days"></i>Calendar</li>
+      <li><a href="/assets/dashboard/organizer/calendar.html"><i class="fa-regular fa-calendar-days"></i>Calendar</a></li>
       <li>
         <a href="/assets/dashboard/organizer/profile.html"><i class="fa-regular fa-circle-user"></i>My Profile</a>
       </li>
@@ -62,7 +62,7 @@
       </div>
     </header>
 
-    <section class="content">
+    <section class="content organizer-manage-users-content">
       <div class="card large">
         <div class="tickets-results-head">
           <h3>Select Event</h3>
@@ -79,12 +79,14 @@
             <p><span id="manageUsersAttendeeCount">0</span> attendees</p>
           </div>
         </div>
-        <input type="text" class="searchbox manage-users-attendee-search" id="manageUsersAttendeeSearch" placeholder="Filter by attendee name or ticket ID">
+        <input type="text" class="searchbox manage-users-attendee-search" id="manageUsersAttendeeSearch" placeholder="Filter by attendee name, email, phone, or ticket ID">
         <div class="manage-users-table-scroll">
           <table class="manage-users-table">
             <thead>
               <tr>
                 <th>Attendee Name</th>
+                <th>Email</th>
+                <th>Phone</th>
                 <th>Ticket Type</th>
                 <th>No. of Tickets</th>
                 <th>Ticket ID</th>
@@ -102,3 +104,4 @@
 <script src="/assets/dashboard/organizer/organizer.js"></script>
 </body>
 </html>
+

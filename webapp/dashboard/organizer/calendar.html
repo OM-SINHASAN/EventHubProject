@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Organizer Calendar | EventHub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/assets/dashboard/organizer/organizer.css">
+  <link rel="icon" href="/assets/dashboard/images/logo1.png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+</head>
+<body>
+<div class="dashboard">
+  <aside class="sidebar">
+    <h2 class="logo">EventHub</h2>
+    <ul class="menu">
+      <li><a href="/dashboard/organizer"><i class="fa-regular fa-calendar"></i>My Dashboard</a></li>
+      <li><a href="/assets/dashboard/organizer/create.html"><i class="fa-solid fa-plus"></i>Create Event</a></li>
+      <li><a href="/assets/dashboard/organizer/analytics.html"><i class="fa-solid fa-chart-line"></i>View Analytics</a></li>
+      <li><a href="/assets/dashboard/organizer/myevents.html"><i class="fa-solid fa-chart-column"></i>My Events</a></li>
+      <li><a href="/assets/dashboard/organizer/manageusers.html"><i class="fa-solid fa-users"></i>Manage User</a></li>
+      <li class="active"><a href="/assets/dashboard/organizer/calendar.html"><i class="fa-regular fa-calendar-days"></i>Calendar</a></li>
+      <li><a href="/assets/dashboard/organizer/profile.html"><i class="fa-regular fa-circle-user"></i>My Profile</a></li>
+      <li><a href="/assets/dashboard/organizer/support.html"><i class="fa-regular fa-circle-question"></i>Help & Support</a></li>
+    </ul>
+
+    <div class="user">
+      <div class="user-info">
+        <img src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar>
+        <div class="user-text">
+          <strong data-organizer-name>Organizer</strong>
+          <span>Event Organizer</span>
+        </div>
+      </div>
+      <a href="/logout" class="logout"><i class="fa-solid fa-right-from-bracket"></i></a>
+    </div>
+  </aside>
+
+  <main class="main browse-main">
+    <header class="topbar">
+      <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+
+      <h2>Organizer Calendar</h2>
+
+      <div class="top-actions">
+        <input type="text" id="organizerCalendarSearchTop" placeholder="Search your events..." class="searchbox">
+        <button class="primary-btn" onclick="window.location.href='/assets/dashboard/organizer/create.html'">Create Event</button>
+        <img class="avatar topbar-profile-link" src="/assets/dashboard/images/logo1.png" alt="Organizer avatar" data-organizer-avatar onclick="window.location.href='/assets/dashboard/organizer/profile.html'">
+      </div>
+    </header>
+
+    <section class="organizer-calendar-section">
+      <div class="organizer-calendar-card">
+        <div class="organizer-calendar-toolbar">
+          <div class="organizer-calendar-search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="organizerCalendarSearch" placeholder="Search by event, date, location, or status...">
+          </div>
+          <input type="date" id="organizerCalendarDateSearch" aria-label="Search organizer events by date">
+          <button type="button" class="organizer-calendar-filter-btn" id="organizerCalendarClearDateBtn">Clear Date</button>
+          <div class="organizer-calendar-filter-group">
+            <button type="button" class="organizer-calendar-filter-btn active" data-organizer-calendar-filter="all">All</button>
+            <button type="button" class="organizer-calendar-filter-btn" data-organizer-calendar-filter="published">Published</button>
+            <button type="button" class="organizer-calendar-filter-btn" data-organizer-calendar-filter="draft">Drafts</button>
+          </div>
+        </div>
+
+        <div class="organizer-calendar-header">
+          <h2 id="organizerCalendarMonthTitle">Loading...</h2>
+          <div class="nav-btns">
+            <button type="button" id="organizerCalendarPrevMonthBtn"><i class="fa-solid fa-chevron-left"></i></button>
+            <button type="button" id="organizerCalendarNextMonthBtn"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
+
+        <div class="organizer-calendar-date-strip" id="organizerCalendarDateStrip"></div>
+
+        <div class="organizer-timeline-head">
+          <div class="line"></div>
+          <h3 id="organizerCalendarTimelineTitle">Your Events</h3>
+          <span class="organizer-calendar-count" id="organizerCalendarEventCount">0</span>
+        </div>
+
+        <div class="organizer-calendar-timeline" id="organizerCalendarTimeline"></div>
+
+        <div class="organizer-calendar-empty-state" id="organizerCalendarEmptyState" hidden>
+          <i class="fa-regular fa-calendar-xmark"></i>
+          <h4>No events found</h4>
+          <p>Try a different search, date, or status filter to view your organizer calendar.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="/assets/dashboard/organizer/organizer.js"></script>
+</body>
+</html>
