@@ -57,6 +57,8 @@ const registerModalLocation = document.getElementById("registerModalLocation");
 const registerModalPrice = document.getElementById("registerModalPrice");
 const registerModalTicketType = document.getElementById("registerModalTicketType");
 const registerModalSeatInfo = document.getElementById("registerModalSeatInfo");
+const registerModalOrganizerPhone = document.getElementById("registerModalOrganizerPhone");
+const registerModalDescription = document.getElementById("registerModalDescription");
 const registerTicketTypeField = document.getElementById("registerTicketTypeField");
 const registerCity = document.getElementById("registerCity");
 const registerPaymentMethod = document.getElementById("registerPaymentMethod");
@@ -108,12 +110,15 @@ const renderBrowseCard = event => `
     data-ticket-type="${escapeHtml(event.ticketType || "Entry Pass")}"
     data-seat-info="${escapeHtml(event.seatInfo || "Open Seating")}"
     data-organizer-phone="${escapeHtml(event.organizerPhone || "")}"
+    data-ticket-pricing-mode="${escapeHtml(event.ticketPricingMode || "paid")}"
+    data-event-description="${escapeHtml(event.description || "")}"
     data-search="${escapeHtml(buildBrowseSearchText(event))}"
   >
     <img src="${escapeHtml(event.imageUrl || "/assets/dashboard/images/dsupimg1.jpg")}" alt="${escapeHtml(event.eventName || "Event")}">
     <div class="browse-info">
       <span class="browse-badge">${escapeHtml(formatBrowseBadge(event.category))}</span>
       <h4>${escapeHtml(event.eventName || "Untitled Event")}</h4>
+      <p class="event-description">${escapeHtml((event.description || "").length > 100 ? (event.description || "").substring(0, 100) + "..." : (event.description || ""))}</p>
       <p>${escapeHtml(event.eventTime || "-")}</p>
       <p>${escapeHtml(event.price || "Rs 0")}</p>
       <p>${escapeHtml(event.location || "Online Event")} &bull; ${escapeHtml(event.eventDate || "-")}</p>
@@ -2371,6 +2376,11 @@ const updateRegisterModalPriceByCount = () => {
     registerModalTicketType.textContent = selectedTicketType;
   }
 
+  if (activeRegisterEventIsFree) {
+    registerModalPrice.textContent = "Free";
+    return;
+  }
+
   if (activeBaseEventPrice > 0) {
     registerModalPrice.textContent = formatPriceValue(activeBaseEventPrice * priceMultiplier * ticketCount);
     return;
@@ -2472,6 +2482,24 @@ const openRegisterModal = button => {
 
   if (registerModalSeatInfo) {
     registerModalSeatInfo.textContent = card.dataset.seatInfo || "-";
+  }
+
+  activeRegisterEventIsFree = String(card.dataset.ticketPricingMode || "").toLowerCase() === "free" || /free/i.test(card.dataset.price || "");
+
+  if (registerModalDescription) {
+    registerModalDescription.textContent = card.dataset.eventDescription || "No description available.";
+  }
+
+  if (registerModalOrganizerPhone) {
+    registerModalOrganizerPhone.textContent = card.dataset.organizerPhone || "Not provided";
+  }
+
+  if (registerPaymentMethod) {
+    registerPaymentMethod.disabled = activeRegisterEventIsFree;
+    registerPaymentMethod.required = !activeRegisterEventIsFree;
+    if (activeRegisterEventIsFree) {
+      registerPaymentMethod.value = "";
+    }
   }
 
   if (registerTicketCount) {
@@ -3972,8 +4000,13 @@ registerEventForm?.addEventListener("submit", async event => {
     return;
   }
 
-  if (!attendeeName || !attendeeEmail || !attendeePhone || !ticketType || !city || !paymentMethod || !address) {
+  if (!attendeeName || !attendeeEmail || !attendeePhone || !ticketType || !city || !address) {
     setRegisterFormStatus("Please complete the required form fields.", true);
+    return;
+  }
+
+  if (!activeRegisterEventIsFree && !paymentMethod) {
+    setRegisterFormStatus("Please select a payment method for paid events.", true);
     return;
   }
 
@@ -3985,7 +4018,7 @@ registerEventForm?.addEventListener("submit", async event => {
   formPayload.set("ticketType", ticketType);
   formPayload.set("ticketCount", ticketCount);
   formPayload.set("city", city);
-  formPayload.set("paymentMethod", paymentMethod);
+  formPayload.set("paymentMethod", activeRegisterEventIsFree ? "free" : paymentMethod);
   formPayload.set("address", address);
   formPayload.set("specialRequest", specialRequest);
   formPayload.set("consentAccepted", registerConsent.checked ? "true" : "false");

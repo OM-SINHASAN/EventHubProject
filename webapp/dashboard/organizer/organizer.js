@@ -1440,7 +1440,7 @@ const renderOrganizerMyEventCard = event => `
         </div>
         <div class="booking-field">
           <span>Price</span>
-          <strong>${escapeHtml(event.price || "Rs 0")}</strong>
+          <strong>${escapeHtml(String(event.ticketPricingMode || "paid").toLowerCase() === "free" ? "Not pricing" : event.price || "Rs 0")}</strong>
         </div>
         <div class="booking-field">
           <span>Capacity</span>

@@ -560,3 +560,68 @@
     grid-template-columns:1fr;
   }
 }
+
+@media (max-width:900px){
+  .dashboard{
+    flex-direction:column;
+  }
+
+  .sidebar{
+    width:100%;
+    min-width:0;
+    border-right:none;
+    border-bottom:1px solid #e5e7eb;
+  }
+
+  .main{
+    padding:20px;
+  }
+
+  .topbar,
+  .admin-section-head,
+  .admin-browse-head{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .admin-inline-tools,
+  .admin-user-table-wrap,
+  .admin-review-modal-card{
+    width:100%;
+    min-width:0;
+  }
+
+  .admin-browse-grid,
+  .admin-directory-grid,
+  .admin-health-grid,
+  .admin-review-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media (max-width:560px){
+  .topbar,
+  .admin-section-head,
+  .admin-browse-head{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .admin-browse-grid,
+  .admin-directory-grid,
+  .admin-health-grid,
+  .admin-review-grid{
+    grid-template-columns:1fr;
+  }
+
+  .admin-browse-footer,
+  .admin-card-actions,
+  .admin-review-actions{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .admin-user-table-wrap{
+    overflow-x:auto;
+  }
+}

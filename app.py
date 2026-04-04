@@ -47,6 +47,7 @@ EVENT_CATALOG: list[dict[str, str]] = [
         "category": "tech",
         "imageUrl": "/assets/dashboard/images/dsupimg1.jpg",
         "organizerPhone": "+91 98765 21001",
+        "description": "Join industry leaders and innovators for a day of cutting-edge technology discussions, networking, and product showcases. Explore the latest trends in AI, blockchain, and digital transformation.",
     },
     {
         "id": "digital-marketing-workshop",
@@ -61,6 +62,7 @@ EVENT_CATALOG: list[dict[str, str]] = [
         "category": "business",
         "imageUrl": "/assets/dashboard/images/dsupimg2.jpg",
         "organizerPhone": "+91 98765 21002",
+        "description": "Master the art of digital marketing with hands-on workshops covering SEO, social media strategies, content creation, and analytics. Perfect for entrepreneurs and marketing professionals.",
     },
     {
         "id": "indie-music-night",
@@ -75,6 +77,7 @@ EVENT_CATALOG: list[dict[str, str]] = [
         "category": "music",
         "imageUrl": "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=900&q=80",
         "organizerPhone": "+91 98765 21003",
+        "description": "Experience an unforgettable night of indie music featuring emerging artists from across India. Enjoy acoustic sets, electronic beats, and fusion performances in an intimate venue setting.",
     },
     {
         "id": "art-culture-expo",
@@ -89,6 +92,7 @@ EVENT_CATALOG: list[dict[str, str]] = [
         "category": "arts",
         "imageUrl": "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?auto=format&fit=crop&w=900&q=80",
         "organizerPhone": "+91 98765 21004",
+        "description": "Immerse yourself in India's rich artistic heritage with exhibitions of traditional and contemporary art forms. Meet artists, attend workshops, and discover unique cultural artifacts.",
     },
     {
         "id": "street-food-carnival",
@@ -103,6 +107,7 @@ EVENT_CATALOG: list[dict[str, str]] = [
         "category": "food",
         "imageUrl": "https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=900&q=80",
         "organizerPhone": "+91 98765 21005",
+        "description": "Savor the flavors of India at this vibrant street food festival featuring authentic regional cuisines. Sample delicious dishes from local vendors and participate in cooking demonstrations.",
     },
     {
         "id": "morning-marathon",
@@ -117,6 +122,7 @@ EVENT_CATALOG: list[dict[str, str]] = [
         "category": "sports",
         "imageUrl": "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=900&q=80",
         "organizerPhone": "+91 98765 21006",
+        "description": "Start your day with an energizing 10K marathon along Chennai's scenic Marina Beach. All fitness levels welcome with timed checkpoints and post-run refreshments.",
     },
     {
         "id": "founder-networking-mixer",
@@ -131,6 +137,7 @@ EVENT_CATALOG: list[dict[str, str]] = [
         "category": "business",
         "imageUrl": "https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=900&q=80",
         "organizerPhone": "+91 98765 21007",
+        "description": "Connect with fellow entrepreneurs and startup founders in an exclusive networking event. Share experiences, find potential partners, and explore collaboration opportunities.",
     },
     {
         "id": "classical-fusion-evening",
@@ -145,6 +152,7 @@ EVENT_CATALOG: list[dict[str, str]] = [
         "category": "music",
         "imageUrl": "https://images.unsplash.com/photo-1507838153414-b4b713384a76?auto=format&fit=crop&w=900&q=80",
         "organizerPhone": "+91 98765 21008",
+        "description": "Witness the magical blend of classical Indian music with contemporary fusion elements. Featuring renowned artists performing traditional ragas with modern instrumentation.",
     },
 ]
 
@@ -879,6 +887,7 @@ def organizer_public_events() -> list[dict[str, str]]:
                     e.ticket_price,
                     e.event_mode,
                     e.ticket_pricing_mode,
+                    e.description,
                     e.poster_url,
                     COALESCE(u.phone, '') AS organizer_phone
                 FROM organizer_events AS e
@@ -902,6 +911,7 @@ def organizer_public_events() -> list[dict[str, str]]:
             ticket_price,
             event_mode,
             ticket_pricing_mode,
+            description,
             poster_url,
             organizer_phone,
         ) = row
@@ -938,6 +948,7 @@ def organizer_public_events() -> list[dict[str, str]]:
                 "category": str(category or "general"),
                 "imageUrl": str(poster_url or "/assets/dashboard/images/dsupimg1.jpg"),
                 "organizerPhone": str(organizer_phone or ""),
+                "description": str(description or ""),
             }
         )
 
@@ -2504,7 +2515,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
             self.send_json({"error": "Unauthorized"}, HTTPStatus.UNAUTHORIZED)
             return
 
-        if user["role"] != "user":
+        if user["role"] not in ("user", "organizer"):
             self.send_json({"error": "Forbidden"}, HTTPStatus.FORBIDDEN)
             return
 
