@@ -89,15 +89,15 @@
 <!-- PROFILE CARD -->
  
 <div class="profile-card">
-<img src="../images/logo1.png" class="profile-img" data-user-avatar>
+<img src="/assets/dashboard/images/logo1.png" class="profile-img" alt="User profile photo" data-user-avatar>
+<input type="file" id="profileImageInput" accept="image/png,image/jpeg" hidden>
 
 <h3 data-user-name>EventHub User</h3>
 <span class="role" data-user-role>Event Attendee</span>
 
 <p class="img-note">JPG / PNG • Max 2MB</p>
 
-<button class="upload-btn">Upload Photo</button>
-<input type="file" id="profileImageInput" accept="image/jpeg,image/png,image/jpg" hidden>
+<button type="button" class="upload-btn">Upload Photo</button>
 
 </div>
 
@@ -191,11 +191,47 @@
 
 </div>
 
+<div class="subscription-card">
+<div class="subscription-card-head">
+<h2>Subscription</h2>
+<span class="subscription-status-chip inactive" id="profileSubscriptionStatus">Inactive</span>
+</div>
+
+<p class="subscription-plan-line" id="profileSubscriptionCurrentPlan">Current plan: Free</p>
+<p class="subscription-note" id="profileSubscriptionMeta">Explore Pro or Premium to unlock additional benefits.</p>
+
+<div class="subscription-meta-grid">
+<div>
+<span>Next Billing</span>
+<strong id="profileSubscriptionNextBilling">-</strong>
+</div>
+<div>
+<span>Price</span>
+<strong id="profileSubscriptionPrice">Rs 0 / month</strong>
+</div>
+</div>
+
+<button type="button" class="save subscription-explore-btn" id="profileSubscriptionExploreBtn">Explore Pro / Premium</button>
+<p class="register-form-status" id="profileSubscriptionStatusMessage" hidden></p>
+</div>
+
 </div>
 
 </div>
 
 </section>
+
+<div class="register-modal subscription-modal" id="profileSubscriptionModal" hidden>
+  <div class="register-modal-backdrop" id="profileSubscriptionBackdrop"></div>
+  <div class="register-modal-card subscription-modal-card" role="dialog" aria-modal="true" aria-labelledby="profileSubscriptionModalTitle">
+    <button type="button" class="register-modal-close" id="profileSubscriptionClose" aria-label="Close subscription modal">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <h3 id="profileSubscriptionModalTitle">Choose Your Plan</h3>
+    <p class="subscription-modal-copy" id="profileSubscriptionModalCopy">Select Pro or Premium and complete your subscription purchase.</p>
+    <div class="subscription-plan-grid" id="profileSubscriptionPlanGrid"></div>
+  </div>
+</div>
 
 
 <!-- ------------------ -->

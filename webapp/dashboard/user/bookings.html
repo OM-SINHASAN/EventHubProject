@@ -46,7 +46,7 @@
       <h2>My Bookings</h2>
 
       <div class="top-actions">
-        <input type="text" placeholder="Search bookings..." class="searchbox" id="bookingsSearch">
+        <input type="text" placeholder="Search bookings..." class="searchbox" id="bookingsSearchTop">
         <button class="primary-btn" onclick="window.location.href='browse.html'">Browse Events</button>
         <img class="avatar" src="https://i.pravatar.cc/40" alt="User avatar" data-user-avatar>
       </div>
@@ -54,6 +54,20 @@
 
     <section class="content">
       <div class="card large">
+        <div class="tickets-toolbar">
+          <div class="tickets-search-input">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="bookingsSearch" placeholder="Search by event name, city, attendee, or ticket ID">
+          </div>
+
+          <div class="tickets-filter-group">
+            <button type="button" class="ticket-filter-btn active" data-booking-filter="all">All</button>
+            <button type="button" class="ticket-filter-btn" data-booking-filter="active">Active</button>
+            <button type="button" class="ticket-filter-btn" data-booking-filter="upcoming">Upcoming</button>
+            <button type="button" class="ticket-filter-btn" data-booking-filter="cancelled">Cancelled</button>
+          </div>
+        </div>
+
         <div class="tickets-results-head">
           <h3 id="bookingsHeading">Recent Bookings</h3>
           <p><span id="bookingsResultsCount">0</span> bookings found</p>

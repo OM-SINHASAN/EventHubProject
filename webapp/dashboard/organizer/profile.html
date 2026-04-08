@@ -44,7 +44,7 @@
 
       <li class="active">
        <a href="profile.html"><i class="fa-regular fa-circle-user"></i>
-        Profile Settings</a></li>
+        My Profile</a></li>
 
       <li>
         <a href="support.html"><i class="fa-regular fa-circle-question"></i>
@@ -198,11 +198,47 @@
 
 </div>
 
+<div class="subscription-card">
+<div class="subscription-card-head">
+<h2>Subscription</h2>
+<span class="subscription-status-chip inactive" id="profileSubscriptionStatus">Inactive</span>
+</div>
+
+<p class="subscription-plan-line" id="profileSubscriptionCurrentPlan">Current plan: Free</p>
+<p class="subscription-note" id="profileSubscriptionMeta">Explore Pro or Premium to unlock additional organizer benefits.</p>
+
+<div class="subscription-meta-grid">
+<div>
+<span>Next Billing</span>
+<strong id="profileSubscriptionNextBilling">-</strong>
+</div>
+<div>
+<span>Price</span>
+<strong id="profileSubscriptionPrice">Rs 0 / month</strong>
+</div>
+</div>
+
+<button type="button" class="save subscription-explore-btn" id="profileSubscriptionExploreBtn">Explore Pro / Premium</button>
+<p class="register-form-status" id="profileSubscriptionStatusMessage" hidden></p>
+</div>
+
 </div>
 
 </div>
 
 </section>
+
+<div class="register-modal subscription-modal" id="profileSubscriptionModal" hidden>
+  <div class="register-modal-backdrop" id="profileSubscriptionBackdrop"></div>
+  <div class="register-modal-card subscription-modal-card" role="dialog" aria-modal="true" aria-labelledby="profileSubscriptionModalTitle">
+    <button type="button" class="register-modal-close" id="profileSubscriptionClose" aria-label="Close subscription modal">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <h3 id="profileSubscriptionModalTitle">Choose Your Plan</h3>
+    <p class="subscription-modal-copy" id="profileSubscriptionModalCopy">Select Pro or Premium and complete your subscription purchase.</p>
+    <div class="subscription-plan-grid" id="profileSubscriptionPlanGrid"></div>
+  </div>
+</div>
 
 
 <!-- ------------------ -->

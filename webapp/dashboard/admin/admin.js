@@ -19,16 +19,30 @@ const adminRevenueMetrics = document.getElementById("adminRevenueMetrics");
 const adminRevenueBars = document.getElementById("adminRevenueBars");
 const adminActivityList = document.getElementById("adminActivityList");
 const adminHealthGrid = document.getElementById("adminHealthGrid");
-const organizerMiniStats = document.getElementById("organizerMiniStats");
 const organizerGrid = document.getElementById("organizerGrid");
 const organizerSearch = document.getElementById("organizerSearch");
-const userMiniStats = document.getElementById("userMiniStats");
+const organizerResultsCount = document.getElementById("organizerResultsCount");
+const organizerFilterButtons = Array.from(document.querySelectorAll("[data-organizer-filter]"));
 const userTableBody = document.getElementById("userTableBody");
 const userSearch = document.getElementById("userSearch");
 const userResultsCount = document.getElementById("userResultsCount");
+const userFilterButtons = Array.from(document.querySelectorAll("[data-user-filter]"));
 const adminBrowseSearch = document.getElementById("adminBrowseSearch");
 const adminBrowseResults = document.getElementById("adminBrowseResults");
 const adminBrowseResultsCount = document.getElementById("adminBrowseResultsCount");
+const adminSubscriptionPlans = document.getElementById("adminSubscriptionPlans");
+const adminSubscriptionSearch = document.getElementById("adminSubscriptionSearch");
+const adminSubscriptionResultsCount = document.getElementById("adminSubscriptionResultsCount");
+const adminSubscriptionTableBody = document.getElementById("adminSubscriptionTableBody");
+const subscriptionFilterButtons = Array.from(document.querySelectorAll("[data-subscription-filter]"));
+const adminPaymentSummaryGrid = document.getElementById("adminPaymentSummaryGrid");
+const adminPaymentTrendBars = document.getElementById("adminPaymentTrendBars");
+const adminPaymentMethodsGrid = document.getElementById("adminPaymentMethodsGrid");
+const adminTopRevenueOrganizers = document.getElementById("adminTopRevenueOrganizers");
+const adminPaymentSearch = document.getElementById("adminPaymentSearch");
+const adminPaymentsResultsCount = document.getElementById("adminPaymentsResultsCount");
+const adminPaymentsTableBody = document.getElementById("adminPaymentsTableBody");
+const paymentFilterButtons = Array.from(document.querySelectorAll("[data-payment-filter]"));
 const adminNavButtons = Array.from(document.querySelectorAll("[data-section-target]"));
 const adminNavItems = Array.from(document.querySelectorAll("[data-admin-nav-item]"));
 const adminSections = Array.from(document.querySelectorAll(".admin-section"));
@@ -79,6 +93,19 @@ const adminState = {
   organizers: [],
   users: [],
   browseEvents: [],
+  subscriptions: [],
+  subscriptionPlans: [],
+  paymentRevenue: {
+    summary: {},
+    paymentMethods: [],
+    topOrganizers: [],
+    monthlyRevenue: [],
+    payments: [],
+  },
+  organizerFilter: "all",
+  userFilter: "all",
+  subscriptionFilter: "all",
+  paymentFilter: "all",
   activeOrganizer: null,
   activeUser: null,
 };
@@ -97,6 +124,19 @@ const formatBrowseBadge = category => {
   return text ? `${text.charAt(0).toUpperCase()}${text.slice(1)}` : "Event";
 };
 
+const formatDateDisplay = value => {
+  const date = value ? new Date(value) : null;
+  return Number.isNaN(date?.getTime?.()) ? String(value || "-") : date.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const formatSubscriptionStatus = value => String(value || "active")
+  .replace(/_/g, " ")
+  .replace(/\b\w/g, character => character.toUpperCase());
+
 const buildBrowseSearchText = event => [
   event.eventName,
   event.location,
@@ -106,9 +146,21 @@ const buildBrowseSearchText = event => [
   event.eventTime,
 ].join(" ").toLowerCase();
 
+const syncFilterButtons = (buttons, activeValue, attributeName) => {
+  buttons.forEach(button => {
+    button.classList.toggle("active", button.dataset[attributeName] === activeValue);
+  });
+};
+
 const resolveStatusClass = status => {
   const normalized = String(status || "active").trim().toLowerCase();
-  return ["suspended", "removed", "cancelled"].includes(normalized) ? "cancelled" : normalized;
+  if (["suspended", "removed", "cancelled", "past_due"].includes(normalized)) {
+    return "cancelled";
+  }
+  if (normalized === "review") {
+    return "warned";
+  }
+  return normalized;
 };
 
 const fetchJson = async (url, options = {}) => {
@@ -182,12 +234,28 @@ const loadBrowseEvents = async () => {
   adminState.browseEvents = Array.isArray(data.events) ? data.events : [];
 };
 
-const getOrganizerResults = (searchValue = organizerSearch?.value || "") => {
-  const term = String(searchValue || "").trim().toLowerCase();
-  if (!term) {
-    return adminState.organizers;
-  }
+const loadSubscriptions = async () => {
+  const data = await fetchJson("/adminsubscriptionsservlet");
+  adminState.subscriptions = Array.isArray(data.subscriptions) ? data.subscriptions : [];
+  adminState.subscriptionPlans = Array.isArray(data.plans) ? data.plans : [];
+};
 
+const loadPaymentRevenue = async () => {
+  const data = await fetchJson("/adminpaymentsrevenueservlet");
+  adminState.paymentRevenue = {
+    summary: data.summary || {},
+    paymentMethods: Array.isArray(data.paymentMethods) ? data.paymentMethods : [],
+    topOrganizers: Array.isArray(data.topOrganizers) ? data.topOrganizers : [],
+    monthlyRevenue: Array.isArray(data.monthlyRevenue) ? data.monthlyRevenue : [],
+    payments: Array.isArray(data.payments) ? data.payments : [],
+  };
+};
+
+const getOrganizerResults = (
+  searchValue = organizerSearch?.value || "",
+  filterValue = adminState.organizerFilter || "all"
+) => {
+  const term = String(searchValue || "").trim().toLowerCase();
   return adminState.organizers.filter(organizer => {
     const haystack = [
       organizer.name,
@@ -197,16 +265,37 @@ const getOrganizerResults = (searchValue = organizerSearch?.value || "") => {
       organizer.status,
       ...(Array.isArray(organizer.events) ? organizer.events.map(event => event.eventName || "") : []),
     ].join(" ").toLowerCase();
-    return haystack.includes(term);
+    const normalizedFilter = String(filterValue || "all").trim().toLowerCase();
+    const organizerStatus = String(organizer.status || "").trim().toLowerCase();
+    const matchesSearch = !term || haystack.includes(term);
+    const hasPublishedEvent = Number(organizer.publishedEventCount || 0) > 0;
+    const hasDraftEvent = Number(organizer.draftEventCount || 0) > 0;
+
+    if (!matchesSearch) {
+      return false;
+    }
+
+    if (normalizedFilter === "published") {
+      return hasPublishedEvent;
+    }
+
+    if (normalizedFilter === "draft") {
+      return hasDraftEvent;
+    }
+
+    if (normalizedFilter !== "all") {
+      return organizerStatus === normalizedFilter;
+    }
+
+    return true;
   });
 };
 
-const getUserResults = (searchValue = userSearch?.value || "") => {
+const getUserResults = (
+  searchValue = userSearch?.value || "",
+  filterValue = adminState.userFilter || "all"
+) => {
   const term = String(searchValue || "").trim().toLowerCase();
-  if (!term) {
-    return adminState.users;
-  }
-
   return adminState.users.filter(user => {
     const haystack = [
       user.name,
@@ -215,7 +304,23 @@ const getUserResults = (searchValue = userSearch?.value || "") => {
       user.status,
       String(user.warningCount || 0),
     ].join(" ").toLowerCase();
-    return haystack.includes(term);
+    const normalizedFilter = String(filterValue || "all").trim().toLowerCase();
+    const userStatus = String(user.status || "").trim().toLowerCase();
+    const matchesSearch = !term || haystack.includes(term);
+
+    if (!matchesSearch) {
+      return false;
+    }
+
+    if (normalizedFilter === "upcoming") {
+      return Number(user.upcomingEvents || 0) > 0;
+    }
+
+    if (normalizedFilter !== "all") {
+      return userStatus === normalizedFilter;
+    }
+
+    return true;
   });
 };
 
@@ -228,6 +333,89 @@ const getBrowseResults = (searchValue = adminBrowseSearch?.value || "") => {
   return adminState.browseEvents.filter(event => buildBrowseSearchText(event).includes(term));
 };
 
+const getSubscriptionResults = (
+  searchValue = adminSubscriptionSearch?.value || "",
+  filterValue = adminState.subscriptionFilter || "all"
+) => {
+  const term = String(searchValue || "").trim().toLowerCase();
+  const normalizedFilter = String(filterValue || "all").trim().toLowerCase();
+
+  return adminState.subscriptions.filter(subscription => {
+    const haystack = [
+      subscription.subscriberName || subscription.organizerName,
+      subscription.subscriberEmail || subscription.organizerEmail,
+      subscription.subscriberRole,
+      subscription.planName,
+      subscription.planId,
+      subscription.subscriptionStatus,
+      subscription.usageLabel,
+      subscription.revenueLabel,
+      subscription.featuresSummary,
+    ].join(" ").toLowerCase();
+
+    if (term && !haystack.includes(term)) {
+      return false;
+    }
+
+    if (["premium", "pro"].includes(normalizedFilter)) {
+      return String(subscription.planId || "").toLowerCase() === normalizedFilter;
+    }
+
+    if (["user", "organizer"].includes(normalizedFilter)) {
+      return String(subscription.subscriberRole || "").toLowerCase() === normalizedFilter;
+    }
+
+    if (normalizedFilter !== "all") {
+      return String(subscription.subscriptionStatus || "").toLowerCase() === normalizedFilter;
+    }
+
+    return true;
+  });
+};
+
+const getPaymentResults = (
+  searchValue = adminPaymentSearch?.value || "",
+  filterValue = adminState.paymentFilter || "all"
+) => {
+  const term = String(searchValue || "").trim().toLowerCase();
+  const normalizedFilter = String(filterValue || "all").trim().toLowerCase();
+
+  return (adminState.paymentRevenue.payments || []).filter(payment => {
+    const haystack = [
+      payment.userName,
+      payment.userEmail,
+      payment.organizerName,
+      payment.organizerEmail,
+      payment.eventName,
+      payment.paymentMethod,
+      payment.bookingStatus,
+      payment.city,
+      payment.paymentType,
+    ].join(" ").toLowerCase();
+    const method = String(payment.paymentMethod || "").trim().toLowerCase();
+    const bookingStatus = String(payment.bookingStatus || "").trim().toLowerCase();
+    const paymentType = String(payment.paymentType || "booking").trim().toLowerCase();
+
+    if (term && !haystack.includes(term)) {
+      return false;
+    }
+
+    if (normalizedFilter === "cancelled") {
+      return bookingStatus === "cancelled";
+    }
+
+    if (normalizedFilter === "subscription") {
+      return paymentType === "subscription";
+    }
+
+    if (normalizedFilter !== "all") {
+      return method === normalizedFilter;
+    }
+
+    return true;
+  });
+};
+
 const buildMiniStatMarkup = items => items.map(item => `
   <div class="organizer-revenue-metric">
     <span>${escapeHtml(item.label)}</span>
@@ -236,7 +424,8 @@ const buildMiniStatMarkup = items => items.map(item => `
 `).join("");
 
 const renderStatCards = () => {
-  const totalRevenue = adminState.organizers.reduce((sum, organizer) => sum + Number(organizer.totalRevenue || 0), 0);
+  const totalRevenue = Number(adminState.paymentRevenue.summary?.grossRevenue || 0)
+    || adminState.organizers.reduce((sum, organizer) => sum + Number(organizer.totalRevenue || 0), 0);
   const activeOrganizers = adminState.organizers.filter(organizer => String(organizer.status || "").toLowerCase() === "active").length;
   const totalUsers = adminState.users.length;
   const liveEvents = adminState.organizers.reduce((sum, organizer) => sum + Number(organizer.activeEvents || 0), 0);
@@ -248,10 +437,12 @@ const renderStatCards = () => {
 };
 
 const renderRevenueOverview = () => {
-  const totalRevenue = adminState.organizers.reduce((sum, organizer) => sum + Number(organizer.totalRevenue || 0), 0);
+  const totalRevenue = Number(adminState.paymentRevenue.summary?.grossRevenue || 0)
+    || adminState.organizers.reduce((sum, organizer) => sum + Number(organizer.totalRevenue || 0), 0);
   const totalAttendees = adminState.organizers.reduce((sum, organizer) => sum + Number(organizer.totalAttendees || 0), 0);
   const totalEvents = adminState.organizers.reduce((sum, organizer) => sum + Number(organizer.eventCount || 0), 0);
   const flaggedAccounts = adminState.organizers.filter(organizer => String(organizer.status || "").toLowerCase() !== "active").length;
+  const activePayments = Number(adminState.paymentRevenue.summary?.activePayments || 0);
 
   if (adminRevenueHeadline) {
     adminRevenueHeadline.textContent = totalEvents
@@ -261,7 +452,7 @@ const renderRevenueOverview = () => {
 
   if (adminRevenueSummary) {
     adminRevenueSummary.textContent = totalEvents
-      ? `The admin panel is tracking ${totalEvents} organizer event records with ${totalAttendees} attendees across the platform.`
+      ? `The admin panel is tracking ${totalEvents} organizer event records, ${totalAttendees} attendees, and ${activePayments} successful payments across the platform.`
       : "As organizers publish events, revenue, attendee, and review insights will appear here automatically.";
   }
 
@@ -393,12 +584,10 @@ const renderHealthMetrics = () => {
 const renderOrganizers = () => {
   const organizers = getOrganizerResults();
 
-  if (organizerMiniStats) {
-    organizerMiniStats.innerHTML = buildMiniStatMarkup([
-      { label: "Visible Organizers", value: String(organizers.length) },
-      { label: "Visible Revenue", value: formatCurrency(organizers.reduce((sum, item) => sum + Number(item.totalRevenue || 0), 0)) },
-      { label: "Accounts to Review", value: String(organizers.filter(item => String(item.status || "").toLowerCase() !== "active").length) },
-    ]);
+  syncFilterButtons(organizerFilterButtons, adminState.organizerFilter, "organizerFilter");
+
+  if (organizerResultsCount) {
+    organizerResultsCount.textContent = `${organizers.length} organizer${organizers.length === 1 ? "" : "s"}`;
   }
 
   if (!organizerGrid) {
@@ -406,7 +595,7 @@ const renderOrganizers = () => {
   }
 
   if (!organizers.length) {
-    organizerGrid.innerHTML = "<p class=\"meta\">No organizers match the current search.</p>";
+    organizerGrid.innerHTML = "<p class=\"meta\">No organizers match the current search or filter.</p>";
     return;
   }
 
@@ -466,13 +655,7 @@ const renderOrganizers = () => {
 const renderUsers = () => {
   const users = getUserResults();
 
-  if (userMiniStats) {
-    userMiniStats.innerHTML = buildMiniStatMarkup([
-      { label: "Visible Users", value: String(users.length) },
-      { label: "Total Spend", value: formatCurrency(users.reduce((sum, item) => sum + Number(item.totalSpend || 0), 0)) },
-      { label: "Flagged Users", value: String(users.filter(item => ["warned", "removed", "suspended", "flagged"].includes(String(item.status || "").toLowerCase())).length) },
-    ]);
-  }
+  syncFilterButtons(userFilterButtons, adminState.userFilter, "userFilter");
 
   if (userResultsCount) {
     userResultsCount.textContent = `${users.length} users`;
@@ -483,7 +666,7 @@ const renderUsers = () => {
   }
 
   if (!users.length) {
-    userTableBody.innerHTML = "<tr><td colspan=\"7\" class=\"manage-users-no-data\">No users match the current search.</td></tr>";
+    userTableBody.innerHTML = "<tr><td colspan=\"7\" class=\"manage-users-no-data\">No users match the current search or filter.</td></tr>";
     return;
   }
 
@@ -550,6 +733,203 @@ const renderBrowse = () => {
   `).join("");
 };
 
+const renderSubscriptions = () => {
+  const subscriptions = getSubscriptionResults();
+
+  syncFilterButtons(subscriptionFilterButtons, adminState.subscriptionFilter, "subscriptionFilter");
+
+  if (adminSubscriptionPlans) {
+    adminSubscriptionPlans.innerHTML = adminState.subscriptionPlans.length
+      ? adminState.subscriptionPlans.map(plan => `
+          <article class="admin-plan-card">
+            <span class="admin-plan-badge">${escapeHtml(plan.planName || "Plan")}</span>
+            <strong>${escapeHtml(formatCurrency(plan.monthlyPrice || 0))}<small>/month</small></strong>
+            <p>${escapeHtml(plan.description || "")}</p>
+            <div class="admin-plan-meta">
+              <span>${escapeHtml(plan.roleLabel || "Account")}</span>
+              <span>${escapeHtml(String(plan.subscriberCount || 0))} total</span>
+              <span>${escapeHtml(String(plan.activeSubscriberCount || 0))} active</span>
+            </div>
+          </article>
+        `).join("")
+      : "<p class=\"meta\">Subscription plans will appear once purchases are available.</p>";
+  }
+
+  if (adminSubscriptionResultsCount) {
+    adminSubscriptionResultsCount.textContent = `${subscriptions.length} subscription${subscriptions.length === 1 ? "" : "s"}`;
+  }
+
+  if (!adminSubscriptionTableBody) {
+    return;
+  }
+
+  if (!subscriptions.length) {
+    adminSubscriptionTableBody.innerHTML = "<tr><td colspan=\"8\" class=\"manage-users-no-data\">No subscriptions match the current search or filter.</td></tr>";
+    return;
+  }
+
+  adminSubscriptionTableBody.innerHTML = subscriptions.map(subscription => `
+    <tr>
+      <td>
+        <div class="user-cell">
+          <img src="${escapeHtml(subscription.profileImage || "/assets/dashboard/images/logo1.png")}" alt="${escapeHtml(subscription.subscriberName || subscription.organizerName || "Subscriber")}">
+          <div>
+            <strong>${escapeHtml(subscription.subscriberName || subscription.organizerName || "Subscriber")}</strong>
+            <span>${escapeHtml(subscription.subscriberEmail || subscription.organizerEmail || "")}</span>
+          </div>
+        </div>
+      </td>
+      <td>${escapeHtml(formatSubscriptionStatus(subscription.subscriberRole || "user"))}</td>
+      <td>
+        <strong>${escapeHtml(subscription.planName || "Pro")}</strong>
+        <span>${escapeHtml(subscription.featuresSummary || "-")}</span>
+      </td>
+      <td>
+        <span class="booking-status ${escapeHtml(resolveStatusClass(subscription.subscriptionStatus))}">
+          ${escapeHtml(formatSubscriptionStatus(subscription.subscriptionStatus))}
+        </span>
+      </td>
+      <td>${escapeHtml(formatCurrency(subscription.monthlyPrice || 0))}</td>
+      <td>${escapeHtml(subscription.nextBillingOn || "-")}</td>
+      <td>${escapeHtml(String(subscription.usageValue || 0))} ${escapeHtml(String(subscription.usageLabel || ""))}</td>
+      <td>${escapeHtml(formatCurrency(subscription.revenueValue || 0))}</td>
+    </tr>
+  `).join("");
+};
+
+const renderPaymentRevenue = () => {
+  const summary = adminState.paymentRevenue.summary || {};
+  const monthlyRevenue = adminState.paymentRevenue.monthlyRevenue || [];
+  const paymentMethods = adminState.paymentRevenue.paymentMethods || [];
+  const topOrganizers = adminState.paymentRevenue.topOrganizers || [];
+  const payments = getPaymentResults();
+
+  syncFilterButtons(paymentFilterButtons, adminState.paymentFilter, "paymentFilter");
+
+  if (adminPaymentSummaryGrid) {
+    adminPaymentSummaryGrid.innerHTML = [
+      {
+        label: "Gross Revenue",
+        value: formatCurrency(summary.grossRevenue || 0),
+        caption: "Combined booking and subscription revenue currently tracked.",
+      },
+      {
+        label: "Successful Transactions",
+        value: String(summary.activePayments || 0),
+        caption: `${String(summary.cancelledPayments || 0)} cancelled transaction(s) are also recorded.`,
+      },
+      {
+        label: "Booking Revenue",
+        value: formatCurrency(summary.bookingRevenue || 0),
+        caption: `${String(summary.bookingPayments || 0)} successful booking payment(s).`,
+      },
+      {
+        label: "Subscription Revenue",
+        value: formatCurrency(summary.subscriptionRevenue || 0),
+        caption: `${String(summary.subscriptionPayments || 0)} subscription purchase(s).`,
+      },
+      {
+        label: "Average Order Value",
+        value: formatCurrency(summary.averageOrderValue || 0),
+        caption: "Average value per successful transaction.",
+      },
+    ].map(item => `
+      <article class="admin-payment-summary-card">
+        <span>${escapeHtml(item.label)}</span>
+        <strong>${escapeHtml(item.value)}</strong>
+        <p>${escapeHtml(item.caption)}</p>
+      </article>
+    `).join("");
+  }
+
+  if (adminPaymentTrendBars) {
+    const maxRevenue = Math.max(...monthlyRevenue.map(item => Number(item.revenue || 0)), 1);
+    adminPaymentTrendBars.innerHTML = monthlyRevenue.length
+      ? monthlyRevenue.map(item => `
+          <div class="admin-revenue-row">
+            <div class="admin-revenue-meta">
+              <strong>${escapeHtml(item.label || "-")}</strong>
+              <span>${escapeHtml(formatCurrency(item.revenue || 0))}</span>
+            </div>
+            <div class="admin-revenue-track">
+              <div class="admin-revenue-fill" style="width: ${(Number(item.revenue || 0) / maxRevenue) * 100}%"></div>
+            </div>
+          </div>
+        `).join("")
+      : "<p class=\"meta\">Revenue trend will appear after transactions are recorded.</p>";
+  }
+
+  if (adminPaymentMethodsGrid) {
+    adminPaymentMethodsGrid.innerHTML = paymentMethods.length
+      ? paymentMethods.map(item => `
+          <article class="admin-payment-method-card">
+            <div>
+              <strong>${escapeHtml(item.method || "Unknown")}</strong>
+              <span>${escapeHtml(String(item.transactions || 0))} transactions</span>
+            </div>
+            <div>
+              <strong>${escapeHtml(formatCurrency(item.revenue || 0))}</strong>
+              <span>${escapeHtml(String(item.sharePercent || 0))}% share</span>
+            </div>
+          </article>
+        `).join("")
+      : "<p class=\"meta\">Payment methods will populate after transactions are available.</p>";
+  }
+
+  if (adminTopRevenueOrganizers) {
+    adminTopRevenueOrganizers.innerHTML = topOrganizers.length
+      ? topOrganizers.map(item => `
+          <article class="admin-top-organizer-card">
+            <strong>${escapeHtml(item.organizerName || "Organizer")}</strong>
+            <span>${escapeHtml(item.organizerEmail || "Platform")}</span>
+            <div class="admin-top-organizer-meta">
+              <span>${escapeHtml(String(item.transactions || 0))} orders</span>
+              <strong>${escapeHtml(formatCurrency(item.revenue || 0))}</strong>
+            </div>
+          </article>
+        `).join("")
+      : "<p class=\"meta\">Top organizers will appear after payment activity is available.</p>";
+  }
+
+  if (adminPaymentsResultsCount) {
+    adminPaymentsResultsCount.textContent = `${payments.length} payment${payments.length === 1 ? "" : "s"}`;
+  }
+
+  if (!adminPaymentsTableBody) {
+    return;
+  }
+
+  if (!payments.length) {
+    adminPaymentsTableBody.innerHTML = "<tr><td colspan=\"7\" class=\"manage-users-no-data\">No payments match the current search or filter.</td></tr>";
+    return;
+  }
+
+  adminPaymentsTableBody.innerHTML = payments.map(payment => `
+    <tr>
+      <td>
+        <strong>${escapeHtml(payment.userName || "Guest")}</strong>
+        <span>${escapeHtml(payment.userEmail || "")}</span>
+      </td>
+      <td>
+        <strong>${escapeHtml(payment.organizerName || "Platform")}</strong>
+        <span>${escapeHtml(payment.organizerEmail || "platform@eventhub.local")}</span>
+      </td>
+      <td>
+        <strong>${escapeHtml(payment.eventName || "Untitled Event")}</strong>
+        <span>${escapeHtml(payment.ticketType || "Entry Pass")} x ${escapeHtml(String(payment.ticketCount || 1))} | ${escapeHtml(formatSubscriptionStatus(payment.paymentType || "booking"))}</span>
+      </td>
+      <td>${escapeHtml(payment.paymentMethod || "Unknown")}</td>
+      <td>
+        <span class="booking-status ${escapeHtml(resolveStatusClass(payment.bookingStatus))}">
+          ${escapeHtml(formatSubscriptionStatus(payment.bookingStatus))}
+        </span>
+      </td>
+      <td>${escapeHtml(formatCurrency(payment.amount || 0))}</td>
+      <td>${escapeHtml(formatDateDisplay(payment.registeredAt || "-"))}</td>
+    </tr>
+  `).join("");
+};
+
 const renderAll = () => {
   renderStatCards();
   renderRevenueOverview();
@@ -558,6 +938,8 @@ const renderAll = () => {
   renderOrganizers();
   renderUsers();
   renderBrowse();
+  renderSubscriptions();
+  renderPaymentRevenue();
 };
 
 const showSection = sectionName => {
@@ -577,6 +959,8 @@ const showSection = sectionName => {
     organizers: "Manage Organizer",
     users: "Manage User",
     browse: "Browse Events",
+    subscriptions: "Subscription Module",
+    payments: "Payment & Revenue",
   };
 
   if (adminSectionTitle) {
@@ -888,6 +1272,14 @@ const routeGlobalSearch = () => {
       adminBrowseSearch.value = "";
       renderBrowse();
     }
+    if (adminState.activeSection === "subscriptions" && adminSubscriptionSearch) {
+      adminSubscriptionSearch.value = "";
+      renderSubscriptions();
+    }
+    if (adminState.activeSection === "payments" && adminPaymentSearch) {
+      adminPaymentSearch.value = "";
+      renderPaymentRevenue();
+    }
     return;
   }
 
@@ -909,10 +1301,24 @@ const routeGlobalSearch = () => {
     return;
   }
 
+  if (adminState.activeSection === "subscriptions" && adminSubscriptionSearch) {
+    adminSubscriptionSearch.value = term;
+    renderSubscriptions();
+    return;
+  }
+
+  if (adminState.activeSection === "payments" && adminPaymentSearch) {
+    adminPaymentSearch.value = term;
+    renderPaymentRevenue();
+    return;
+  }
+
   const matches = [
     { section: "organizers", count: getOrganizerResults(term).length },
     { section: "users", count: getUserResults(term).length },
     { section: "browse", count: getBrowseResults(term).length },
+    { section: "subscriptions", count: getSubscriptionResults(term).length },
+    { section: "payments", count: getPaymentResults(term).length },
   ].sort((left, right) => right.count - left.count);
 
   const bestSection = matches[0]?.section || "organizers";
@@ -929,6 +1335,14 @@ const routeGlobalSearch = () => {
   if (bestSection === "browse" && adminBrowseSearch) {
     adminBrowseSearch.value = term;
     renderBrowse();
+  }
+  if (bestSection === "subscriptions" && adminSubscriptionSearch) {
+    adminSubscriptionSearch.value = term;
+    renderSubscriptions();
+  }
+  if (bestSection === "payments" && adminPaymentSearch) {
+    adminPaymentSearch.value = term;
+    renderPaymentRevenue();
   }
 };
 
@@ -947,7 +1361,7 @@ sectionShortcutButtons.forEach(button => {
 
 adminMenuToggle?.addEventListener("click", toggleSidebar);
 adminPrimaryAction?.addEventListener("click", () => showSection("browse"));
-adminRevenueAction?.addEventListener("click", () => showSection("dashboard"));
+adminRevenueAction?.addEventListener("click", () => showSection("payments"));
 adminSupportAction?.addEventListener("click", () => {
   window.location.href = "/assets/dashboard/admin/support.html";
 });
@@ -955,7 +1369,37 @@ adminSupportAction?.addEventListener("click", () => {
 organizerSearch?.addEventListener("input", renderOrganizers);
 userSearch?.addEventListener("input", renderUsers);
 adminBrowseSearch?.addEventListener("input", renderBrowse);
+adminSubscriptionSearch?.addEventListener("input", renderSubscriptions);
+adminPaymentSearch?.addEventListener("input", renderPaymentRevenue);
 adminGlobalSearch?.addEventListener("input", routeGlobalSearch);
+
+organizerFilterButtons.forEach(button => {
+  button.addEventListener("click", () => {
+    adminState.organizerFilter = button.dataset.organizerFilter || "all";
+    renderOrganizers();
+  });
+});
+
+userFilterButtons.forEach(button => {
+  button.addEventListener("click", () => {
+    adminState.userFilter = button.dataset.userFilter || "all";
+    renderUsers();
+  });
+});
+
+subscriptionFilterButtons.forEach(button => {
+  button.addEventListener("click", () => {
+    adminState.subscriptionFilter = button.dataset.subscriptionFilter || "all";
+    renderSubscriptions();
+  });
+});
+
+paymentFilterButtons.forEach(button => {
+  button.addEventListener("click", () => {
+    adminState.paymentFilter = button.dataset.paymentFilter || "all";
+    renderPaymentRevenue();
+  });
+});
 
 organizerGrid?.addEventListener("click", event => {
   const reviewButton = event.target.closest(".admin-review-organizer-btn");
@@ -997,16 +1441,78 @@ document.addEventListener("keydown", event => {
 const initializeAdmin = async () => {
   try {
     await loadAdminProfile();
-    await Promise.all([loadOrganizers(), loadUsers(), loadBrowseEvents()]);
+    const results = await Promise.allSettled([
+      loadOrganizers(),
+      loadUsers(),
+      loadBrowseEvents(),
+      loadSubscriptions(),
+      loadPaymentRevenue(),
+    ]);
+
+    const authFailure = results.find(result => (
+      result.status === "rejected"
+      && /unauthorized|forbidden/i.test(String(result.reason?.message || ""))
+    ));
+    if (authFailure) {
+      return;
+    }
+
+    results.forEach(result => {
+      if (result.status === "rejected") {
+        console.error("Admin data load failed:", result.reason);
+      }
+    });
+
     renderAll();
     const requestedSection = new URLSearchParams(window.location.search).get("section");
-    const initialSection = ["dashboard", "organizers", "users", "browse"].includes(String(requestedSection || "").trim())
+    const initialSection = ["dashboard", "organizers", "users", "browse", "subscriptions", "payments"].includes(String(requestedSection || "").trim())
       ? String(requestedSection).trim()
       : "dashboard";
     showSection(initialSection);
   } catch (error) {
-    window.location.href = "/login";
+    if (/unauthorized|forbidden/i.test(String(error?.message || ""))) {
+      window.location.href = "/login";
+      return;
+    }
+
+    console.error("Admin initialization failed:", error);
+    renderAll();
+    showSection("dashboard");
   }
 };
 
+const refreshAdminLiveData = async () => {
+  if (document.hidden) {
+    return;
+  }
+
+  const results = await Promise.allSettled([
+    loadSubscriptions(),
+    loadPaymentRevenue(),
+  ]);
+
+  const authFailure = results.find(result => (
+    result.status === "rejected"
+    && /unauthorized|forbidden/i.test(String(result.reason?.message || ""))
+  ));
+  if (authFailure) {
+    return;
+  }
+
+  results.forEach(result => {
+    if (result.status === "rejected") {
+      console.error("Admin live refresh failed:", result.reason);
+    }
+  });
+
+  renderStatCards();
+  renderRevenueOverview();
+  renderSubscriptions();
+  renderPaymentRevenue();
+};
+
 initializeAdmin();
+
+window.setInterval(() => {
+  refreshAdminLiveData();
+}, 20000);

@@ -115,7 +115,7 @@ Help & Support</a>
 <!-- ===================== MAIN ======================= -->
 <!-- ================================================= -->
 
-<main class="main">
+<main class="main browse-main organizer-browse-main">
 
 
 <!-- ================================================= -->
@@ -128,11 +128,11 @@ Help & Support</a>
 <i class="fa-solid fa-bars"></i>
 </button>
 
-<h2>Organizer Dashboard</h2>
+<h2>Browse Events</h2>
 
 <div class="top-actions">
 
-<input type="text" placeholder="Search events..." class="searchbox">
+<input type="text" placeholder="Search events..." class="searchbox" id="organizerBrowseSearchTop">
 
 <button class="primary-btn" onclick="window.location.href='create.html'">Create Event</button>
 
@@ -148,57 +148,85 @@ Help & Support</a>
 <!-- =================== Browse Events =================== -->
 <!-- ================================================= -->
 
-<section class="content">
+<section class="browse-section browse-page-section organizer-browse-page">
+  <div class="browse-container">
+    <div class="browse-heading">
+      <h2>Browse Events</h2>
+      <p>Search by event name, place, or category and keep tabs on what is happening across EventHub.</p>
+    </div>
 
-<div class="card large">
+    <div class="browse-search-panel">
+      <div class="browse-search-input">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="organizerBrowseSearch" placeholder="Search events, categories, or locations">
+      </div>
+    </div>
 
-<h3>Browse Events</h3>
-<br>
-<hr>
+    <div class="browse-categories-wrap">
+      <div class="browse-section-head">
+        <h3>Explore by Category</h3>
+        <button type="button" class="category-reset active" id="organizerAllCategoriesBtn" data-category="all">All Categories</button>
+      </div>
 
-<div class="events-grid">
+      <div class="category-grid browse-category-grid">
+        <button type="button" class="category-card browse-category-card organizer-browse-category-card" data-category="music">
+          <div class="category-icon" style="color: rgb(252, 77, 246)">
+            <i class="fa-solid fa-music"></i>
+          </div>
+          <h3>Music & Concerts</h3>
+          <span data-organizer-category-count="music">0 Events</span>
+        </button>
 
-<div class="event-card">
-<img src="../images/dsupimg1.jpg" alt="Tech Innovation Summit 2026">
+        <button type="button" class="category-card browse-category-card organizer-browse-category-card" data-category="business">
+          <div class="category-icon" style="color: blue">
+            <i class="fa-solid fa-briefcase"></i>
+          </div>
+          <h3>Business & Professional</h3>
+          <span data-organizer-category-count="business">0 Events</span>
+        </button>
 
-<div class="event-info">
-<h4>Tech Innovation Summit 2026</h4>
+        <button type="button" class="category-card browse-category-card organizer-browse-category-card" data-category="tech">
+          <div class="category-icon" style="color: green">
+            <i class="fa-solid fa-display"></i>
+          </div>
+          <h3>Tech</h3>
+          <span data-organizer-category-count="tech">0 Events</span>
+        </button>
 
-<p class="meta">
-<i class="fa-solid fa-location-dot"></i> Pune
-</p>
+        <button type="button" class="category-card browse-category-card organizer-browse-category-card" data-category="arts">
+          <div class="category-icon" style="color: rgb(141, 7, 230)">
+            <i class="fa-solid fa-masks-theater"></i>
+          </div>
+          <h3>Arts & Culture</h3>
+          <span data-organizer-category-count="arts">0 Events</span>
+        </button>
 
-<div class="event-bottom">
-<span class="badge badge-green">Available</span>
-<a href="#" class="ticket-link">View Event</a>
-</div>
+        <button type="button" class="category-card browse-category-card organizer-browse-category-card" data-category="food">
+          <div class="category-icon" style="color: rgb(248, 192, 9)">
+            <i class="fa-solid fa-utensils"></i>
+          </div>
+          <h3>Food & Drink</h3>
+          <span data-organizer-category-count="food">0 Events</span>
+        </button>
 
-</div>
-</div>
+        <button type="button" class="category-card browse-category-card organizer-browse-category-card" data-category="sports">
+          <div class="category-icon" style="color: red">
+            <i class="fa-solid fa-baseball-bat-ball"></i>
+          </div>
+          <h3>Sports & Fitness</h3>
+          <span data-organizer-category-count="sports">0 Events</span>
+        </button>
+      </div>
+    </div>
 
+    <div class="browse-results-head">
+      <h3>Results</h3>
+      <p><span id="organizerBrowseResultsCount">0</span> events found</p>
+    </div>
 
-<div class="event-card">
-<img src="../images/dsupimg2.jpg" alt="Digital Marketing Workshop"> 
+    <div class="browse-grid organizer-browse-grid" id="organizerBrowseResults"></div>
 
-<div class="event-info">
-<h4>Digital Marketing Workshop</h4>
-
-<p class="meta">
-<i class="fa-solid fa-location-dot"></i> Mumbai
-</p>
-
-<div class="event-bottom">
-<span class="badge badge-green">Available</span>
-<a href="#" class="ticket-link">View Event</a>
-</div>
-
-</div>
-</div>
-
-</div>
-
-</div>
-
+  </div>
 </section>
 </body>
 
