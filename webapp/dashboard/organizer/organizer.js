@@ -75,6 +75,13 @@ const organizerAnalyticsEventCount = document.getElementById("organizerAnalytics
 const organizerAnalyticsCategoryBody = document.getElementById("organizerAnalyticsCategoryBody");
 const organizerAnalyticsStatusList = document.getElementById("organizerAnalyticsStatusList");
 const organizerNavbarSearch = document.getElementById("organizerNavbarSearch");
+const organizerBrowseSearchTop = document.getElementById("organizerBrowseSearchTop");
+const organizerBrowseSearch = document.getElementById("organizerBrowseSearch");
+const organizerBrowseResults = document.getElementById("organizerBrowseResults");
+const organizerBrowseResultsCount = document.getElementById("organizerBrowseResultsCount");
+const organizerBrowseEmptyState = document.getElementById("organizerBrowseEmptyState");
+const organizerBrowseCategoryButtons = document.querySelectorAll(".organizer-browse-category-card, #organizerAllCategoriesBtn");
+const organizerBrowseCategoryCounts = document.querySelectorAll("[data-organizer-category-count]");
 const logoutLink = document.querySelector(".logout");
 const createEventForm = document.getElementById("createEventForm");
 const createEventStatus = document.getElementById("createEventStatus");
@@ -89,19 +96,38 @@ const eventModeGroup = document.getElementById("eventModeGroup");
 const ticketPricingGroup = document.getElementById("ticketPricingGroup");
 const ticketPriceWrap = document.getElementById("ticketPriceWrap");
 const ticketPriceInput = document.getElementById("ticketPrice");
+const ticketTypeWrap = document.getElementById("ticketTypeWrap");
+const ticketTypeInput = document.getElementById("ticketType");
+const paymentConfigWrap = document.getElementById("paymentConfigWrap");
+const paymentMethodsField = document.getElementById("paymentMethods");
+const paymentMethodOptions = Array.from(document.querySelectorAll("[data-payment-method-option]"));
+const upiQrUrlField = document.getElementById("upiQrUrl");
+const paymentQrWrap = document.getElementById("paymentQrWrap");
+const paymentQrInput = document.getElementById("paymentQrInput");
+const paymentQrUploadBox = document.getElementById("paymentQrUploadBox");
+const paymentQrMeta = document.getElementById("paymentQrMeta");
+const paymentQrPreview = document.getElementById("paymentQrPreview");
 const posterUploadBox = document.getElementById("posterUploadBox");
 const posterImageInput = document.getElementById("posterImageInput");
 const posterUploadMeta = document.getElementById("posterUploadMeta");
 const posterUrlField = document.getElementById("posterUrl");
 const organizerEventsPageTitle = document.getElementById("organizerEventsPageTitle");
+const organizerEventsSearchTop = document.getElementById("organizerEventsSearchTop");
 const organizerEventsSearch = document.getElementById("organizerEventsSearch");
 const organizerEventsResultsCount = document.getElementById("organizerEventsResultsCount");
 const organizerEventsList = document.getElementById("organizerEventsList");
 const organizerEventsEmptyState = document.getElementById("organizerEventsEmptyState");
+const organizerEventFilterButtons = document.querySelectorAll("[data-organizer-event-filter]");
+const manageUsersEventSearchTop = document.getElementById("manageUsersEventSearchTop");
 const manageUsersEventSearch = document.getElementById("manageUsersEventSearch");
 const manageUsersEventCount = document.getElementById("manageUsersEventCount");
 const manageUsersEventsList = document.getElementById("manageUsersEventsList");
+const manageUsersEventsEmptyState = document.getElementById("manageUsersEventsEmptyState");
+const manageUsersEventFilterButtons = document.querySelectorAll("[data-manage-users-event-filter]");
 const manageUsersAttendeeSection = document.getElementById("manageUsersAttendeeSection");
+const manageUsersAttendeeModal = document.getElementById("manageUsersAttendeeModal");
+const manageUsersAttendeeBackdrop = document.getElementById("manageUsersAttendeeBackdrop");
+const manageUsersAttendeeClose = document.getElementById("manageUsersAttendeeClose");
 const manageUsersSelectedEvent = document.getElementById("manageUsersSelectedEvent");
 const manageUsersSelectedEventRight = document.getElementById("manageUsersSelectedEventRight");
 const manageUsersAttendeeCount = document.getElementById("manageUsersAttendeeCount");
@@ -122,6 +148,17 @@ const organizerEventEditVenueWrap = document.getElementById("organizerEventEditV
 const organizerEventEditPrice = document.getElementById("organizerEventEditPrice");
 const organizerEventEditCapacity = document.getElementById("organizerEventEditCapacity");
 const organizerEventEditPriceWrap = document.getElementById("organizerEventEditPriceWrap");
+const organizerEventEditTicketTypeWrap = document.getElementById("organizerEventEditTicketTypeWrap");
+const organizerEventEditTicketType = document.getElementById("organizerEventEditTicketType");
+const organizerEventEditPaymentWrap = document.getElementById("organizerEventEditPaymentWrap");
+const organizerEventEditPaymentMethods = document.getElementById("organizerEventEditPaymentMethods");
+const organizerEventEditPaymentOptions = Array.from(document.querySelectorAll("[data-edit-payment-method-option]"));
+const organizerEventEditUpiQrUrl = document.getElementById("organizerEventEditUpiQrUrl");
+const organizerEventEditQrWrap = document.getElementById("organizerEventEditQrWrap");
+const organizerEventEditQrInput = document.getElementById("organizerEventEditQrInput");
+const organizerEventEditQrUploadBox = document.getElementById("organizerEventEditQrUploadBox");
+const organizerEventEditQrMeta = document.getElementById("organizerEventEditQrMeta");
+const organizerEventEditQrPreview = document.getElementById("organizerEventEditQrPreview");
 const organizerEventEditDescription = document.getElementById("organizerEventEditDescription");
 const organizerEventEditMode = document.getElementById("organizerEventEditMode");
 const organizerEventEditTicketMode = document.getElementById("organizerEventEditTicketMode");
@@ -173,6 +210,18 @@ const profileNewPassword = document.getElementById("profileNewPassword");
 const profileConfirmPassword = document.getElementById("profileConfirmPassword");
 const profilePasswordSaveBtn = document.getElementById("profilePasswordSaveBtn");
 const profilePasswordStatus = document.getElementById("profilePasswordStatus");
+const profileSubscriptionStatusChip = document.getElementById("profileSubscriptionStatus");
+const profileSubscriptionCurrentPlan = document.getElementById("profileSubscriptionCurrentPlan");
+const profileSubscriptionMeta = document.getElementById("profileSubscriptionMeta");
+const profileSubscriptionNextBilling = document.getElementById("profileSubscriptionNextBilling");
+const profileSubscriptionPrice = document.getElementById("profileSubscriptionPrice");
+const profileSubscriptionExploreBtn = document.getElementById("profileSubscriptionExploreBtn");
+const profileSubscriptionStatusMessage = document.getElementById("profileSubscriptionStatusMessage");
+const profileSubscriptionModal = document.getElementById("profileSubscriptionModal");
+const profileSubscriptionBackdrop = document.getElementById("profileSubscriptionBackdrop");
+const profileSubscriptionClose = document.getElementById("profileSubscriptionClose");
+const profileSubscriptionPlanGrid = document.getElementById("profileSubscriptionPlanGrid");
+const profileSubscriptionModalCopy = document.getElementById("profileSubscriptionModalCopy");
 const profileImageInput = document.getElementById("profileImageInput");
 const profileUploadBtn = document.querySelector(".upload-btn");
 const organizerCalendarSearch = document.getElementById("organizerCalendarSearch");
@@ -190,10 +239,16 @@ const organizerCalendarTimeline = document.getElementById("organizerCalendarTime
 const organizerCalendarEmptyState = document.getElementById("organizerCalendarEmptyState");
 
 let organizerEventsCache = [];
+let organizerBrowseCards = [];
+let activeOrganizerBrowseCategory = "all";
+let activeOrganizerEventFilter = "all";
+let activeManageUsersEventFilter = "all";
 let manageUsersAttendeesCache = [];
 let manageUsersSelectedEventId = "";
 let pendingCancelEvent = null;
 let organizerProfileSnapshot = null;
+let organizerSubscriptionSnapshot = null;
+let organizerSubscriptionPlans = [];
 let activeOrganizerEventDetail = null;
 let organizerDashboardManagedEvents = [];
 let organizerAnalyticsEventsCache = [];
@@ -223,6 +278,69 @@ const parseCurrencyAmount = value => {
 const formatCurrency = amount => {
   const safeAmount = Number.isFinite(Number(amount)) ? Number(amount) : 0;
   return `Rs ${Math.round(safeAmount).toLocaleString("en-IN")}`;
+};
+
+const normalizePaymentMethods = value => {
+  const source = Array.isArray(value) ? value : String(value || "").split(",");
+  const aliases = {
+    "upi qr": "upi",
+    "net banking": "netbanking",
+    "cash at venue": "cash",
+    "credit / debit card": "card",
+    "credit-debit card": "card",
+  };
+  const allowed = ["upi", "netbanking", "cash", "wallet", "card"];
+  const normalized = [];
+
+  source.forEach(item => {
+    const resolved = aliases[String(item || "").trim().toLowerCase()] || String(item || "").trim().toLowerCase();
+    if (allowed.includes(resolved) && !normalized.includes(resolved)) {
+      normalized.push(resolved);
+    }
+  });
+
+  return normalized;
+};
+
+const formatPaymentMethodLabel = method => {
+  const labels = {
+    upi: "UPI QR",
+    netbanking: "Net Banking",
+    cash: "Cash at Venue",
+    wallet: "Wallet",
+    card: "Credit / Debit Card",
+  };
+  return labels[String(method || "").trim().toLowerCase()] || "Payment";
+};
+
+const formatBrowseBadge = category => {
+  const text = String(category || "event").trim().toLowerCase();
+  return text ? `${text.charAt(0).toUpperCase()}${text.slice(1)}` : "Event";
+};
+
+const buildOrganizerBrowseSearchText = event => [
+  event.eventName,
+  event.location,
+  event.category,
+  event.ticketType,
+  event.seatInfo,
+  event.eventDate,
+  event.eventTime,
+].join(" ").toLowerCase();
+
+const eventMatchesStatusFilter = (event, filterValue) => {
+  const normalizedFilter = String(filterValue || "all").trim().toLowerCase();
+  const status = String(event?.status || "").trim().toLowerCase();
+
+  if (normalizedFilter === "all") {
+    return true;
+  }
+
+  if (normalizedFilter === "active") {
+    return status === "published" || status === "live";
+  }
+
+  return status === normalizedFilter;
 };
 
 const computeEventAnalytics = event => {
@@ -1287,6 +1405,134 @@ const applyOrganizerAccountBanner = data => {
   organizerAccountBanner.classList.remove("is-error");
 };
 
+const formatSubscriptionStatusText = status => {
+  const normalized = String(status || "inactive").trim().toLowerCase();
+  if (!normalized) {
+    return "Inactive";
+  }
+  return normalized
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, character => character.toUpperCase());
+};
+
+const resolveSubscriptionStatusClass = status => {
+  const normalized = String(status || "inactive").trim().toLowerCase();
+  if (["active", "completed"].includes(normalized)) {
+    return "active";
+  }
+  if (["review", "warned"].includes(normalized)) {
+    return "review";
+  }
+  if (["past_due", "cancelled", "removed", "suspended"].includes(normalized)) {
+    return "past_due";
+  }
+  return "inactive";
+};
+
+const formatSubscriptionPrice = amount => {
+  const safeAmount = Number.isFinite(Number(amount)) ? Number(amount) : 0;
+  return `Rs ${Math.round(safeAmount).toLocaleString("en-IN")} / month`;
+};
+
+const renderOrganizerSubscription = (subscriptionValue, plansValue) => {
+  if (!profileSubscriptionCurrentPlan) {
+    return;
+  }
+
+  if (subscriptionValue && typeof subscriptionValue === "object") {
+    organizerSubscriptionSnapshot = subscriptionValue;
+  }
+  if (Array.isArray(plansValue)) {
+    organizerSubscriptionPlans = plansValue;
+  }
+
+  const subscription = organizerSubscriptionSnapshot || {
+    planName: "Free",
+    subscriptionStatus: "inactive",
+    monthlyPrice: 0,
+    nextBillingOn: "-",
+    description: "Explore Pro or Premium to unlock additional organizer benefits.",
+    paymentMethod: "Unknown",
+  };
+  const statusClass = resolveSubscriptionStatusClass(subscription.subscriptionStatus);
+
+  if (profileSubscriptionStatusChip) {
+    profileSubscriptionStatusChip.className = `subscription-status-chip ${statusClass}`;
+    profileSubscriptionStatusChip.textContent = formatSubscriptionStatusText(subscription.subscriptionStatus);
+  }
+
+  profileSubscriptionCurrentPlan.textContent = `Current plan: ${subscription.planName || "Free"}`;
+  if (profileSubscriptionMeta) {
+    const description = String(subscription.description || "").trim();
+    const paymentLabel = String(subscription.paymentMethod || "").trim();
+    profileSubscriptionMeta.textContent = description || "Explore Pro or Premium to unlock additional organizer benefits.";
+    if (paymentLabel && paymentLabel.toLowerCase() !== "unknown" && statusClass !== "inactive") {
+      profileSubscriptionMeta.textContent = `${profileSubscriptionMeta.textContent} Payment method: ${paymentLabel}.`;
+    }
+  }
+
+  if (profileSubscriptionNextBilling) {
+    profileSubscriptionNextBilling.textContent = subscription.nextBillingOn || "-";
+  }
+  if (profileSubscriptionPrice) {
+    profileSubscriptionPrice.textContent = formatSubscriptionPrice(subscription.monthlyPrice || 0);
+  }
+};
+
+const closeOrganizerSubscriptionModal = () => {
+  if (profileSubscriptionModal) {
+    profileSubscriptionModal.hidden = true;
+  }
+};
+
+const openOrganizerSubscriptionModal = () => {
+  if (!profileSubscriptionModal || !profileSubscriptionPlanGrid) {
+    return;
+  }
+
+  const currentPlanId = String(organizerSubscriptionSnapshot?.planId || "").trim().toLowerCase();
+  const plans = Array.isArray(organizerSubscriptionPlans) ? organizerSubscriptionPlans : [];
+  if (profileSubscriptionModalCopy) {
+    profileSubscriptionModalCopy.textContent = "Upgrade your organizer account with Pro or Premium tools.";
+  }
+
+  if (!plans.length) {
+    profileSubscriptionPlanGrid.innerHTML = "<p class=\"meta\">Subscription plans are not available right now.</p>";
+  } else {
+    profileSubscriptionPlanGrid.innerHTML = plans.map(plan => {
+      const planId = String(plan.planId || "").trim().toLowerCase();
+      const isCurrent = currentPlanId && currentPlanId === planId && resolveSubscriptionStatusClass(organizerSubscriptionSnapshot?.subscriptionStatus) === "active";
+      const features = Array.isArray(plan.features) ? plan.features : [];
+      return `
+        <article class="subscription-plan-card" data-plan-id="${escapeHtml(planId)}">
+          <h4>${escapeHtml(plan.planName || "Plan")}</h4>
+          <p class="subscription-plan-price">${escapeHtml(`Rs ${Number(plan.monthlyPrice || 0).toLocaleString("en-IN")}`)} <small>/month</small></p>
+          <p class="subscription-plan-description">${escapeHtml(plan.description || "")}</p>
+          <ul class="subscription-plan-features">
+            ${features.length
+              ? features.map(feature => `<li>${escapeHtml(feature)}</li>`).join("")
+              : "<li>Platform plan features included.</li>"}
+          </ul>
+          <div class="subscription-plan-actions">
+            <select data-subscription-payment="${escapeHtml(planId)}">
+              <option value="card">Credit / Debit Card</option>
+              <option value="upi">UPI</option>
+              <option value="netbanking">Net Banking</option>
+              <option value="wallet">Wallet</option>
+              <option value="cash">Cash</option>
+            </select>
+            <button type="button" class="subscription-buy-btn ${isCurrent ? "is-current" : ""}" data-subscription-buy="${escapeHtml(planId)}" ${isCurrent ? "disabled" : ""}>
+              ${isCurrent ? "Current Plan" : "Buy Now"}
+            </button>
+          </div>
+        </article>
+      `;
+    }).join("");
+  }
+
+  profileSubscriptionModal.hidden = false;
+};
+
 const applyOrganizerProfile = data => {
   if (!data) {
     return;
@@ -1315,6 +1561,7 @@ const applyOrganizerProfile = data => {
   if (profilePhone && "phone" in data) profilePhone.value = String(data.phone || "");
   if (profileRole) profileRole.value = userRole;
   if (profileBio && "bio" in data) profileBio.value = String(data.bio || "");
+  renderOrganizerSubscription(data.subscription, data.subscriptionPlans);
   applyOrganizerAccountBanner(data);
 
   organizerProfileSnapshot = {
@@ -1350,8 +1597,50 @@ const loadOrganizerProfile = async () => {
 
     const data = await response.json();
     applyOrganizerProfile(data);
+    setProfileStatus(profileSubscriptionStatusMessage, "");
   } catch (error) {
     // intentionally silent for non-profile pages
+  }
+};
+
+const purchaseOrganizerSubscriptionPlan = async (planId, paymentMethod, actionButton) => {
+  const normalizedPlanId = String(planId || "").trim().toLowerCase();
+  if (!normalizedPlanId) {
+    setProfileStatus(profileSubscriptionStatusMessage, "Please select a valid subscription plan.", true);
+    return;
+  }
+
+  const normalizedMethod = String(paymentMethod || "card").trim().toLowerCase() || "card";
+  const originalLabel = actionButton?.textContent || "Buy Now";
+  if (actionButton) {
+    actionButton.disabled = true;
+    actionButton.textContent = "Processing...";
+  }
+  setProfileStatus(profileSubscriptionStatusMessage, "Activating subscription...");
+
+  try {
+    const response = await fetch(`${getContextPath()}/purchase-subscription`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        "Accept": "application/json",
+      },
+      body: new URLSearchParams({
+        planId: normalizedPlanId,
+        paymentMethod: normalizedMethod,
+      }).toString(),
+    });
+    const data = await parseApiJson(response);
+    await loadOrganizerProfile();
+    closeOrganizerSubscriptionModal();
+    setProfileStatus(profileSubscriptionStatusMessage, data.message || "Subscription activated successfully.");
+  } catch (error) {
+    setProfileStatus(profileSubscriptionStatusMessage, error.message || "Unable to activate subscription.", true);
+  } finally {
+    if (actionButton) {
+      actionButton.disabled = false;
+      actionButton.textContent = originalLabel;
+    }
   }
 };
 
@@ -1385,6 +1674,18 @@ const setOrganizerEditTicketMode = mode => {
       organizerEventEditPrice.value = "0";
     }
   }
+  if (organizerEventEditTicketTypeWrap) {
+    organizerEventEditTicketTypeWrap.hidden = resolved === "free";
+  }
+  if (organizerEventEditTicketType && resolved === "free") {
+    organizerEventEditTicketType.value = "Entry Pass";
+  }
+  if (organizerEventEditPaymentWrap) {
+    organizerEventEditPaymentWrap.hidden = resolved === "free";
+  }
+  if (organizerEventEditQrWrap) {
+    organizerEventEditQrWrap.hidden = resolved === "free" || !normalizePaymentMethods(organizerEventEditPaymentMethods?.value || "").includes("upi");
+  }
 };
 
 const bindOrganizerToggleGroup = (group, key, callback) => {
@@ -1402,6 +1703,81 @@ const bindOrganizerToggleGroup = (group, key, callback) => {
   });
 };
 
+const refreshOrganizerBrowseCards = () => {
+  organizerBrowseCards = Array.from(document.querySelectorAll("#organizerBrowseResults .browse-card"));
+};
+
+const updateOrganizerBrowseCategoryCounts = events => {
+  if (!organizerBrowseCategoryCounts.length) {
+    return;
+  }
+
+  const counts = events.reduce((accumulator, event) => {
+    const category = String(event.category || "general").trim().toLowerCase();
+    accumulator[category] = (accumulator[category] || 0) + 1;
+    return accumulator;
+  }, {});
+
+  organizerBrowseCategoryCounts.forEach(node => {
+    const category = String(node.dataset.organizerCategoryCount || "").trim().toLowerCase();
+    const count = Number(counts[category] || 0);
+    node.textContent = `${count} Event${count === 1 ? "" : "s"}`;
+  });
+};
+
+const renderOrganizerBrowseCard = event => `
+  <article
+    class="browse-card"
+    data-category="${escapeHtml(event.category || "general")}"
+    data-search="${escapeHtml(buildOrganizerBrowseSearchText(event))}"
+  >
+    <img src="${escapeHtml(event.imageUrl || "/assets/dashboard/images/dsupimg1.jpg")}" alt="${escapeHtml(event.eventName || "Event")}">
+    <div class="browse-info">
+      <span class="browse-badge">${escapeHtml(formatBrowseBadge(event.category))}</span>
+      <h4>${escapeHtml(event.eventName || "Untitled Event")}</h4>
+      <p class="event-description">${escapeHtml((event.description || "").length > 100 ? `${String(event.description || "").slice(0, 100)}...` : (event.description || ""))}</p>
+      <p>${escapeHtml(event.eventTime || "-")}</p>
+      <p>${escapeHtml(event.price || "Rs 0")}</p>
+      <p>${escapeHtml(event.location || "Online Event")} &bull; ${escapeHtml(event.eventDate || "-")}</p>
+      <div class="browse-action-row organizer-browse-action-row">
+        <span class="browse-badge organizer-browse-status">${escapeHtml(event.isUpcoming ? "Upcoming" : "Open")}</span>
+        <a class="ticket-link organizer-browse-link" href="${event.organizerPhone ? `tel:${escapeHtml(event.organizerPhone)}` : "#"}">
+          ${escapeHtml(event.organizerPhone ? "Contact Organizer" : "View Event")}
+        </a>
+      </div>
+    </div>
+  </article>
+`;
+
+const applyOrganizerBrowseFilter = () => {
+  if (!organizerBrowseResults) {
+    return;
+  }
+
+  const term = String(organizerBrowseSearch?.value || "").trim().toLowerCase();
+  let visibleCount = 0;
+
+  organizerBrowseCards.forEach(card => {
+    const category = String(card.dataset.category || "").trim().toLowerCase();
+    const searchableText = String(card.dataset.search || "").trim().toLowerCase();
+    const matchesCategory = activeOrganizerBrowseCategory === "all" || category === activeOrganizerBrowseCategory;
+    const matchesSearch = !term || searchableText.includes(term);
+    const show = matchesCategory && matchesSearch;
+    card.hidden = !show;
+    if (show) {
+      visibleCount += 1;
+    }
+  });
+
+  if (organizerBrowseResultsCount) {
+    organizerBrowseResultsCount.textContent = String(visibleCount);
+  }
+
+  if (organizerBrowseEmptyState) {
+    organizerBrowseEmptyState.hidden = visibleCount !== 0;
+  }
+};
+
 const renderOrganizerMyEventCard = event => `
   <article
     class="booking-item organizer-event-item ${escapeHtml(event.status || "published")}"
@@ -1413,12 +1789,15 @@ const renderOrganizerMyEventCard = event => `
     data-location="${escapeHtml(event.location || "")}"
     data-event-mode="${escapeHtml(event.eventMode || "venue")}"
     data-ticket-pricing-mode="${escapeHtml(event.ticketPricingMode || "paid")}"
+    data-ticket-type="${escapeHtml(event.ticketType || "Entry Pass")}"
     data-price="${escapeHtml(String(event.price || "Rs 0"))}"
     data-capacity="${escapeHtml(String(event.capacity || 0))}"
     data-attendee-count="${escapeHtml(String(event.attendeeCount || 0))}"
     data-status="${escapeHtml(event.status || "published")}"
     data-description="${escapeHtml(event.description || "")}"
     data-image-url="${escapeHtml(event.imageUrl || "/assets/dashboard/images/dsupimg1.jpg")}"
+    data-payment-methods="${escapeHtml((Array.isArray(event.paymentMethods) ? event.paymentMethods : []).join(","))}"
+    data-upi-qr-url="${escapeHtml(event.upiQrUrl || "")}"
   >
     <img class="booking-cover" src="${escapeHtml(event.imageUrl || "/assets/dashboard/images/dsupimg1.jpg")}" alt="${escapeHtml(event.eventName)}">
     <div class="booking-body organizer-event-content">
@@ -1439,8 +1818,12 @@ const renderOrganizerMyEventCard = event => `
           <strong>${escapeHtml(event.ticketPricingMode || "paid")}</strong>
         </div>
         <div class="booking-field">
+          <span>Pass Type</span>
+          <strong>${escapeHtml(event.ticketType || "Entry Pass")}</strong>
+        </div>
+        <div class="booking-field">
           <span>Price</span>
-          <strong>${escapeHtml(event.price || "Rs 0")}</strong>
+          <strong>${escapeHtml(String(event.ticketPricingMode || "paid").toLowerCase() === "free" ? "Not pricing" : event.price || "Rs 0")}</strong>
         </div>
         <div class="booking-field">
           <span>Capacity</span>
@@ -1466,13 +1849,29 @@ const renderOrganizerMyEventCard = event => `
 `;
 
 const renderManageUserEventCard = event => `
-  <article class="manage-users-event-card" data-event-id="${escapeHtml(event.id)}">
+  <article
+    class="manage-users-event-card"
+    data-event-id="${escapeHtml(event.id)}"
+    data-status="${escapeHtml(event.status || "published")}"
+    data-search="${escapeHtml([
+      event.eventName,
+      event.eventDate,
+      event.eventTime,
+      event.location,
+      event.status,
+      event.category,
+      event.ticketType,
+      event.price,
+      event.attendeeCount,
+    ].join(" ").toLowerCase())}"
+  >
     <img src="${escapeHtml(event.imageUrl || "/assets/dashboard/images/dsupimg1.jpg")}" alt="${escapeHtml(event.eventName)}">
     <div class="manage-users-event-content">
       <h4>${escapeHtml(event.eventName)}</h4>
       <p>${escapeHtml(event.eventDate)} at ${escapeHtml(event.eventTime)}</p>
       <p>${escapeHtml(event.location || "Online Event")}</p>
       <p>${escapeHtml(event.price || "Rs 0")} &bull; ${escapeHtml(event.attendeeCount || 0)} attendees</p>
+      <span class="booking-status ${escapeHtml(event.status || "published")}">${escapeHtml(event.status || "published")}</span>
       <button type="button" class="booking-action-btn manage-users-open-btn">Manage User</button>
     </div>
   </article>
@@ -1486,7 +1885,7 @@ const renderManageUserAttendeeRows = attendees => {
   if (!attendees.length) {
     manageUsersAttendeeBody.innerHTML = `
       <tr>
-        <td colspan="7" class="manage-users-no-data">No attendees for this event yet.</td>
+        <td colspan="8" class="manage-users-no-data">No attendees for this event yet.</td>
       </tr>
     `;
     return;
@@ -1494,12 +1893,18 @@ const renderManageUserAttendeeRows = attendees => {
 
   manageUsersAttendeeBody.innerHTML = attendees.map(attendee => `
     <tr data-attendee-id="${escapeHtml(attendee.id)}" data-ticket-count="${escapeHtml(attendee.ticketCount || 1)}">
-      <td>${escapeHtml(attendee.name || "-")}</td>
-      <td>${escapeHtml(attendee.email || "-")}</td>
+      <td>
+        <strong>${escapeHtml(attendee.name || "-")}</strong>
+        <span>${escapeHtml(attendee.email || "-")}</span>
+      </td>
       <td>${escapeHtml(attendee.phone || "-")}</td>
       <td>${escapeHtml(attendee.ticketType || "Entry Pass")}</td>
       <td>${escapeHtml(attendee.ticketCount || 1)}</td>
       <td>${escapeHtml(attendee.ticketId || "-")}</td>
+      <td>
+        <span class="booking-status ${escapeHtml(attendee.status || "active")}">${escapeHtml(attendee.status || "active")}</span>
+      </td>
+      <td>${escapeHtml(attendee.source || "organizer")}</td>
       <td>
         <div class="manage-users-action-group">
           <button type="button" class="manage-users-approve-btn" data-action="approve">Approve</button>
@@ -1560,13 +1965,17 @@ const loadManageUsersAttendees = async eventId => {
     if (manageUsersSelectedEventRight) {
       manageUsersSelectedEventRight.textContent = `${data.eventName || "Event"}`;
     }
-    if (manageUsersAttendeeSection) {
+    if (manageUsersAttendeeModal) {
+      manageUsersAttendeeModal.hidden = false;
+    } else if (manageUsersAttendeeSection) {
       manageUsersAttendeeSection.hidden = false;
     }
     renderManageUserAttendeeRows(manageUsersAttendeesCache);
     applyManageUserAttendeeFilter();
   } catch (error) {
-    if (manageUsersAttendeeSection) {
+    if (manageUsersAttendeeModal) {
+      manageUsersAttendeeModal.hidden = false;
+    } else if (manageUsersAttendeeSection) {
       manageUsersAttendeeSection.hidden = false;
     }
     if (manageUsersSelectedEvent) {
@@ -1578,6 +1987,16 @@ const loadManageUsersAttendees = async eventId => {
     manageUsersAttendeesCache = [];
     renderManageUserAttendeeRows([]);
   }
+};
+
+const closeManageUsersAttendeeModal = () => {
+  if (manageUsersAttendeeModal) {
+    manageUsersAttendeeModal.hidden = true;
+  }
+  if (manageUsersAttendeeSearch) {
+    manageUsersAttendeeSearch.value = "";
+  }
+  applyManageUserAttendeeFilter();
 };
 
 const applyOrganizerEventFilter = () => {
@@ -1597,7 +2016,8 @@ const applyOrganizerEventFilter = () => {
       card.dataset.location,
       card.dataset.price,
     ].join(" ").toLowerCase();
-    const show = !term || searchable.includes(term);
+    const show = (!term || searchable.includes(term))
+      && eventMatchesStatusFilter({ status: card.dataset.status || "" }, activeOrganizerEventFilter);
     card.hidden = !show;
     if (show) {
       visibleCount += 1;
@@ -1610,6 +2030,80 @@ const applyOrganizerEventFilter = () => {
 
   if (organizerEventsEmptyState) {
     organizerEventsEmptyState.hidden = visibleCount !== 0;
+  }
+};
+
+const applyManageUsersEventFilter = () => {
+  if (!manageUsersEventsList) {
+    return;
+  }
+
+  const term = String(manageUsersEventSearch?.value || "").trim().toLowerCase();
+  const cards = Array.from(manageUsersEventsList.querySelectorAll(".manage-users-event-card"));
+  let visibleCount = 0;
+
+  cards.forEach(card => {
+    const searchableText = String(card.dataset.search || card.textContent || "").toLowerCase();
+    const show = (!term || searchableText.includes(term))
+      && eventMatchesStatusFilter({ status: card.dataset.status || "" }, activeManageUsersEventFilter);
+    card.hidden = !show;
+    if (show) {
+      visibleCount += 1;
+    }
+  });
+
+  if (manageUsersEventCount) {
+    manageUsersEventCount.textContent = String(visibleCount);
+  }
+
+  if (manageUsersEventsEmptyState) {
+    manageUsersEventsEmptyState.hidden = visibleCount !== 0;
+  }
+};
+
+const loadOrganizerBrowseEvents = async () => {
+  if (!organizerBrowseResults) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`${getContextPath()}/eventscalendarservlet`, {
+      cache: "no-store",
+      headers: {
+        "Accept": "application/json"
+      }
+    });
+
+    if (response.status === 401) {
+      window.location.href = `${getContextPath()}/login`;
+      return;
+    }
+
+    if (response.status === 403) {
+      window.location.href = `${getContextPath()}/dashboard/user`;
+      return;
+    }
+
+    const data = await parseApiJson(response);
+    const events = Array.isArray(data.events) ? data.events : [];
+    const upcomingEvents = events.filter(event => Boolean(event.isUpcoming));
+
+    applyOrganizerProfile(data);
+    organizerBrowseResults.innerHTML = upcomingEvents.length
+      ? upcomingEvents.map(renderOrganizerBrowseCard).join("")
+      : "";
+    refreshOrganizerBrowseCards();
+    updateOrganizerBrowseCategoryCounts(upcomingEvents);
+    applyOrganizerBrowseFilter();
+  } catch (error) {
+    organizerBrowseResults.innerHTML = "";
+    refreshOrganizerBrowseCards();
+    if (organizerBrowseResultsCount) {
+      organizerBrowseResultsCount.textContent = "0";
+    }
+    if (organizerBrowseEmptyState) {
+      organizerBrowseEmptyState.hidden = false;
+    }
   }
 };
 
@@ -1665,17 +2159,15 @@ const loadOrganizerEvents = async () => {
     }
 
     if (manageUsersEventsList) {
-      const publishedEvents = organizerEventsCache.filter(event => String(event.status || "").toLowerCase() === "published");
-      manageUsersEventsList.innerHTML = publishedEvents.length
-        ? publishedEvents.map(renderManageUserEventCard).join("")
-        : "<p class=\"meta\">No published events available yet.</p>";
-      if (manageUsersEventCount) {
-        manageUsersEventCount.textContent = String(publishedEvents.length);
-      }
-      if (manageUsersSelectedEventId && !publishedEvents.some(event => String(event.id) === String(manageUsersSelectedEventId))) {
+      manageUsersEventsList.innerHTML = organizerEventsCache.length
+        ? organizerEventsCache.map(renderManageUserEventCard).join("")
+        : "";
+      applyManageUsersEventFilter();
+      if (manageUsersSelectedEventId && !organizerEventsCache.some(event => String(event.id) === String(manageUsersSelectedEventId))) {
         manageUsersSelectedEventId = "";
         manageUsersAttendeesCache = [];
         renderManageUserAttendeeRows([]);
+        closeManageUsersAttendeeModal();
         if (manageUsersAttendeeSection) {
           manageUsersAttendeeSection.hidden = true;
         }
@@ -1699,9 +2191,12 @@ const loadOrganizerEvents = async () => {
     }
 
     if (manageUsersEventsList) {
-      manageUsersEventsList.innerHTML = "<p class=\"meta\">Unable to load events right now.</p>";
+      manageUsersEventsList.innerHTML = "";
       if (manageUsersEventCount) {
         manageUsersEventCount.textContent = "0";
+      }
+      if (manageUsersEventsEmptyState) {
+        manageUsersEventsEmptyState.hidden = false;
       }
     }
 
@@ -1843,11 +2338,14 @@ const openOrganizerEventEditModal = eventData => {
   if (organizerEventEditTime) organizerEventEditTime.value = normalizeTimeToInput(eventData.eventTime);
   if (organizerEventEditVenue) organizerEventEditVenue.value = eventData.location === "Online Event" ? "" : (eventData.location || "");
   if (organizerEventEditPrice) organizerEventEditPrice.value = String(eventData.price || "").replace(/[^\d]/g, "") || "0";
+  if (organizerEventEditTicketType) organizerEventEditTicketType.value = eventData.ticketType || "Entry Pass";
   if (organizerEventEditCapacity) organizerEventEditCapacity.value = String(eventData.capacity || "0");
   if (organizerEventEditDescription) organizerEventEditDescription.value = eventData.description || "";
 
   setOrganizerEditEventMode(eventData.eventMode || "venue");
   setOrganizerEditTicketMode(eventData.ticketPricingMode || "paid");
+  setOrganizerEditPaymentMethodUI(eventData.paymentMethods || "upi,netbanking,cash,wallet,card");
+  setOrganizerEditQrPreview(eventData.upiQrUrl || "", eventData.upiQrUrl ? "UPI QR ready" : "No QR code uploaded");
   setOrganizerEventEditStatus("");
   organizerEventEditModal.hidden = false;
 };
@@ -1911,11 +2409,14 @@ const persistCreateEventDraft = () => {
     eventTime: String(formData.get("eventTime") || ""),
     venueAddress: String(formData.get("venueAddress") || ""),
     ticketPrice: String(formData.get("ticketPrice") || ""),
+    ticketType: String(formData.get("ticketType") || "Entry Pass"),
     eventCapacity: String(formData.get("eventCapacity") || ""),
     eventDescription: String(formData.get("eventDescription") || ""),
     eventMode: String(formData.get("eventMode") || "venue"),
     ticketPricingMode: String(formData.get("ticketPricingMode") || "paid"),
     posterUrl: String(formData.get("posterUrl") || ""),
+    paymentMethods: String(formData.get("paymentMethods") || ""),
+    upiQrUrl: String(formData.get("upiQrUrl") || ""),
   };
 
   const hasData = [
@@ -1925,9 +2426,12 @@ const persistCreateEventDraft = () => {
     draft.eventTime,
     draft.venueAddress,
     draft.ticketPrice,
+    draft.ticketType,
     draft.eventCapacity,
     draft.eventDescription,
     draft.posterUrl,
+    draft.paymentMethods,
+    draft.upiQrUrl,
   ].some(value => value.trim() !== "");
 
   if (!hasData) {
@@ -1966,12 +2470,17 @@ const restoreCreateEventDraft = () => {
   assignValue("eventTime", draft.eventTime);
   assignValue("venueAddress", draft.venueAddress);
   assignValue("ticketPrice", draft.ticketPrice);
+  assignValue("ticketType", draft.ticketType || "Entry Pass");
   assignValue("eventCapacity", draft.eventCapacity);
   assignValue("eventDescription", draft.eventDescription);
   assignValue("posterUrl", draft.posterUrl);
+  assignValue("paymentMethods", draft.paymentMethods);
+  assignValue("upiQrUrl", draft.upiQrUrl);
 
   setEventModeUI(draft.eventMode || "venue");
   setTicketPricingModeUI(draft.ticketPricingMode || "paid");
+  setPaymentMethodUI(draft.paymentMethods || "upi,netbanking,cash,wallet,card");
+  setPaymentQrPreview(draft.upiQrUrl || "", draft.upiQrUrl ? "UPI QR ready" : "No QR code uploaded");
 
   if (posterUploadMeta) {
     posterUploadMeta.textContent = draft.posterUrl ? "Poster ready" : "No poster selected";
@@ -2028,6 +2537,136 @@ const setTicketPricingModeUI = mode => {
       ticketPriceInput.value = "0";
     }
   }
+  if (ticketTypeWrap) {
+    ticketTypeWrap.hidden = resolvedMode === "free";
+  }
+  if (ticketTypeInput && resolvedMode === "free") {
+    ticketTypeInput.value = "Entry Pass";
+  }
+
+  if (paymentConfigWrap) {
+    paymentConfigWrap.hidden = resolvedMode === "free";
+  }
+  if (paymentQrWrap) {
+    paymentQrWrap.hidden = resolvedMode === "free" || !normalizePaymentMethods(paymentMethodsField?.value || "").includes("upi");
+  }
+};
+
+const syncPaymentMethodField = () => {
+  if (!paymentMethodsField) {
+    return [];
+  }
+
+  const methods = paymentMethodOptions
+    .filter(option => option.checked)
+    .map(option => option.value);
+  paymentMethodsField.value = methods.join(",");
+
+  if (paymentQrWrap) {
+    paymentQrWrap.hidden = ticketPricingModeField?.value === "free" || !methods.includes("upi");
+  }
+  if (!methods.includes("upi") && upiQrUrlField) {
+    upiQrUrlField.value = "";
+    if (paymentQrMeta) {
+      paymentQrMeta.textContent = "No QR code uploaded";
+    }
+    if (paymentQrPreview) {
+      paymentQrPreview.hidden = true;
+      paymentQrPreview.removeAttribute("src");
+    }
+  }
+
+  return methods;
+};
+
+const setPaymentMethodUI = methods => {
+  const normalized = normalizePaymentMethods(methods);
+  paymentMethodOptions.forEach(option => {
+    option.checked = normalized.includes(option.value);
+  });
+  if (paymentMethodsField) {
+    paymentMethodsField.value = normalized.join(",");
+  }
+  if (paymentQrWrap) {
+    paymentQrWrap.hidden = ticketPricingModeField?.value === "free" || !normalized.includes("upi");
+  }
+};
+
+const setPaymentQrPreview = (imageUrl, label = "UPI QR ready") => {
+  if (upiQrUrlField) {
+    upiQrUrlField.value = imageUrl || "";
+  }
+  if (paymentQrMeta) {
+    paymentQrMeta.textContent = imageUrl ? label : "No QR code uploaded";
+  }
+  if (paymentQrPreview) {
+    paymentQrPreview.hidden = !imageUrl;
+    if (imageUrl) {
+      paymentQrPreview.src = imageUrl;
+    } else {
+      paymentQrPreview.removeAttribute("src");
+    }
+  }
+};
+
+const setOrganizerEditPaymentMethodUI = methods => {
+  const normalized = normalizePaymentMethods(methods);
+  organizerEventEditPaymentOptions.forEach(option => {
+    option.checked = normalized.includes(option.value);
+  });
+  if (organizerEventEditPaymentMethods) {
+    organizerEventEditPaymentMethods.value = normalized.join(",");
+  }
+  if (organizerEventEditPaymentWrap) {
+    organizerEventEditPaymentWrap.hidden = organizerEventEditTicketMode?.value === "free";
+  }
+  if (organizerEventEditQrWrap) {
+    organizerEventEditQrWrap.hidden = organizerEventEditTicketMode?.value === "free" || !normalized.includes("upi");
+  }
+};
+
+const syncOrganizerEditPaymentMethodField = () => {
+  if (!organizerEventEditPaymentMethods) {
+    return [];
+  }
+
+  const methods = organizerEventEditPaymentOptions
+    .filter(option => option.checked)
+    .map(option => option.value);
+  organizerEventEditPaymentMethods.value = methods.join(",");
+
+  if (organizerEventEditQrWrap) {
+    organizerEventEditQrWrap.hidden = organizerEventEditTicketMode?.value === "free" || !methods.includes("upi");
+  }
+  if (!methods.includes("upi") && organizerEventEditUpiQrUrl) {
+    organizerEventEditUpiQrUrl.value = "";
+    if (organizerEventEditQrMeta) {
+      organizerEventEditQrMeta.textContent = "No QR code uploaded";
+    }
+    if (organizerEventEditQrPreview) {
+      organizerEventEditQrPreview.hidden = true;
+      organizerEventEditQrPreview.removeAttribute("src");
+    }
+  }
+
+  return methods;
+};
+
+const setOrganizerEditQrPreview = (imageUrl, label = "UPI QR ready") => {
+  if (organizerEventEditUpiQrUrl) {
+    organizerEventEditUpiQrUrl.value = imageUrl || "";
+  }
+  if (organizerEventEditQrMeta) {
+    organizerEventEditQrMeta.textContent = imageUrl ? label : "No QR code uploaded";
+  }
+  if (organizerEventEditQrPreview) {
+    organizerEventEditQrPreview.hidden = !imageUrl;
+    if (imageUrl) {
+      organizerEventEditQrPreview.src = imageUrl;
+    } else {
+      organizerEventEditQrPreview.removeAttribute("src");
+    }
+  }
 };
 
 const bindToggleGroup = (groupElement, dataAttribute, applyMode) => {
@@ -2065,6 +2704,31 @@ const uploadPosterImage = async file => {
   const data = await response.json();
   if (!response.ok) {
     throw new Error(data.error || "Unable to upload poster image.");
+  }
+
+  return data.imageUrl || "";
+};
+
+const uploadPaymentQrImage = async file => {
+  const formData = new FormData();
+  formData.append("paymentQrImage", file);
+
+  const response = await fetch(`${getContextPath()}/upload-organizer-payment-qr`, {
+    method: "POST",
+    body: formData,
+    headers: {
+      "Accept": "application/json"
+    }
+  });
+
+  if (response.status === 401) {
+    window.location.href = `${getContextPath()}/login`;
+    return null;
+  }
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error || "Unable to upload payment QR.");
   }
 
   return data.imageUrl || "";
@@ -2259,6 +2923,9 @@ const refreshOrganizerLiveData = async () => {
   if (organizerManagedEvents) {
     tasks.push(loadOrganizerDashboard());
   }
+  if (organizerBrowseResults) {
+    tasks.push(loadOrganizerBrowseEvents());
+  }
   if (organizerEventsList || manageUsersEventsList || organizerRevenueMetrics || organizerCalendarTimeline) {
     tasks.push(loadOrganizerEvents());
   }
@@ -2278,11 +2945,36 @@ const refreshOrganizerLiveData = async () => {
 };
 
 loadOrganizerDashboard();
+loadOrganizerBrowseEvents();
 loadOrganizerEvents();
 loadOrganizerAnalyticsPage();
 loadOrganizerProfile();
 
-if (organizerManagedEvents || organizerEventsList || manageUsersEventsList || organizerAnalyticsKpis || organizerRevenueMetrics || organizerCalendarTimeline) {
+profileSubscriptionExploreBtn?.addEventListener("click", () => {
+  openOrganizerSubscriptionModal();
+});
+
+profileSubscriptionClose?.addEventListener("click", () => {
+  closeOrganizerSubscriptionModal();
+});
+
+profileSubscriptionBackdrop?.addEventListener("click", () => {
+  closeOrganizerSubscriptionModal();
+});
+
+profileSubscriptionPlanGrid?.addEventListener("click", event => {
+  const actionButton = event.target.closest("[data-subscription-buy]");
+  if (!actionButton) {
+    return;
+  }
+
+  const planId = String(actionButton.dataset.subscriptionBuy || "").trim().toLowerCase();
+  const paymentSelect = profileSubscriptionPlanGrid.querySelector(`[data-subscription-payment="${planId}"]`);
+  const paymentMethod = String(paymentSelect?.value || "card").trim().toLowerCase();
+  purchaseOrganizerSubscriptionPlan(planId, paymentMethod, actionButton);
+});
+
+if (organizerManagedEvents || organizerBrowseResults || organizerEventsList || manageUsersEventsList || organizerAnalyticsKpis || organizerRevenueMetrics || organizerCalendarTimeline) {
   window.setInterval(() => {
     refreshOrganizerLiveData();
   }, 20000);
@@ -2298,16 +2990,36 @@ bindToggleGroup(ticketPricingGroup, "ticketMode", mode => {
 });
 setEventModeUI(eventModeField?.value || "venue");
 setTicketPricingModeUI(ticketPricingModeField?.value || "paid");
+setPaymentMethodUI(paymentMethodsField?.value || "upi,netbanking,cash,wallet,card");
+setPaymentQrPreview(upiQrUrlField?.value || "", upiQrUrlField?.value ? "UPI QR ready" : "No QR code uploaded");
 restoreCreateEventDraft();
+
+paymentMethodOptions.forEach(option => {
+  option.addEventListener("change", () => {
+    syncPaymentMethodField();
+    persistCreateEventDraft();
+  });
+});
 
 posterUploadBox?.addEventListener("click", () => {
   posterImageInput?.click();
+});
+
+paymentQrUploadBox?.addEventListener("click", () => {
+  paymentQrInput?.click();
 });
 
 posterUploadBox?.addEventListener("keydown", event => {
   if (event.key === "Enter" || event.key === " ") {
     event.preventDefault();
     posterImageInput?.click();
+  }
+});
+
+paymentQrUploadBox?.addEventListener("keydown", event => {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    paymentQrInput?.click();
   }
 });
 
@@ -2341,9 +3053,38 @@ const processPosterFile = async file => {
   }
 };
 
+const processPaymentQrFile = async file => {
+  if (!file) {
+    return;
+  }
+
+  if (paymentQrMeta) {
+    paymentQrMeta.textContent = "Uploading UPI QR...";
+  }
+
+  try {
+    const imageUrl = await uploadPaymentQrImage(file);
+    if (!imageUrl) {
+      return;
+    }
+
+    setPaymentQrPreview(imageUrl, `UPI QR uploaded: ${file.name}`);
+    persistCreateEventDraft();
+  } catch (error) {
+    if (paymentQrMeta) {
+      paymentQrMeta.textContent = error.message || "Unable to upload UPI QR.";
+    }
+  }
+};
+
 posterImageInput?.addEventListener("change", async () => {
   const file = posterImageInput.files?.[0];
   await processPosterFile(file);
+});
+
+paymentQrInput?.addEventListener("change", async () => {
+  const file = paymentQrInput.files?.[0];
+  await processPaymentQrFile(file);
 });
 
 posterUploadBox?.addEventListener("dragover", event => {
@@ -2362,6 +3103,22 @@ posterUploadBox?.addEventListener("drop", async event => {
   await processPosterFile(file);
 });
 
+paymentQrUploadBox?.addEventListener("dragover", event => {
+  event.preventDefault();
+  paymentQrUploadBox.classList.add("drag-over");
+});
+
+paymentQrUploadBox?.addEventListener("dragleave", () => {
+  paymentQrUploadBox.classList.remove("drag-over");
+});
+
+paymentQrUploadBox?.addEventListener("drop", async event => {
+  event.preventDefault();
+  paymentQrUploadBox.classList.remove("drag-over");
+  const file = event.dataTransfer?.files?.[0];
+  await processPaymentQrFile(file);
+});
+
 createEventForm?.addEventListener("submit", async event => {
   event.preventDefault();
 
@@ -2377,6 +3134,21 @@ createEventForm?.addEventListener("submit", async event => {
 
   if (ticketPricingModeField?.value === "free" && ticketPriceInput) {
     ticketPriceInput.value = "0";
+  }
+
+  const selectedPaymentMethods = syncPaymentMethodField();
+  if (requestedStatus === "published" && ticketPricingModeField?.value !== "free" && !selectedPaymentMethods.length) {
+    setCreateEventStatus("Select at least one payment method for paid events.", true);
+    return;
+  }
+  if (
+    requestedStatus === "published"
+    && ticketPricingModeField?.value !== "free"
+    && selectedPaymentMethods.includes("upi")
+    && !upiQrUrlField?.value
+  ) {
+    setCreateEventStatus("Upload the UPI QR code before publishing a paid event with UPI.", true);
+    return;
   }
 
   setCreateEventStatus("");
@@ -2419,6 +3191,8 @@ createEventForm?.addEventListener("submit", async event => {
       if (posterUploadMeta) {
         posterUploadMeta.textContent = "No poster selected";
       }
+      setPaymentMethodUI("upi,netbanking,cash,wallet,card");
+      setPaymentQrPreview("", "No QR code uploaded");
       setEventModeUI("venue");
       setTicketPricingModeUI("paid");
       setTimeout(() => {
@@ -2442,7 +3216,57 @@ organizerRevenueOverviewFilter?.addEventListener("change", () => {
   renderOrganizerRevenueOverview(resolveOrganizerDashboardEvents());
 });
 
+organizerBrowseSearch?.addEventListener("input", applyOrganizerBrowseFilter);
+if (organizerBrowseSearchTop) {
+  organizerBrowseSearchTop.addEventListener("input", () => {
+    if (!organizerBrowseSearch) {
+      return;
+    }
+    organizerBrowseSearch.value = organizerBrowseSearchTop.value;
+    applyOrganizerBrowseFilter();
+  });
+}
+if (organizerBrowseSearch) {
+  organizerBrowseSearch.addEventListener("input", () => {
+    if (organizerBrowseSearchTop) {
+      organizerBrowseSearchTop.value = organizerBrowseSearch.value;
+    }
+  });
+}
+organizerBrowseCategoryButtons.forEach(button => {
+  button.addEventListener("click", () => {
+    activeOrganizerBrowseCategory = button.dataset.category || "all";
+    organizerBrowseCategoryButtons.forEach(item => item.classList.remove("active"));
+    button.classList.add("active");
+    applyOrganizerBrowseFilter();
+  });
+});
+
 organizerEventsSearch?.addEventListener("input", applyOrganizerEventFilter);
+if (organizerEventsSearchTop) {
+  organizerEventsSearchTop.addEventListener("input", () => {
+    if (!organizerEventsSearch) {
+      return;
+    }
+    organizerEventsSearch.value = organizerEventsSearchTop.value;
+    applyOrganizerEventFilter();
+  });
+}
+if (organizerEventsSearch) {
+  organizerEventsSearch.addEventListener("input", () => {
+    if (organizerEventsSearchTop) {
+      organizerEventsSearchTop.value = organizerEventsSearch.value;
+    }
+  });
+}
+organizerEventFilterButtons.forEach(button => {
+  button.addEventListener("click", () => {
+    activeOrganizerEventFilter = button.dataset.organizerEventFilter || "all";
+    organizerEventFilterButtons.forEach(item => item.classList.remove("active"));
+    button.classList.add("active");
+    applyOrganizerEventFilter();
+  });
+});
 
 const handleTopbarSearchRedirect = inputElement => {
   inputElement?.addEventListener("keydown", event => {
@@ -2458,26 +3282,30 @@ const handleTopbarSearchRedirect = inputElement => {
 
 handleTopbarSearchRedirect(organizerNavbarSearch);
 
-manageUsersEventSearch?.addEventListener("input", () => {
-  if (!manageUsersEventsList) {
-    return;
-  }
-
-  const term = String(manageUsersEventSearch.value || "").trim().toLowerCase();
-  const cards = Array.from(manageUsersEventsList.querySelectorAll(".manage-users-event-card"));
-  let visibleCount = 0;
-  cards.forEach(card => {
-    const text = card.textContent?.toLowerCase() || "";
-    const show = !term || text.includes(term);
-    card.hidden = !show;
-    if (show) {
-      visibleCount += 1;
+manageUsersEventSearch?.addEventListener("input", applyManageUsersEventFilter);
+if (manageUsersEventSearchTop) {
+  manageUsersEventSearchTop.addEventListener("input", () => {
+    if (!manageUsersEventSearch) {
+      return;
+    }
+    manageUsersEventSearch.value = manageUsersEventSearchTop.value;
+    applyManageUsersEventFilter();
+  });
+}
+if (manageUsersEventSearch) {
+  manageUsersEventSearch.addEventListener("input", () => {
+    if (manageUsersEventSearchTop) {
+      manageUsersEventSearchTop.value = manageUsersEventSearch.value;
     }
   });
-
-  if (manageUsersEventCount) {
-    manageUsersEventCount.textContent = String(visibleCount);
-  }
+}
+manageUsersEventFilterButtons.forEach(button => {
+  button.addEventListener("click", () => {
+    activeManageUsersEventFilter = button.dataset.manageUsersEventFilter || "all";
+    manageUsersEventFilterButtons.forEach(item => item.classList.remove("active"));
+    button.classList.add("active");
+    applyManageUsersEventFilter();
+  });
 });
 
 organizerEventsList?.addEventListener("click", event => {
@@ -2495,11 +3323,14 @@ organizerEventsList?.addEventListener("click", event => {
     location: card.dataset.location || "",
     eventMode: card.dataset.eventMode || "venue",
     ticketPricingMode: card.dataset.ticketPricingMode || "paid",
+    ticketType: card.dataset.ticketType || "Entry Pass",
     price: card.dataset.price || "Rs 0",
     capacity: card.dataset.capacity || "0",
     attendeeCount: card.dataset.attendeeCount || "0",
     status: card.dataset.status || "published",
     description: card.dataset.description || "",
+    paymentMethods: normalizePaymentMethods(card.dataset.paymentMethods || ""),
+    upiQrUrl: card.dataset.upiQrUrl || "",
   };
 
   const editButton = event.target.closest(".edit-organizer-event");
@@ -2534,18 +3365,20 @@ organizerEventsList?.addEventListener("click", event => {
 });
 
 manageUsersEventsList?.addEventListener("click", event => {
-  const button = event.target.closest(".manage-users-open-btn");
-  if (!button) {
+  const card = event.target.closest(".manage-users-event-card");
+  if (!card) {
     return;
   }
 
-  const card = event.target.closest(".manage-users-event-card");
   const eventId = card?.dataset.eventId || "";
   if (!eventId) {
     return;
   }
   loadManageUsersAttendees(eventId);
 });
+
+manageUsersAttendeeBackdrop?.addEventListener("click", closeManageUsersAttendeeModal);
+manageUsersAttendeeClose?.addEventListener("click", closeManageUsersAttendeeModal);
 
 organizerEventEditModalBackdrop?.addEventListener("click", closeOrganizerEventEditModal);
 organizerEventEditClose?.addEventListener("click", closeOrganizerEventEditModal);
@@ -2578,6 +3411,46 @@ openOrganizerAnalyticsAction?.addEventListener("click", () => {
 bindOrganizerToggleGroup(organizerEventModeToggle, "eventMode", setOrganizerEditEventMode);
 bindOrganizerToggleGroup(organizerEventTicketToggle, "ticketMode", setOrganizerEditTicketMode);
 
+organizerEventEditPaymentOptions.forEach(option => {
+  option.addEventListener("change", () => {
+    syncOrganizerEditPaymentMethodField();
+  });
+});
+
+organizerEventEditQrUploadBox?.addEventListener("click", () => {
+  organizerEventEditQrInput?.click();
+});
+
+organizerEventEditQrUploadBox?.addEventListener("keydown", event => {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    organizerEventEditQrInput?.click();
+  }
+});
+
+organizerEventEditQrInput?.addEventListener("change", async () => {
+  const file = organizerEventEditQrInput.files?.[0];
+  if (!file) {
+    return;
+  }
+
+  if (organizerEventEditQrMeta) {
+    organizerEventEditQrMeta.textContent = "Uploading UPI QR...";
+  }
+
+  try {
+    const imageUrl = await uploadPaymentQrImage(file);
+    if (!imageUrl) {
+      return;
+    }
+    setOrganizerEditQrPreview(imageUrl, `UPI QR uploaded: ${file.name}`);
+  } catch (error) {
+    if (organizerEventEditQrMeta) {
+      organizerEventEditQrMeta.textContent = error.message || "Unable to upload UPI QR.";
+    }
+  }
+});
+
 organizerEventEditForm?.addEventListener("submit", async event => {
   event.preventDefault();
   if (!organizerEventEditSubmit) {
@@ -2594,6 +3467,17 @@ organizerEventEditForm?.addEventListener("submit", async event => {
     }
     if (organizerEventEditTicketMode?.value === "free" && organizerEventEditPrice) {
       organizerEventEditPrice.value = "0";
+    }
+    const selectedPaymentMethods = syncOrganizerEditPaymentMethodField();
+    if (organizerEventEditTicketMode?.value !== "free" && !selectedPaymentMethods.length) {
+      throw new Error("Select at least one payment method for paid events.");
+    }
+    if (
+      organizerEventEditTicketMode?.value !== "free"
+      && selectedPaymentMethods.includes("upi")
+      && !organizerEventEditUpiQrUrl?.value
+    ) {
+      throw new Error("Upload the UPI QR code before saving this paid event.");
     }
 
     const response = await fetch(`${getContextPath()}/update-organizer-event`, {
@@ -3016,6 +3900,8 @@ if (logoutLink) {
 
 document.addEventListener("keydown", event => {
   if (event.key === "Escape") {
+    closeOrganizerSubscriptionModal();
     closeLogoutModal();
+    closeManageUsersAttendeeModal();
   }
 });

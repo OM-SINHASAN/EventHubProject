@@ -6,7 +6,7 @@ import os
 import secrets
 import smtplib
 import ssl
-from datetime import datetime
+from datetime import datetime, timedelta
 import time
 from http.cookies import SimpleCookie
 from http import HTTPStatus
@@ -33,6 +33,62 @@ GMAIL_SMTP_PORT = int(os.getenv("EVENTHUB_GMAIL_SMTP_PORT", "465"))
 GMAIL_SENDER_EMAIL = os.getenv("EVENTHUB_GMAIL_SENDER_EMAIL", CONTACT_EMAIL_TO)
 GMAIL_APP_PASSWORD = os.getenv("EVENTHUB_GMAIL_APP_PASSWORD", "")
 SESSIONS: dict[str, dict[str, str | int]] = {}
+ORGANIZER_PAYMENT_METHODS = ("upi", "netbanking", "cash", "wallet", "card")
+SUBSCRIPTION_PAYMENT_METHODS = ("upi", "card", "netbanking", "wallet", "cash")
+ORGANIZER_TICKET_TYPES = (
+    "Entry Pass",
+    "Premium Pass",
+    "VIP Entry",
+    "Student Pass",
+    "Couple Pass",
+    "Group Pass",
+)
+SUBSCRIPTION_PLAN_CATALOG: dict[str, dict[str, dict[str, object]]] = {
+    "user": {
+        "pro": {
+            "planName": "Pro",
+            "monthlyPrice": 399,
+            "description": "Priority booking tools and a cleaner event experience for active attendees.",
+            "features": [
+                "Early access booking windows",
+                "Faster support response",
+                "Advanced booking filters",
+            ],
+        },
+        "premium": {
+            "planName": "Premium",
+            "monthlyPrice": 799,
+            "description": "Everything in Pro with premium ticket utility and concierge-style assistance.",
+            "features": [
+                "All Pro features",
+                "Premium ticket management perks",
+                "Priority issue handling",
+            ],
+        },
+    },
+    "organizer": {
+        "pro": {
+            "planName": "Pro",
+            "monthlyPrice": 999,
+            "description": "Operational upgrade for organizers running recurring events every month.",
+            "features": [
+                "Advanced attendee controls",
+                "Organizer analytics boost",
+                "Priority organizer support",
+            ],
+        },
+        "premium": {
+            "planName": "Premium",
+            "monthlyPrice": 2499,
+            "description": "Full commercial toolkit for high-volume communities and premium event operations.",
+            "features": [
+                "All Pro features",
+                "Premium organizer insights",
+                "Faster dispute and payout support",
+            ],
+        },
+    },
+}
 EVENT_CATALOG: list[dict[str, str]] = [
     {
         "id": "tech-innovation-summit",
@@ -47,6 +103,7 @@ EVENT_CATALOG: list[dict[str, str]] = [
         "category": "tech",
         "imageUrl": "/assets/dashboard/images/dsupimg1.jpg",
         "organizerPhone": "+91 98765 21001",
+        "description": "Join industry leaders and innovators for a day of cutting-edge technology discussions, networking, and product showcases. Explore the latest trends in AI, blockchain, and digital transformation.",
     },
     {
         "id": "digital-marketing-workshop",
@@ -61,6 +118,7 @@ EVENT_CATALOG: list[dict[str, str]] = [
         "category": "business",
         "imageUrl": "/assets/dashboard/images/dsupimg2.jpg",
         "organizerPhone": "+91 98765 21002",
+        "description": "Master the art of digital marketing with hands-on workshops covering SEO, social media strategies, content creation, and analytics. Perfect for entrepreneurs and marketing professionals.",
     },
     {
         "id": "indie-music-night",
@@ -75,6 +133,7 @@ EVENT_CATALOG: list[dict[str, str]] = [
         "category": "music",
         "imageUrl": "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?auto=format&fit=crop&w=900&q=80",
         "organizerPhone": "+91 98765 21003",
+        "description": "Experience an unforgettable night of indie music featuring emerging artists from across India. Enjoy acoustic sets, electronic beats, and fusion performances in an intimate venue setting.",
     },
     {
         "id": "art-culture-expo",
@@ -89,6 +148,7 @@ EVENT_CATALOG: list[dict[str, str]] = [
         "category": "arts",
         "imageUrl": "https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?auto=format&fit=crop&w=900&q=80",
         "organizerPhone": "+91 98765 21004",
+        "description": "Immerse yourself in India's rich artistic heritage with exhibitions of traditional and contemporary art forms. Meet artists, attend workshops, and discover unique cultural artifacts.",
     },
     {
         "id": "street-food-carnival",
@@ -103,6 +163,7 @@ EVENT_CATALOG: list[dict[str, str]] = [
         "category": "food",
         "imageUrl": "https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&w=900&q=80",
         "organizerPhone": "+91 98765 21005",
+        "description": "Savor the flavors of India at this vibrant street food festival featuring authentic regional cuisines. Sample delicious dishes from local vendors and participate in cooking demonstrations.",
     },
     {
         "id": "morning-marathon",
@@ -117,6 +178,7 @@ EVENT_CATALOG: list[dict[str, str]] = [
         "category": "sports",
         "imageUrl": "https://images.unsplash.com/photo-1552674605-db6ffd4facb5?auto=format&fit=crop&w=900&q=80",
         "organizerPhone": "+91 98765 21006",
+        "description": "Start your day with an energizing 10K marathon along Chennai's scenic Marina Beach. All fitness levels welcome with timed checkpoints and post-run refreshments.",
     },
     {
         "id": "founder-networking-mixer",
@@ -131,6 +193,7 @@ EVENT_CATALOG: list[dict[str, str]] = [
         "category": "business",
         "imageUrl": "https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=900&q=80",
         "organizerPhone": "+91 98765 21007",
+        "description": "Connect with fellow entrepreneurs and startup founders in an exclusive networking event. Share experiences, find potential partners, and explore collaboration opportunities.",
     },
     {
         "id": "classical-fusion-evening",
@@ -145,6 +208,7 @@ EVENT_CATALOG: list[dict[str, str]] = [
         "category": "music",
         "imageUrl": "https://images.unsplash.com/photo-1507838153414-b4b713384a76?auto=format&fit=crop&w=900&q=80",
         "organizerPhone": "+91 98765 21008",
+        "description": "Witness the magical blend of classical Indian music with contemporary fusion elements. Featuring renowned artists performing traditional ragas with modern instrumentation.",
     },
 ]
 
@@ -368,8 +432,11 @@ def organizer_events_for_email(organizer_email: str) -> list[dict[str, object]]:
                     e.event_status,
                     e.event_mode,
                     e.ticket_pricing_mode,
+                    e.ticket_type,
                     e.description,
                     e.poster_url,
+                    COALESCE(e.payment_methods, '') AS payment_methods,
+                    COALESCE(e.upi_qr_url, '') AS upi_qr_url,
                     e.created_at,
                     COALESCE(a.attendee_count, 0) AS attendee_count
                 FROM organizer_events AS e
@@ -400,12 +467,16 @@ def organizer_events_for_email(organizer_email: str) -> list[dict[str, object]]:
             event_status,
             event_mode,
             ticket_pricing_mode,
+            ticket_type,
             description,
             poster_url,
+            payment_methods,
+            upi_qr_url,
             created_at,
             attendee_count,
         ) = row
         numeric_price = int(ticket_price or 0)
+        resolved_payment_methods = normalize_organizer_payment_methods(payment_methods)
         events.append(
             {
                 "id": int(event_id),
@@ -419,6 +490,9 @@ def organizer_events_for_email(organizer_email: str) -> list[dict[str, object]]:
                 "status": str(event_status or "draft"),
                 "eventMode": str(event_mode or "venue"),
                 "ticketPricingMode": str(ticket_pricing_mode or "paid"),
+                "ticketType": str(ticket_type or "Entry Pass"),
+                "paymentMethods": resolved_payment_methods,
+                "upiQrUrl": str(upi_qr_url or ""),
                 "attendeeCount": int(attendee_count or 0),
                 "description": str(description or ""),
                 "imageUrl": str(poster_url or "/assets/dashboard/images/dsupimg1.jpg"),
@@ -497,8 +571,11 @@ def organizer_event_detail_for_owner(organizer_email: str, event_id: int) -> dic
                     event_status,
                     event_mode,
                     ticket_pricing_mode,
+                    ticket_type,
                     description,
                     poster_url,
+                    COALESCE(payment_methods, '') AS payment_methods,
+                    COALESCE(upi_qr_url, '') AS upi_qr_url,
                     created_at
                 FROM organizer_events
                 WHERE id = %s AND organizer_email = %s
@@ -528,8 +605,11 @@ def organizer_event_detail_for_owner(organizer_email: str, event_id: int) -> dic
                     event_status,
                     event_mode,
                     ticket_pricing_mode,
+                    ticket_type,
                     description,
                     poster_url,
+                    COALESCE(payment_methods, '') AS payment_methods,
+                    COALESCE(upi_qr_url, '') AS upi_qr_url,
                     created_at
                 FROM organizer_events
                 WHERE id = %s AND organizer_email = %s
@@ -564,10 +644,15 @@ def organizer_event_detail_for_owner(organizer_email: str, event_id: int) -> dic
         event_status,
         event_mode,
         ticket_pricing_mode,
+        ticket_type,
         description,
         poster_url,
+        payment_methods,
+        upi_qr_url,
         created_at,
     ) = event_row
+
+    resolved_payment_methods = normalize_organizer_payment_methods(payment_methods)
 
     attendees = [
         {
@@ -596,6 +681,9 @@ def organizer_event_detail_for_owner(organizer_email: str, event_id: int) -> dic
         "status": str(event_status or "draft"),
         "eventMode": str(event_mode or "venue"),
         "ticketPricingMode": str(ticket_pricing_mode or "paid"),
+        "ticketType": str(ticket_type or "Entry Pass"),
+        "paymentMethods": resolved_payment_methods,
+        "upiQrUrl": str(upi_qr_url or ""),
         "description": str(description or ""),
         "imageUrl": str(poster_url or "/assets/dashboard/images/dsupimg1.jpg"),
         "createdAt": created_at.isoformat() if created_at else "",
@@ -667,6 +755,12 @@ def admin_organizer_summaries() -> list[dict[str, object]]:
             total_revenue,
         ) = row
         events = organizer_events_for_email(str(email or ""))
+        published_event_count = sum(
+            1 for event in events if str(event.get("status", "")).strip().lower() in {"published", "live"}
+        )
+        draft_event_count = sum(
+            1 for event in events if str(event.get("status", "")).strip().lower() == "draft"
+        )
         organizers.append(
             {
                 "name": str(name or "Organizer"),
@@ -680,6 +774,8 @@ def admin_organizer_summaries() -> list[dict[str, object]]:
                 "createdAt": created_at.isoformat() if created_at else "",
                 "eventCount": int(event_count or 0),
                 "activeEvents": int(active_event_count or 0),
+                "publishedEventCount": published_event_count,
+                "draftEventCount": draft_event_count,
                 "totalAttendees": int(total_attendees or 0),
                 "totalRevenue": int(total_revenue or 0),
                 "events": [{key: value for key, value in event.items() if not key.startswith("_")} for event in events[:3]],
@@ -864,6 +960,648 @@ def admin_browse_events() -> list[dict[str, object]]:
     return events
 
 
+def build_next_billing_label(created_at_value: object) -> str:
+    anchor = datetime.now().date()
+    text = str(created_at_value or "").strip()
+    if text:
+        try:
+            anchor = datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+        except ValueError:
+            anchor = datetime.now().date()
+
+    today = datetime.now().date()
+    next_cycle = anchor
+    while next_cycle <= today:
+        next_cycle += timedelta(days=30)
+
+    return next_cycle.strftime("%b %d, %Y")
+
+
+def normalize_subscription_payment_method(value: object) -> str:
+    normalized = str(value or "").strip().lower()
+    aliases = {
+        "upi qr": "upi",
+        "net banking": "netbanking",
+        "net_banking": "netbanking",
+        "credit / debit card": "card",
+        "credit-debit card": "card",
+        "credit debit card": "card",
+        "cash at venue": "cash",
+    }
+    resolved = aliases.get(normalized, normalized)
+    if resolved in SUBSCRIPTION_PAYMENT_METHODS:
+        return resolved
+    return "card"
+
+
+def normalize_subscription_status_for_account(account_status: object, subscription_status: object = "active") -> str:
+    normalized_subscription_status = str(subscription_status or "active").strip().lower()
+    if normalized_subscription_status in {"cancelled", "inactive"}:
+        return normalized_subscription_status
+
+    normalized_account_status = normalize_admin_status(account_status)
+    if normalized_account_status in {"suspended", "removed"}:
+        return "past_due"
+    if normalized_account_status == "warned":
+        return "review"
+    return "active"
+
+
+def subscription_plan_for_role(role: object, plan_id: object) -> dict[str, object] | None:
+    normalized_role = str(role or "").strip().lower()
+    normalized_plan_id = str(plan_id or "").strip().lower()
+    catalog = SUBSCRIPTION_PLAN_CATALOG.get(normalized_role, {})
+    plan = catalog.get(normalized_plan_id)
+    return dict(plan) if isinstance(plan, dict) else None
+
+
+def subscription_plan_cards_for_role(role: object) -> list[dict[str, object]]:
+    normalized_role = str(role or "").strip().lower()
+    catalog = SUBSCRIPTION_PLAN_CATALOG.get(normalized_role, {})
+    ordered_plan_ids = ["pro", "premium"]
+    cards: list[dict[str, object]] = []
+
+    for plan_id in ordered_plan_ids:
+        plan = catalog.get(plan_id)
+        if not isinstance(plan, dict):
+            continue
+        cards.append(
+            {
+                "planId": plan_id,
+                "planName": str(plan.get("planName", "") or plan_id.title()),
+                "monthlyPrice": int(plan.get("monthlyPrice", 0) or 0),
+                "description": str(plan.get("description", "") or ""),
+                "features": [str(feature or "") for feature in plan.get("features", []) if str(feature or "").strip()],
+            }
+        )
+
+    return cards
+
+
+def current_subscription_for_account(user_email: str, user_role: str) -> dict[str, object] | None:
+    normalized_email = str(user_email or "").strip().lower()
+    normalized_role = str(user_role or "").strip().lower()
+    if not normalized_email or normalized_role not in {"user", "organizer"}:
+        return None
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    plan_id,
+                    plan_name,
+                    monthly_price,
+                    billing_cycle,
+                    payment_method,
+                    subscription_status,
+                    purchased_at
+                FROM platform_subscriptions
+                WHERE user_email = %s
+                  AND user_role = %s
+                  AND subscription_status = 'active'
+                ORDER BY purchased_at DESC, id DESC
+                LIMIT 1
+                """,
+                (normalized_email, normalized_role),
+            )
+            row = cursor.fetchone()
+
+    if row is None:
+        return None
+
+    (
+        plan_id,
+        plan_name,
+        monthly_price,
+        billing_cycle,
+        payment_method,
+        subscription_status,
+        purchased_at,
+    ) = row
+    plan = subscription_plan_for_role(normalized_role, plan_id)
+    features = [str(feature or "") for feature in (plan or {}).get("features", []) if str(feature or "").strip()]
+
+    return {
+        "planId": str(plan_id or "pro").strip().lower() or "pro",
+        "planName": str(plan_name or (plan or {}).get("planName", "Pro")),
+        "monthlyPrice": int(monthly_price or (plan or {}).get("monthlyPrice", 0) or 0),
+        "billingCycle": str(billing_cycle or "Monthly").title(),
+        "paymentMethod": normalize_subscription_payment_method(payment_method),
+        "subscriptionStatus": str(subscription_status or "active").strip().lower() or "active",
+        "purchasedAt": purchased_at,
+        "description": str((plan or {}).get("description", "") or ""),
+        "features": features,
+    }
+
+
+def subscription_profile_data_for_user(profile: dict[str, object]) -> dict[str, object]:
+    role = str(profile.get("role", "") or "").strip().lower()
+    plan_cards = subscription_plan_cards_for_role(role)
+    if role not in {"user", "organizer"}:
+        return {
+            "subscription": {
+                "planId": "none",
+                "planName": "Not Available",
+                "monthlyPrice": 0,
+                "billingCycle": "Monthly",
+                "subscriptionStatus": "inactive",
+                "nextBillingOn": "-",
+                "paymentMethod": "Unknown",
+                "purchasedOn": "",
+                "description": "",
+                "features": [],
+            },
+            "plans": [],
+        }
+
+    current_subscription = current_subscription_for_account(str(profile.get("email", "") or ""), role)
+    if current_subscription is None:
+        return {
+            "subscription": {
+                "planId": "free",
+                "planName": "Free",
+                "monthlyPrice": 0,
+                "billingCycle": "Monthly",
+                "subscriptionStatus": "inactive",
+                "nextBillingOn": "-",
+                "paymentMethod": "Unknown",
+                "purchasedOn": "",
+                "description": "Upgrade to Pro or Premium to unlock subscription benefits.",
+                "features": [],
+            },
+            "plans": plan_cards,
+        }
+
+    purchased_at = current_subscription.get("purchasedAt")
+    purchased_on = purchased_at.isoformat() if isinstance(purchased_at, datetime) else str(purchased_at or "")
+    return {
+        "subscription": {
+            "planId": str(current_subscription.get("planId", "pro") or "pro"),
+            "planName": str(current_subscription.get("planName", "Pro") or "Pro"),
+            "monthlyPrice": int(current_subscription.get("monthlyPrice", 0) or 0),
+            "billingCycle": str(current_subscription.get("billingCycle", "Monthly") or "Monthly"),
+            "subscriptionStatus": normalize_subscription_status_for_account(
+                profile.get("admin_status"),
+                current_subscription.get("subscriptionStatus", "active"),
+            ),
+            "nextBillingOn": build_next_billing_label(purchased_on),
+            "paymentMethod": normalize_payment_method_label(current_subscription.get("paymentMethod")),
+            "purchasedOn": purchased_on,
+            "description": str(current_subscription.get("description", "") or ""),
+            "features": [str(item or "") for item in current_subscription.get("features", []) if str(item or "").strip()],
+        },
+        "plans": plan_cards,
+    }
+
+
+def admin_subscription_module_data() -> dict[str, object]:
+    organizers = admin_organizer_summaries()
+    users = admin_user_summaries()
+    organizer_map = {
+        str(item.get("email", "")).strip().lower(): item
+        for item in organizers
+    }
+    user_map = {
+        str(item.get("email", "")).strip().lower(): item
+        for item in users
+    }
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    s.id,
+                    s.user_email,
+                    s.user_role,
+                    s.plan_id,
+                    s.plan_name,
+                    s.monthly_price,
+                    s.billing_cycle,
+                    s.payment_method,
+                    s.subscription_status,
+                    s.purchased_at
+                FROM platform_subscriptions AS s
+                INNER JOIN (
+                    SELECT user_email, user_role, MAX(id) AS latest_id
+                    FROM platform_subscriptions
+                    WHERE subscription_status = 'active'
+                    GROUP BY user_email, user_role
+                ) AS latest
+                    ON latest.latest_id = s.id
+                ORDER BY s.purchased_at DESC, s.id DESC
+                """
+            )
+            rows = cursor.fetchall()
+
+    subscriptions: list[dict[str, object]] = []
+    for row in rows:
+        (
+            _subscription_id,
+            user_email,
+            user_role,
+            plan_id,
+            plan_name,
+            monthly_price,
+            billing_cycle,
+            payment_method,
+            subscription_status,
+            purchased_at,
+        ) = row
+        normalized_email = str(user_email or "").strip().lower()
+        normalized_role = str(user_role or "").strip().lower()
+        account = organizer_map.get(normalized_email) if normalized_role == "organizer" else user_map.get(normalized_email)
+        account_status = (
+            str(account.get("status", "active") or "active")
+            if isinstance(account, dict)
+            else "active"
+        )
+        plan = subscription_plan_for_role(normalized_role, plan_id) or {}
+        features = [str(item or "") for item in plan.get("features", []) if str(item or "").strip()]
+        purchased_on = purchased_at.isoformat() if isinstance(purchased_at, datetime) else str(purchased_at or "")
+
+        subscriber_name = (
+            str((account or {}).get("name", "") or "")
+            if isinstance(account, dict)
+            else ""
+        )
+        if not subscriber_name:
+            subscriber_name = "Organizer" if normalized_role == "organizer" else "User"
+
+        profile_image = (
+            str((account or {}).get("profileImage", "") or "")
+            if isinstance(account, dict)
+            else ""
+        ) or "/assets/dashboard/images/logo1.png"
+
+        usage_label = "Published Events" if normalized_role == "organizer" else "Tickets Booked"
+        usage_value = int((account or {}).get("publishedEventCount", 0) or 0) if normalized_role == "organizer" else int((account or {}).get("tickets", 0) or 0)
+        revenue_label = "Revenue" if normalized_role == "organizer" else "Total Spend"
+        revenue_value = int((account or {}).get("totalRevenue", 0) or 0) if normalized_role == "organizer" else int((account or {}).get("totalSpend", 0) or 0)
+
+        subscriptions.append(
+            {
+                "subscriberName": subscriber_name,
+                "subscriberEmail": normalized_email,
+                "subscriberRole": normalized_role,
+                "profileImage": profile_image,
+                "planId": str(plan_id or "pro").strip().lower() or "pro",
+                "planName": str(plan_name or plan.get("planName", "Pro")),
+                "monthlyPrice": int(monthly_price or plan.get("monthlyPrice", 0) or 0),
+                "billingCycle": str(billing_cycle or "Monthly").title(),
+                "subscriptionStatus": normalize_subscription_status_for_account(account_status, subscription_status),
+                "nextBillingOn": build_next_billing_label(purchased_on),
+                "paymentMethod": normalize_payment_method_label(payment_method),
+                "purchasedOn": purchased_on,
+                "usageLabel": usage_label,
+                "usageValue": usage_value,
+                "revenueLabel": revenue_label,
+                "revenueValue": revenue_value,
+                "featuresSummary": ", ".join(features[:2]) if features else str(plan.get("description", "") or ""),
+                # Backward-compatible aliases used in existing admin UI.
+                "organizerName": subscriber_name,
+                "organizerEmail": normalized_email,
+                "eventAllowance": features[0] if features else usage_label,
+                "supportLevel": features[1] if len(features) > 1 else revenue_label,
+                "publishedEvents": usage_value if normalized_role == "organizer" else 0,
+                "totalRevenue": revenue_value if normalized_role == "organizer" else 0,
+            }
+        )
+
+    active_subscriptions = [item for item in subscriptions if item["subscriptionStatus"] == "active"]
+    accounts_to_review = [item for item in subscriptions if item["subscriptionStatus"] != "active"]
+    monthly_recurring_revenue = sum(int(item["monthlyPrice"]) for item in active_subscriptions)
+
+    plan_cards: list[dict[str, object]] = []
+    for role in ("organizer", "user"):
+        for plan in subscription_plan_cards_for_role(role):
+            matches = [
+                item for item in subscriptions
+                if str(item["subscriberRole"]) == role and str(item["planId"]) == str(plan["planId"])
+            ]
+            role_label = "Organizer" if role == "organizer" else "User"
+            plan_cards.append(
+                {
+                    "planId": f"{role}-{plan['planId']}",
+                    "role": role,
+                    "roleLabel": role_label,
+                    "planName": f"{role_label} {plan['planName']}",
+                    "monthlyPrice": int(plan["monthlyPrice"]),
+                    "description": str(plan["description"]),
+                    "subscriberCount": len(matches),
+                    "activeSubscriberCount": sum(1 for item in matches if item["subscriptionStatus"] == "active"),
+                }
+            )
+
+    subscriptions.sort(
+        key=lambda item: (
+            {"premium": 0, "pro": 1}.get(str(item.get("planId", "")), 2),
+            {"organizer": 0, "user": 1}.get(str(item.get("subscriberRole", "")), 2),
+            str(item.get("subscriberName", "")),
+        )
+    )
+
+    return {
+        "summary": {
+            "totalSubscriptions": len(subscriptions),
+            "activeSubscriptions": len(active_subscriptions),
+            "accountsToReview": len(accounts_to_review),
+            "monthlyRecurringRevenue": monthly_recurring_revenue,
+        },
+        "plans": plan_cards,
+        "subscriptions": subscriptions,
+    }
+
+
+def organizer_identity_map() -> dict[str, dict[str, str]]:
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    e.id,
+                    COALESCE(u.name, 'Organizer') AS organizer_name,
+                    COALESCE(u.email, '') AS organizer_email
+                FROM organizer_events AS e
+                LEFT JOIN users AS u ON u.email = e.organizer_email
+                """
+            )
+            rows = cursor.fetchall()
+
+    lookup: dict[str, dict[str, str]] = {}
+    for event_id, organizer_name, organizer_email in rows:
+        public_event_id = build_public_organizer_event_id(int(event_id))
+        lookup[public_event_id] = {
+            "organizerName": str(organizer_name or "Organizer"),
+            "organizerEmail": str(organizer_email or ""),
+        }
+
+    return lookup
+
+
+def admin_payment_revenue_data() -> dict[str, object]:
+    has_booking_status = table_has_column("user_event_registrations", "booking_status")
+    booking_status_select = "r.booking_status" if has_booking_status else "'active'"
+    organizer_lookup = organizer_identity_map()
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"""
+                SELECT
+                    r.id,
+                    COALESCE(u.name, '') AS user_name,
+                    COALESCE(r.user_email, '') AS user_email,
+                    COALESCE(r.attendee_name, '') AS attendee_name,
+                    COALESCE(r.payment_method, '') AS payment_method,
+                    COALESCE(r.ticket_type, '') AS ticket_type,
+                    COALESCE(r.ticket_count, 1) AS ticket_count,
+                    COALESCE(r.city, '') AS city,
+                    {booking_status_select} AS booking_status,
+                    r.registered_at,
+                    COALESCE(r.event_id, '') AS event_id
+                FROM user_event_registrations AS r
+                LEFT JOIN users AS u ON u.email = r.user_email
+                ORDER BY r.registered_at DESC
+                """
+            )
+            rows = cursor.fetchall()
+
+    payments: list[dict[str, object]] = []
+    payment_method_rollup: dict[str, dict[str, object]] = {}
+    organizer_rollup: dict[str, dict[str, object]] = {}
+    monthly_rollup: dict[str, dict[str, object]] = {}
+
+    gross_revenue = 0
+    cancelled_revenue = 0
+    active_payments = 0
+    cancelled_payments = 0
+    booking_revenue = 0
+    booking_payments = 0
+    subscription_revenue = 0
+    subscription_payments = 0
+
+    for row in rows:
+        (
+            booking_id,
+            user_name,
+            user_email,
+            attendee_name,
+            payment_method,
+            ticket_type,
+            ticket_count,
+            city,
+            booking_status,
+            registered_at,
+            event_id,
+        ) = row
+        event = get_event_by_id(str(event_id or ""))
+        if event is None:
+            continue
+
+        amount = parse_currency_amount(
+            calculate_booking_price(
+                str(event.get("price", "") or "Rs 0"),
+                str(ticket_type or event.get("ticketType", "Entry Pass")),
+                int(ticket_count or 1),
+            )
+        )
+        normalized_status = str(booking_status or "active").strip().lower() or "active"
+        method_label = normalize_payment_method_label(payment_method)
+        organizer_info = organizer_lookup.get(
+            str(event_id or ""),
+            {"organizerName": "EventHub Editorial", "organizerEmail": "platform@eventhub.local"},
+        )
+        payer_name = str(user_name or attendee_name or "Guest").strip() or "Guest"
+        registered_at_iso = registered_at.isoformat() if registered_at else ""
+
+        payment_record = {
+            "bookingId": int(booking_id or 0),
+            "userName": payer_name,
+            "userEmail": str(user_email or ""),
+            "organizerName": str(organizer_info["organizerName"]),
+            "organizerEmail": str(organizer_info["organizerEmail"]),
+            "eventName": str(event.get("eventName", "") or "Untitled Event"),
+            "ticketType": str(ticket_type or event.get("ticketType", "Entry Pass")),
+            "ticketCount": int(ticket_count or 1),
+            "city": str(city or "N/A"),
+            "paymentMethod": method_label,
+            "bookingStatus": normalized_status,
+            "amount": amount,
+            "registeredAt": registered_at_iso,
+            "paymentType": "booking",
+        }
+        payments.append(payment_record)
+
+        if normalized_status == "cancelled":
+            cancelled_payments += 1
+            cancelled_revenue += amount
+            continue
+
+        gross_revenue += amount
+        active_payments += 1
+        booking_revenue += amount
+        booking_payments += 1
+
+        method_stats = payment_method_rollup.setdefault(
+            method_label,
+            {"method": method_label, "transactions": 0, "revenue": 0},
+        )
+        method_stats["transactions"] = int(method_stats["transactions"]) + 1
+        method_stats["revenue"] = int(method_stats["revenue"]) + amount
+
+        organizer_key = str(organizer_info["organizerEmail"] or organizer_info["organizerName"]).lower()
+        organizer_stats = organizer_rollup.setdefault(
+            organizer_key,
+            {
+                "organizerName": str(organizer_info["organizerName"]),
+                "organizerEmail": str(organizer_info["organizerEmail"]),
+                "transactions": 0,
+                "revenue": 0,
+            },
+        )
+        organizer_stats["transactions"] = int(organizer_stats["transactions"]) + 1
+        organizer_stats["revenue"] = int(organizer_stats["revenue"]) + amount
+
+        if registered_at:
+            month_key = registered_at.strftime("%Y-%m")
+            month_label = registered_at.strftime("%b %Y")
+            month_stats = monthly_rollup.setdefault(
+                month_key,
+                {"label": month_label, "revenue": 0, "transactions": 0},
+            )
+            month_stats["revenue"] = int(month_stats["revenue"]) + amount
+            month_stats["transactions"] = int(month_stats["transactions"]) + 1
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT
+                    s.id,
+                    COALESCE(u.name, '') AS user_name,
+                    COALESCE(s.user_email, '') AS user_email,
+                    COALESCE(s.user_role, 'user') AS user_role,
+                    COALESCE(s.plan_id, '') AS plan_id,
+                    COALESCE(s.plan_name, '') AS plan_name,
+                    COALESCE(s.monthly_price, 0) AS monthly_price,
+                    COALESCE(s.payment_method, '') AS payment_method,
+                    COALESCE(s.subscription_status, 'active') AS subscription_status,
+                    s.purchased_at
+                FROM platform_subscriptions AS s
+                LEFT JOIN users AS u ON u.email = s.user_email
+                ORDER BY s.purchased_at DESC, s.id DESC
+                """
+            )
+            subscription_rows = cursor.fetchall()
+
+    for row in subscription_rows:
+        (
+            subscription_id,
+            user_name,
+            user_email,
+            user_role,
+            plan_id,
+            plan_name,
+            monthly_price,
+            payment_method,
+            _subscription_status,
+            purchased_at,
+        ) = row
+
+        amount = int(monthly_price or 0)
+        if amount <= 0:
+            continue
+
+        role_label = "Organizer" if str(user_role or "").strip().lower() == "organizer" else "User"
+        resolved_plan_name = str(plan_name or "").strip() or str(plan_id or "Pro").strip().title()
+        method_label = normalize_payment_method_label(payment_method)
+        purchased_at_iso = purchased_at.isoformat() if purchased_at else ""
+        payer_name = str(user_name or role_label).strip() or role_label
+
+        payments.append(
+            {
+                "bookingId": int(subscription_id or 0),
+                "userName": payer_name,
+                "userEmail": str(user_email or ""),
+                "organizerName": "EventHub Platform",
+                "organizerEmail": "platform@eventhub.local",
+                "eventName": f"{resolved_plan_name} ({role_label}) Subscription",
+                "ticketType": "Subscription",
+                "ticketCount": 1,
+                "city": "N/A",
+                "paymentMethod": method_label,
+                "bookingStatus": "completed",
+                "amount": amount,
+                "registeredAt": purchased_at_iso,
+                "paymentType": "subscription",
+                "subscriberRole": role_label,
+            }
+        )
+
+        gross_revenue += amount
+        active_payments += 1
+        subscription_revenue += amount
+        subscription_payments += 1
+
+        method_stats = payment_method_rollup.setdefault(
+            method_label,
+            {"method": method_label, "transactions": 0, "revenue": 0},
+        )
+        method_stats["transactions"] = int(method_stats["transactions"]) + 1
+        method_stats["revenue"] = int(method_stats["revenue"]) + amount
+
+        if purchased_at:
+            month_key = purchased_at.strftime("%Y-%m")
+            month_label = purchased_at.strftime("%b %Y")
+            month_stats = monthly_rollup.setdefault(
+                month_key,
+                {"label": month_label, "revenue": 0, "transactions": 0},
+            )
+            month_stats["revenue"] = int(month_stats["revenue"]) + amount
+            month_stats["transactions"] = int(month_stats["transactions"]) + 1
+
+    average_order_value = round(gross_revenue / active_payments) if active_payments else 0
+    payment_methods = sorted(
+        (
+            {
+                **method,
+                "sharePercent": round((int(method["revenue"]) / gross_revenue) * 100) if gross_revenue else 0,
+            }
+            for method in payment_method_rollup.values()
+        ),
+        key=lambda item: (-int(item["revenue"]), str(item["method"])),
+    )
+    top_organizers = sorted(
+        organizer_rollup.values(),
+        key=lambda item: (-int(item["revenue"]), str(item["organizerName"])),
+    )[:5]
+    monthly_revenue = [
+        monthly_rollup[key]
+        for key in sorted(monthly_rollup.keys())[-6:]
+    ]
+    payments.sort(key=lambda item: str(item.get("registeredAt", "")), reverse=True)
+
+    return {
+        "summary": {
+            "grossRevenue": gross_revenue,
+            "activePayments": active_payments,
+            "cancelledPayments": cancelled_payments,
+            "cancelledRevenue": cancelled_revenue,
+            "averageOrderValue": average_order_value,
+            "bookingRevenue": booking_revenue,
+            "bookingPayments": booking_payments,
+            "subscriptionRevenue": subscription_revenue,
+            "subscriptionPayments": subscription_payments,
+        },
+        "paymentMethods": payment_methods,
+        "topOrganizers": top_organizers,
+        "monthlyRevenue": monthly_revenue,
+        "payments": payments,
+    }
+
+
 def organizer_public_events() -> list[dict[str, str]]:
     with get_connection() as connection:
         with connection.cursor() as cursor:
@@ -879,7 +1617,11 @@ def organizer_public_events() -> list[dict[str, str]]:
                     e.ticket_price,
                     e.event_mode,
                     e.ticket_pricing_mode,
+                    e.ticket_type,
+                    e.description,
                     e.poster_url,
+                    COALESCE(e.payment_methods, '') AS payment_methods,
+                    COALESCE(e.upi_qr_url, '') AS upi_qr_url,
                     COALESCE(u.phone, '') AS organizer_phone
                 FROM organizer_events AS e
                 LEFT JOIN users AS u ON u.email = e.organizer_email
@@ -902,7 +1644,11 @@ def organizer_public_events() -> list[dict[str, str]]:
             ticket_price,
             event_mode,
             ticket_pricing_mode,
+            ticket_type,
+            description,
             poster_url,
+            payment_methods,
+            upi_qr_url,
             organizer_phone,
         ) = row
 
@@ -931,13 +1677,16 @@ def organizer_public_events() -> list[dict[str, str]]:
                 "eventDate": event_date_label,
                 "eventTime": event_time_label,
                 "location": str(venue or "Online Event"),
-                "ticketType": "Entry Pass",
+                "ticketType": str(ticket_type or "Entry Pass"),
                 "seatInfo": seat_info,
                 "price": resolved_price,
                 "status": status,
                 "category": str(category or "general"),
                 "imageUrl": str(poster_url or "/assets/dashboard/images/dsupimg1.jpg"),
                 "organizerPhone": str(organizer_phone or ""),
+                "description": str(description or ""),
+                "paymentMethods": normalize_organizer_payment_methods(payment_methods),
+                "upiQrUrl": str(upi_qr_url or ""),
             }
         )
 
@@ -969,6 +1718,64 @@ def build_registered_ticket(event: dict[str, str], user_name: str) -> dict[str, 
 
 def parse_currency_amount(value: str) -> int:
     return int("".join(ch for ch in str(value) if ch.isdigit()) or "0")
+
+
+def normalize_payment_method_label(value: object) -> str:
+    normalized = str(value or "").strip().lower()
+    if not normalized:
+        return "Unknown"
+
+    labels = {
+        "upi": "UPI",
+        "card": "Card",
+        "cash": "Cash",
+        "wallet": "Wallet",
+        "netbanking": "Net Banking",
+        "net banking": "Net Banking",
+        "bank transfer": "Bank Transfer",
+    }
+    return labels.get(normalized, normalized.replace("_", " ").title())
+
+
+def normalize_organizer_payment_methods(value: object) -> list[str]:
+    if isinstance(value, (list, tuple, set)):
+        raw_items = [str(item or "").strip().lower() for item in value]
+    else:
+        raw_items = [
+            item.strip().lower()
+            for item in str(value or "").replace(";", ",").split(",")
+        ]
+
+    normalized: list[str] = []
+    seen: set[str] = set()
+    aliases = {
+        "upi qr": "upi",
+        "net banking": "netbanking",
+        "net_banking": "netbanking",
+        "cash at venue": "cash",
+        "cashatvenue": "cash",
+        "wallets": "wallet",
+        "credit-debit card": "card",
+        "credit/debit card": "card",
+        "credit debit card": "card",
+    }
+
+    for item in raw_items:
+        resolved = aliases.get(item, item)
+        if resolved in ORGANIZER_PAYMENT_METHODS and resolved not in seen:
+            normalized.append(resolved)
+            seen.add(resolved)
+
+    return normalized
+
+
+def normalize_event_ticket_type(value: object) -> str:
+    raw_value = str(value or "").strip()
+    if not raw_value:
+        return "Entry Pass"
+
+    normalized_lookup = {item.lower(): item for item in ORGANIZER_TICKET_TYPES}
+    return normalized_lookup.get(raw_value.lower(), "Entry Pass")
 
 
 def ticket_type_multiplier(ticket_type: str) -> float:
@@ -1083,7 +1890,10 @@ def sync_registration_attendee(
         ON DUPLICATE KEY UPDATE
             attendee_name = VALUES(attendee_name),
             attendee_phone = VALUES(attendee_phone),
-            attendee_status = 'active',
+            attendee_status = CASE
+                WHEN organizer_event_attendees.attendee_status = 'approved' THEN 'approved'
+                ELSE 'active'
+            END,
             ticket_type = VALUES(ticket_type),
             ticket_count = VALUES(ticket_count),
             ticket_id = VALUES(ticket_id),
@@ -1111,16 +1921,6 @@ def sync_registration_attendees_for_event(organizer_event_id: int) -> None:
     with get_connection() as connection:
         with connection.cursor() as cursor:
             cursor.execute(
-                """
-                UPDATE organizer_event_attendees
-                SET attendee_status = 'removed'
-                WHERE organizer_event_id = %s
-                  AND attendee_source = 'registration'
-                """,
-                (organizer_event_id,),
-            )
-
-            cursor.execute(
                 f"""
                 SELECT
                     user_email,
@@ -1138,18 +1938,46 @@ def sync_registration_attendees_for_event(organizer_event_id: int) -> None:
                 (str(organizer_event_id), public_event_id),
             )
             rows = cursor.fetchall()
+            active_user_emails: set[str] = set()
 
             for row in rows:
+                user_email = str(row[0] or "").strip().lower()
+                booking_status = str(row[7] or "active")
+                if user_email and booking_status.lower() == "active":
+                    active_user_emails.add(user_email)
                 sync_registration_attendee(
                     cursor,
-                    str(row[0] or ""),
+                    user_email,
                     str(row[1] or ""),
                     str(row[2] or ""),
                     str(row[3] or ""),
                     str(row[4] or ""),
                     str(row[5] or "Entry Pass"),
                     int(row[6] or 1),
-                    str(row[7] or "active"),
+                    booking_status,
+                )
+
+            if active_user_emails:
+                placeholders = ", ".join(["%s"] * len(active_user_emails))
+                cursor.execute(
+                    f"""
+                    UPDATE organizer_event_attendees
+                    SET attendee_status = 'removed'
+                    WHERE organizer_event_id = %s
+                      AND attendee_source = 'registration'
+                      AND user_email NOT IN ({placeholders})
+                    """,
+                    (organizer_event_id, *sorted(active_user_emails)),
+                )
+            else:
+                cursor.execute(
+                    """
+                    UPDATE organizer_event_attendees
+                    SET attendee_status = 'removed'
+                    WHERE organizer_event_id = %s
+                      AND attendee_source = 'registration'
+                    """,
+                    (organizer_event_id,),
                 )
 
         connection.commit()
@@ -1274,6 +2102,38 @@ def registered_tickets_for_user(user: dict[str, str]) -> list[dict[str, str]]:
         tickets.append(ticket)
 
     return tickets
+
+
+def approved_registration_event_ids_for_user(user_email: str) -> set[str]:
+    normalized_email = str(user_email or "").strip().lower()
+    if not normalized_email:
+        return set()
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT DISTINCT organizer_event_id
+                FROM organizer_event_attendees
+                WHERE attendee_source = 'registration'
+                  AND attendee_status = 'approved'
+                  AND user_email = %s
+                """,
+                (normalized_email,),
+            )
+            rows = cursor.fetchall()
+
+    approved_ids: set[str] = set()
+    for (event_id,) in rows:
+        if event_id is None:
+            continue
+        approved_ids.add(str(event_id))
+        try:
+            approved_ids.add(build_public_organizer_event_id(int(event_id)))
+        except (TypeError, ValueError):
+            pass
+
+    return approved_ids
 
 
 def registered_event_ids_for_user(user_email: str) -> list[str]:
@@ -1573,6 +2433,9 @@ def init_db() -> None:
                     event_status VARCHAR(20) NOT NULL DEFAULT 'published',
                     event_mode VARCHAR(20) NOT NULL DEFAULT 'venue',
                     ticket_pricing_mode VARCHAR(20) NOT NULL DEFAULT 'paid',
+                    ticket_type VARCHAR(100) NOT NULL DEFAULT 'Entry Pass',
+                    payment_methods VARCHAR(255) NOT NULL DEFAULT '',
+                    upi_qr_url VARCHAR(500) NOT NULL DEFAULT '',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
                 """
@@ -1583,6 +2446,9 @@ def init_db() -> None:
             add_column_if_missing(cursor, "organizer_events", "event_status", "VARCHAR(20) NOT NULL DEFAULT 'published'")
             add_column_if_missing(cursor, "organizer_events", "event_mode", "VARCHAR(20) NOT NULL DEFAULT 'venue'")
             add_column_if_missing(cursor, "organizer_events", "ticket_pricing_mode", "VARCHAR(20) NOT NULL DEFAULT 'paid'")
+            add_column_if_missing(cursor, "organizer_events", "ticket_type", "VARCHAR(100) NOT NULL DEFAULT 'Entry Pass'")
+            add_column_if_missing(cursor, "organizer_events", "payment_methods", "VARCHAR(255) NOT NULL DEFAULT ''")
+            add_column_if_missing(cursor, "organizer_events", "upi_qr_url", "VARCHAR(500) NOT NULL DEFAULT ''")
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS organizer_event_attendees (
@@ -1607,6 +2473,30 @@ def init_db() -> None:
             add_column_if_missing(cursor, "organizer_event_attendees", "ticket_id", "VARCHAR(120) NOT NULL DEFAULT ''")
             add_column_if_missing(cursor, "organizer_event_attendees", "attendee_source", "VARCHAR(20) NOT NULL DEFAULT 'organizer'")
             add_column_if_missing(cursor, "organizer_event_attendees", "user_email", "VARCHAR(255) NOT NULL DEFAULT ''")
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS platform_subscriptions (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_email VARCHAR(255) NOT NULL,
+                    user_role ENUM('user', 'organizer') NOT NULL,
+                    plan_id VARCHAR(40) NOT NULL,
+                    plan_name VARCHAR(120) NOT NULL,
+                    monthly_price INT NOT NULL DEFAULT 0,
+                    billing_cycle VARCHAR(20) NOT NULL DEFAULT 'monthly',
+                    payment_method VARCHAR(50) NOT NULL DEFAULT 'card',
+                    subscription_status VARCHAR(20) NOT NULL DEFAULT 'active',
+                    purchased_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    ended_at TIMESTAMP NULL DEFAULT NULL,
+                    KEY idx_platform_subscriptions_user (user_email, user_role),
+                    KEY idx_platform_subscriptions_purchased (purchased_at)
+                )
+                """
+            )
+            add_column_if_missing(cursor, "platform_subscriptions", "billing_cycle", "VARCHAR(20) NOT NULL DEFAULT 'monthly'")
+            add_column_if_missing(cursor, "platform_subscriptions", "payment_method", "VARCHAR(50) NOT NULL DEFAULT 'card'")
+            add_column_if_missing(cursor, "platform_subscriptions", "subscription_status", "VARCHAR(20) NOT NULL DEFAULT 'active'")
+            add_column_if_missing(cursor, "platform_subscriptions", "purchased_at", "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+            add_column_if_missing(cursor, "platform_subscriptions", "ended_at", "TIMESTAMP NULL DEFAULT NULL")
             ensure_admin_account(cursor)
         connection.commit()
     sync_existing_registration_attendees()
@@ -1753,6 +2643,14 @@ class EventHubHandler(BaseHTTPRequestHandler):
             self.serve_admin_browse_events()
             return
 
+        if path == "/adminsubscriptionsservlet":
+            self.serve_admin_subscriptions_data()
+            return
+
+        if path == "/adminpaymentsrevenueservlet":
+            self.serve_admin_payments_revenue_data()
+            return
+
         if path == "/organizereventsservlet":
             self.serve_organizer_events_data()
             return
@@ -1826,6 +2724,10 @@ class EventHubHandler(BaseHTTPRequestHandler):
             self.handle_profile_password_update()
             return
 
+        if parsed.path == "/purchase-subscription":
+            self.handle_subscription_purchase()
+            return
+
         if parsed.path == "/contact":
             self.handle_contact_message()
             return
@@ -1836,6 +2738,10 @@ class EventHubHandler(BaseHTTPRequestHandler):
 
         if parsed.path == "/upload-organizer-poster":
             self.handle_organizer_poster_upload()
+            return
+
+        if parsed.path == "/upload-organizer-payment-qr":
+            self.handle_organizer_payment_qr_upload()
             return
 
         if parsed.path in (
@@ -2166,6 +3072,13 @@ class EventHubHandler(BaseHTTPRequestHandler):
                 event_copy["owner"] = str(matched_ticket.get("owner", user["name"]))
             hydrated_upcoming_events.append(event_copy)
         history = [ticket for ticket in tickets if ticket["status"] == "used"]
+        approved_event_ids = approved_registration_event_ids_for_user(user["email"])
+        attended_event_ids = {
+            str(ticket.get("eventId", ""))
+            for ticket in history
+            if str(ticket.get("eventId", "")).strip()
+        }
+        attended_event_ids.update(approved_event_ids)
         total_spent = sum(int("".join(char for char in ticket["price"] if char.isdigit())) for ticket in tickets)
         payload = {
             "userName": user["name"],
@@ -2177,7 +3090,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
             "stats": {
                 "registeredEvents": len(registered_upcoming_events),
                 "ticketsPurchased": len(tickets),
-                "eventsAttended": len(history),
+                "eventsAttended": len(attended_event_ids),
                 "totalSpent": f"Rs {total_spent:,}",
             },
             "upcomingEvents": hydrated_upcoming_events,
@@ -2452,6 +3365,46 @@ class EventHubHandler(BaseHTTPRequestHandler):
             }
         )
 
+    def serve_admin_subscriptions_data(self) -> None:
+        user = self.current_user()
+        if user is None:
+            self.send_json({"error": "Unauthorized"}, HTTPStatus.UNAUTHORIZED)
+            return
+
+        if user["role"] != "admin":
+            self.send_json({"error": "Forbidden"}, HTTPStatus.FORBIDDEN)
+            return
+
+        payload = admin_subscription_module_data()
+        self.send_json(
+            {
+                "userName": user["name"],
+                "userEmail": user["email"],
+                "userRole": user["role"],
+                **payload,
+            }
+        )
+
+    def serve_admin_payments_revenue_data(self) -> None:
+        user = self.current_user()
+        if user is None:
+            self.send_json({"error": "Unauthorized"}, HTTPStatus.UNAUTHORIZED)
+            return
+
+        if user["role"] != "admin":
+            self.send_json({"error": "Forbidden"}, HTTPStatus.FORBIDDEN)
+            return
+
+        payload = admin_payment_revenue_data()
+        self.send_json(
+            {
+                "userName": user["name"],
+                "userEmail": user["email"],
+                "userRole": user["role"],
+                **payload,
+            }
+        )
+
     def serve_tickets_data(self) -> None:
         user = self.current_user()
         if user is None:
@@ -2504,7 +3457,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
             self.send_json({"error": "Unauthorized"}, HTTPStatus.UNAUTHORIZED)
             return
 
-        if user["role"] != "user":
+        if user["role"] not in ("user", "organizer"):
             self.send_json({"error": "Forbidden"}, HTTPStatus.FORBIDDEN)
             return
 
@@ -2577,6 +3530,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
         if profile is None:
             self.send_json({"error": "Profile not found."}, HTTPStatus.NOT_FOUND)
             return
+        subscription_payload = subscription_profile_data_for_user(profile)
 
         self.send_json(
             {
@@ -2589,6 +3543,8 @@ class EventHubHandler(BaseHTTPRequestHandler):
                 "adminStatus": profile["admin_status"],
                 "adminWarningCount": profile["admin_warning_count"],
                 "adminNote": profile["admin_note"],
+                "subscription": subscription_payload["subscription"],
+                "subscriptionPlans": subscription_payload["plans"],
             }
         )
 
@@ -2893,7 +3849,10 @@ class EventHubHandler(BaseHTTPRequestHandler):
         event_status = form.get("eventStatus", "published").strip().lower()
         event_mode = form.get("eventMode", "venue").strip().lower()
         ticket_pricing_mode = form.get("ticketPricingMode", "paid").strip().lower()
+        ticket_type = normalize_event_ticket_type(form.get("ticketType", "Entry Pass"))
         poster_url = form.get("posterUrl", "").strip()
+        payment_methods = normalize_organizer_payment_methods(form.get("paymentMethods", ""))
+        upi_qr_url = form.get("upiQrUrl", "").strip()
 
         if not all([title, event_date, event_time]):
             self.send_json({"error": "Please fill in all required event fields."}, HTTPStatus.BAD_REQUEST)
@@ -2921,6 +3880,14 @@ class EventHubHandler(BaseHTTPRequestHandler):
 
         if ticket_pricing_mode == "free":
             ticket_price = 0
+            payment_methods = []
+            upi_qr_url = ""
+        elif event_status == "published" and not payment_methods:
+            self.send_json({"error": "Select at least one payment method for paid events."}, HTTPStatus.BAD_REQUEST)
+            return
+        elif event_status == "published" and "upi" in payment_methods and not upi_qr_url:
+            self.send_json({"error": "Upload a UPI QR code when UPI is enabled."}, HTTPStatus.BAD_REQUEST)
+            return
 
         try:
             capacity = max(0, int(capacity_text or "0"))
@@ -2946,9 +3913,12 @@ class EventHubHandler(BaseHTTPRequestHandler):
                             poster_url,
                             event_status,
                             event_mode,
-                            ticket_pricing_mode
+                            ticket_pricing_mode,
+                            ticket_type,
+                            payment_methods,
+                            upi_qr_url
                         )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """,
                         (
                             user["email"],
@@ -2964,6 +3934,9 @@ class EventHubHandler(BaseHTTPRequestHandler):
                             event_status,
                             event_mode,
                             ticket_pricing_mode,
+                            ticket_type,
+                            ",".join(payment_methods),
+                            upi_qr_url,
                         ),
                     )
                 connection.commit()
@@ -2996,6 +3969,9 @@ class EventHubHandler(BaseHTTPRequestHandler):
         description = form.get("eventDescription", "").strip()
         event_mode = form.get("eventMode", "venue").strip().lower()
         ticket_pricing_mode = form.get("ticketPricingMode", "paid").strip().lower()
+        ticket_type = normalize_event_ticket_type(form.get("ticketType", "Entry Pass"))
+        payment_methods = normalize_organizer_payment_methods(form.get("paymentMethods", ""))
+        upi_qr_url = form.get("upiQrUrl", "").strip()
 
         if not all([event_id, title, event_date, event_time]):
             self.send_json({"error": "Please fill in all required event fields."}, HTTPStatus.BAD_REQUEST)
@@ -3026,6 +4002,14 @@ class EventHubHandler(BaseHTTPRequestHandler):
 
         if ticket_pricing_mode == "free":
             ticket_price = 0
+            payment_methods = []
+            upi_qr_url = ""
+        elif not payment_methods:
+            self.send_json({"error": "Select at least one payment method for paid events."}, HTTPStatus.BAD_REQUEST)
+            return
+        elif "upi" in payment_methods and not upi_qr_url:
+            self.send_json({"error": "Upload a UPI QR code when UPI is enabled."}, HTTPStatus.BAD_REQUEST)
+            return
 
         try:
             capacity = max(0, int(capacity_text or "0"))
@@ -3048,7 +4032,10 @@ class EventHubHandler(BaseHTTPRequestHandler):
                         capacity = %s,
                         description = %s,
                         event_mode = %s,
-                        ticket_pricing_mode = %s
+                        ticket_pricing_mode = %s,
+                        ticket_type = %s,
+                        payment_methods = %s,
+                        upi_qr_url = %s
                     WHERE id = %s AND organizer_email = %s
                     """,
                     (
@@ -3062,6 +4049,9 @@ class EventHubHandler(BaseHTTPRequestHandler):
                         description,
                         event_mode,
                         ticket_pricing_mode,
+                        ticket_type,
+                        ",".join(payment_methods),
+                        upi_qr_url,
                         event_id_value,
                         user["email"],
                     ),
@@ -3528,6 +4518,90 @@ class EventHubHandler(BaseHTTPRequestHandler):
         image_url = f"/assets/dashboard/images/posters/{filename}"
         self.send_json({"message": "Poster uploaded successfully.", "imageUrl": image_url})
 
+    def handle_organizer_payment_qr_upload(self) -> None:
+        user = self.current_user()
+        if user is None:
+            self.send_json({"error": "Unauthorized"}, HTTPStatus.UNAUTHORIZED)
+            return
+
+        if user["role"] != "organizer":
+            self.send_json({"error": "Forbidden"}, HTTPStatus.FORBIDDEN)
+            return
+
+        content_length = int(self.headers.get("Content-Length", "0"))
+        if content_length == 0:
+            self.send_json({"error": "No file provided"}, HTTPStatus.BAD_REQUEST)
+            return
+
+        content_type = self.headers.get("Content-Type", "")
+        if not content_type.startswith("multipart/form-data"):
+            self.send_json({"error": "Only multipart/form-data supported"}, HTTPStatus.BAD_REQUEST)
+            return
+
+        boundary_key = "boundary="
+        if boundary_key not in content_type:
+            self.send_json({"error": "Invalid multipart request"}, HTTPStatus.BAD_REQUEST)
+            return
+
+        boundary = content_type.split(boundary_key, 1)[1].strip().strip('"')
+        if not boundary:
+            self.send_json({"error": "Invalid multipart boundary"}, HTTPStatus.BAD_REQUEST)
+            return
+
+        raw_data = self.rfile.read(content_length)
+        delimiter = f"--{boundary}".encode("utf-8")
+        parts = raw_data.split(delimiter)
+        image_data: bytes | None = None
+
+        for part in parts:
+            part = part.strip()
+            if not part or part == b"--":
+                continue
+            if b"\r\n\r\n" not in part:
+                continue
+
+            header_block, body = part.split(b"\r\n\r\n", 1)
+            headers_text = header_block.decode("utf-8", errors="ignore")
+            if "Content-Disposition: form-data;" not in headers_text:
+                continue
+            if 'name="paymentQrImage"' not in headers_text:
+                continue
+
+            image_data = body.rstrip(b"\r\n")
+            if image_data.endswith(b"--"):
+                image_data = image_data[:-2].rstrip(b"\r\n")
+            break
+
+        if image_data is None:
+            self.send_json({"error": "No QR image found"}, HTTPStatus.BAD_REQUEST)
+            return
+
+        extension = None
+        if image_data.startswith(b"\xff\xd8\xff"):
+            extension = "jpg"
+        elif image_data.startswith(b"\x89PNG\r\n\x1a\n"):
+            extension = "png"
+
+        if extension is None:
+            self.send_json({"error": "Only JPG/PNG QR images allowed"}, HTTPStatus.BAD_REQUEST)
+            return
+
+        if len(image_data) > 5 * 1024 * 1024:
+            self.send_json({"error": "File too large (max 5MB)"}, HTTPStatus.BAD_REQUEST)
+            return
+
+        qr_dir = WEBAPP_DIR / "dashboard" / "images" / "payment-qr"
+        qr_dir.mkdir(parents=True, exist_ok=True)
+
+        timestamp = int(time.time() * 1000)
+        safe_email = "".join(c for c in user["email"] if c.isalnum() or c in ".-_@")
+        filename = f"{safe_email}_{timestamp}.{extension}"
+        filepath = qr_dir / filename
+        filepath.write_bytes(image_data)
+
+        image_url = f"/assets/dashboard/images/payment-qr/{filename}"
+        self.send_json({"message": "Payment QR uploaded successfully.", "imageUrl": image_url})
+
     def handle_admin_organizer_status_update(self) -> None:
         user = self.current_user()
         if user is None:
@@ -3805,6 +4879,77 @@ class EventHubHandler(BaseHTTPRequestHandler):
             connection.commit()
 
         self.send_json({"message": "Password updated successfully."})
+
+    def handle_subscription_purchase(self) -> None:
+        user = self.current_user()
+        if user is None:
+            self.send_json({"error": "Unauthorized"}, HTTPStatus.UNAUTHORIZED)
+            return
+
+        user_role = str(user.get("role", "")).strip().lower()
+        if user_role not in {"user", "organizer"}:
+            self.send_json({"error": "Subscription purchase is available for user and organizer accounts only."}, HTTPStatus.FORBIDDEN)
+            return
+
+        form = self.read_form_data()
+        plan_id = str(form.get("planId", "") or "").strip().lower()
+        payment_method = normalize_subscription_payment_method(form.get("paymentMethod", "card"))
+        plan = subscription_plan_for_role(user_role, plan_id)
+        if plan is None:
+            self.send_json({"error": "Invalid subscription plan selected."}, HTTPStatus.BAD_REQUEST)
+            return
+
+        plan_name = str(plan.get("planName", "") or plan_id.title())
+        monthly_price = int(plan.get("monthlyPrice", 0) or 0)
+        normalized_email = str(user.get("email", "")).strip().lower()
+
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    UPDATE platform_subscriptions
+                    SET subscription_status = 'cancelled', ended_at = CURRENT_TIMESTAMP
+                    WHERE user_email = %s AND user_role = %s AND subscription_status = 'active'
+                    """,
+                    (normalized_email, user_role),
+                )
+                cursor.execute(
+                    """
+                    INSERT INTO platform_subscriptions(
+                        user_email,
+                        user_role,
+                        plan_id,
+                        plan_name,
+                        monthly_price,
+                        billing_cycle,
+                        payment_method,
+                        subscription_status
+                    )
+                    VALUES(%s, %s, %s, %s, %s, 'monthly', %s, 'active')
+                    """,
+                    (normalized_email, user_role, plan_id, plan_name, monthly_price, payment_method),
+                )
+            connection.commit()
+
+        profile = user_profile_for_email(normalized_email)
+        if profile is None:
+            self.send_json(
+                {
+                    "message": f"{plan_name} subscription activated.",
+                    "planId": plan_id,
+                    "planName": plan_name,
+                }
+            )
+            return
+
+        subscription_payload = subscription_profile_data_for_user(profile)
+        self.send_json(
+            {
+                "message": f"{plan_name} subscription activated successfully.",
+                "subscription": subscription_payload["subscription"],
+                "subscriptionPlans": subscription_payload["plans"],
+            }
+        )
 
     def handle_contact_message(self) -> None:
         form = self.read_form_data()

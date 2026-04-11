@@ -57,6 +57,8 @@ const registerModalLocation = document.getElementById("registerModalLocation");
 const registerModalPrice = document.getElementById("registerModalPrice");
 const registerModalTicketType = document.getElementById("registerModalTicketType");
 const registerModalSeatInfo = document.getElementById("registerModalSeatInfo");
+const registerModalOrganizerPhone = document.getElementById("registerModalOrganizerPhone");
+const registerModalDescription = document.getElementById("registerModalDescription");
 const registerTicketTypeField = document.getElementById("registerTicketTypeField");
 const registerCity = document.getElementById("registerCity");
 const registerPaymentMethod = document.getElementById("registerPaymentMethod");
@@ -108,12 +110,15 @@ const renderBrowseCard = event => `
     data-ticket-type="${escapeHtml(event.ticketType || "Entry Pass")}"
     data-seat-info="${escapeHtml(event.seatInfo || "Open Seating")}"
     data-organizer-phone="${escapeHtml(event.organizerPhone || "")}"
+    data-ticket-pricing-mode="${escapeHtml(event.ticketPricingMode || "paid")}"
+    data-event-description="${escapeHtml(event.description || "")}"
     data-search="${escapeHtml(buildBrowseSearchText(event))}"
   >
     <img src="${escapeHtml(event.imageUrl || "/assets/dashboard/images/dsupimg1.jpg")}" alt="${escapeHtml(event.eventName || "Event")}">
     <div class="browse-info">
       <span class="browse-badge">${escapeHtml(formatBrowseBadge(event.category))}</span>
       <h4>${escapeHtml(event.eventName || "Untitled Event")}</h4>
+      <p class="event-description">${escapeHtml((event.description || "").length > 100 ? (event.description || "").substring(0, 100) + "..." : (event.description || ""))}</p>
       <p>${escapeHtml(event.eventTime || "-")}</p>
       <p>${escapeHtml(event.price || "Rs 0")}</p>
       <p>${escapeHtml(event.location || "Online Event")} &bull; ${escapeHtml(event.eventDate || "-")}</p>
@@ -208,7 +213,9 @@ const totalTicketsCount = document.getElementById("totalTicketsCount");
 const upcomingTicketsCount = document.getElementById("upcomingTicketsCount");
 const usedTicketsCount = document.getElementById("usedTicketsCount");
 const ticketsHeading = document.getElementById("ticketsHeading");
+const bookingsSearchTop = document.getElementById("bookingsSearchTop");
 const bookingsSearch = document.getElementById("bookingsSearch");
+const bookingFilterButtons = document.querySelectorAll("[data-booking-filter]");
 const bookingsHeading = document.getElementById("bookingsHeading");
 const bookingsPageTitle = document.getElementById("bookingsPageTitle");
 const bookingsResultsCount = document.getElementById("bookingsResultsCount");
@@ -246,6 +253,18 @@ const profileNewPassword = document.getElementById("profileNewPassword");
 const profileConfirmPassword = document.getElementById("profileConfirmPassword");
 const profilePasswordSaveBtn = document.getElementById("profilePasswordSaveBtn");
 const profilePasswordStatus = document.getElementById("profilePasswordStatus");
+const profileSubscriptionStatusChip = document.getElementById("profileSubscriptionStatus");
+const profileSubscriptionCurrentPlan = document.getElementById("profileSubscriptionCurrentPlan");
+const profileSubscriptionMeta = document.getElementById("profileSubscriptionMeta");
+const profileSubscriptionNextBilling = document.getElementById("profileSubscriptionNextBilling");
+const profileSubscriptionPrice = document.getElementById("profileSubscriptionPrice");
+const profileSubscriptionExploreBtn = document.getElementById("profileSubscriptionExploreBtn");
+const profileSubscriptionStatusMessage = document.getElementById("profileSubscriptionStatusMessage");
+const profileSubscriptionModal = document.getElementById("profileSubscriptionModal");
+const profileSubscriptionBackdrop = document.getElementById("profileSubscriptionBackdrop");
+const profileSubscriptionClose = document.getElementById("profileSubscriptionClose");
+const profileSubscriptionPlanGrid = document.getElementById("profileSubscriptionPlanGrid");
+const profileSubscriptionModalCopy = document.getElementById("profileSubscriptionModalCopy");
 
 const profileImageInput = document.getElementById("profileImageInput");
 const profileImg = document.querySelector(".profile-img");
@@ -358,6 +377,8 @@ let currentUserEmail = "";
 let userHasRegisteredEvents = false;
 let dashboardUpcomingEventsData = [];
 let dashboardUpcomingEventsExpanded = false;
+let activeSubscriptionSnapshot = null;
+let subscriptionPlanCatalog = [];
 
 const LEGACY_REGISTERED_TICKETS_STORAGE_KEY = "eventhub_registered_tickets";
 const REGISTERED_TICKETS_STORAGE_KEY_PREFIX = "eventhub_registered_tickets:";
@@ -467,6 +488,145 @@ const applyDashboardAccountBanner = data => {
   dashboardAccountBanner.classList.remove("is-error");
 };
 
+const formatSubscriptionStatusText = status => {
+  const normalized = String(status || "inactive").trim().toLowerCase();
+  if (!normalized) {
+    return "Inactive";
+  }
+  return normalized
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, char => char.toUpperCase());
+};
+
+const resolveSubscriptionStatusClass = status => {
+  const normalized = String(status || "inactive").trim().toLowerCase();
+  if (["active", "completed"].includes(normalized)) {
+    return "active";
+  }
+  if (["review", "warned"].includes(normalized)) {
+    return "review";
+  }
+  if (["past_due", "cancelled", "removed", "suspended"].includes(normalized)) {
+    return "past_due";
+  }
+  return "inactive";
+};
+
+const formatSubscriptionPrice = amount => {
+  const safeAmount = Number.isFinite(Number(amount)) ? Number(amount) : 0;
+  return `Rs ${Math.round(safeAmount).toLocaleString("en-IN")} / month`;
+};
+
+const renderProfileSubscription = (subscriptionValue, plansValue, roleValue) => {
+  if (!profileSubscriptionCurrentPlan) {
+    return;
+  }
+
+  if (subscriptionValue && typeof subscriptionValue === "object") {
+    activeSubscriptionSnapshot = subscriptionValue;
+  }
+
+  if (Array.isArray(plansValue)) {
+    subscriptionPlanCatalog = plansValue;
+  }
+
+  const activeRole = String(roleValue || activeProfileSnapshot?.role || profileRole?.value || "user")
+    .trim()
+    .toLowerCase() || "user";
+  const subscription = activeSubscriptionSnapshot || {
+    planName: "Free",
+    subscriptionStatus: "inactive",
+    monthlyPrice: 0,
+    nextBillingOn: "-",
+    description: "Explore Pro or Premium to unlock additional benefits.",
+    paymentMethod: "Unknown",
+  };
+  const statusClass = resolveSubscriptionStatusClass(subscription.subscriptionStatus);
+
+  if (profileSubscriptionStatusChip) {
+    profileSubscriptionStatusChip.className = `subscription-status-chip ${statusClass}`;
+    profileSubscriptionStatusChip.textContent = formatSubscriptionStatusText(subscription.subscriptionStatus);
+  }
+
+  profileSubscriptionCurrentPlan.textContent = `Current plan: ${subscription.planName || "Free"}`;
+  if (profileSubscriptionMeta) {
+    const description = String(subscription.description || "").trim();
+    const paymentLabel = String(subscription.paymentMethod || "").trim();
+    const fallbackDescription = activeRole === "organizer"
+      ? "Explore Pro or Premium to unlock additional organizer benefits."
+      : "Explore Pro or Premium to unlock additional benefits.";
+    profileSubscriptionMeta.textContent = description || fallbackDescription;
+    if (paymentLabel && paymentLabel.toLowerCase() !== "unknown" && statusClass !== "inactive") {
+      profileSubscriptionMeta.textContent = `${profileSubscriptionMeta.textContent} Payment method: ${paymentLabel}.`;
+    }
+  }
+
+  if (profileSubscriptionNextBilling) {
+    profileSubscriptionNextBilling.textContent = subscription.nextBillingOn || "-";
+  }
+  if (profileSubscriptionPrice) {
+    profileSubscriptionPrice.textContent = formatSubscriptionPrice(subscription.monthlyPrice || 0);
+  }
+};
+
+const closeSubscriptionModal = () => {
+  if (profileSubscriptionModal) {
+    profileSubscriptionModal.hidden = true;
+  }
+};
+
+const openSubscriptionModal = () => {
+  if (!profileSubscriptionModal || !profileSubscriptionPlanGrid) {
+    return;
+  }
+
+  const activeRole = String(profileRole?.value || activeProfileSnapshot?.role || "user").trim().toLowerCase() || "user";
+  const currentPlanId = String(activeSubscriptionSnapshot?.planId || "").trim().toLowerCase();
+  const plans = Array.isArray(subscriptionPlanCatalog) ? subscriptionPlanCatalog : [];
+
+  if (profileSubscriptionModalCopy) {
+    profileSubscriptionModalCopy.textContent = activeRole === "organizer"
+      ? "Upgrade your organizer account with Pro or Premium tools."
+      : "Upgrade your account with Pro or Premium perks.";
+  }
+
+  if (!plans.length) {
+    profileSubscriptionPlanGrid.innerHTML = "<p class=\"meta\">Subscription plans are not available right now.</p>";
+  } else {
+    profileSubscriptionPlanGrid.innerHTML = plans.map(plan => {
+      const planId = String(plan.planId || "").trim().toLowerCase();
+      const isCurrent = currentPlanId && currentPlanId === planId && resolveSubscriptionStatusClass(activeSubscriptionSnapshot?.subscriptionStatus) === "active";
+      const features = Array.isArray(plan.features) ? plan.features : [];
+      return `
+        <article class="subscription-plan-card" data-plan-id="${escapeHtml(planId)}">
+          <h4>${escapeHtml(plan.planName || "Plan")}</h4>
+          <p class="subscription-plan-price">${escapeHtml(`Rs ${Number(plan.monthlyPrice || 0).toLocaleString("en-IN")}`)} <small>/month</small></p>
+          <p class="subscription-plan-description">${escapeHtml(plan.description || "")}</p>
+          <ul class="subscription-plan-features">
+            ${features.length
+              ? features.map(feature => `<li>${escapeHtml(feature)}</li>`).join("")
+              : "<li>Platform plan features included.</li>"}
+          </ul>
+          <div class="subscription-plan-actions">
+            <select data-subscription-payment="${escapeHtml(planId)}">
+              <option value="card">Credit / Debit Card</option>
+              <option value="upi">UPI</option>
+              <option value="netbanking">Net Banking</option>
+              <option value="wallet">Wallet</option>
+              <option value="cash">Cash</option>
+            </select>
+            <button type="button" class="subscription-buy-btn ${isCurrent ? "is-current" : ""}" data-subscription-buy="${escapeHtml(planId)}" ${isCurrent ? "disabled" : ""}>
+              ${isCurrent ? "Current Plan" : "Buy Now"}
+            </button>
+          </div>
+        </article>
+      `;
+    }).join("");
+  }
+
+  profileSubscriptionModal.hidden = false;
+};
+
 const applyUserProfile = data => {
   if (!data) {
     return;
@@ -564,6 +724,7 @@ const applyUserProfile = data => {
     profileBio.value = String(data.bio || "");
   }
 
+  renderProfileSubscription(data.subscription, data.subscriptionPlans, data.userRole);
   applyDashboardAccountBanner(data);
 
   activeProfileSnapshot = {
@@ -824,6 +985,22 @@ const buildBookingSearchText = booking => [
   booking.bookingStatus,
 ].join(" ").toLowerCase();
 
+const isUpcomingBooking = booking => {
+  if (String(booking?.bookingStatus || "").trim().toLowerCase() === "cancelled") {
+    return false;
+  }
+
+  const parsedDate = parseCalendarDate(booking?.eventDate);
+  if (!parsedDate) {
+    return String(booking?.bookingStatus || "").trim().toLowerCase() === "active";
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  parsedDate.setHours(0, 0, 0, 0);
+  return parsedDate.getTime() >= today.getTime();
+};
+
 const renderBookingItem = booking => `
   <article
     class="booking-item ${escapeHtml(booking.bookingStatus || "active")}"
@@ -850,6 +1027,7 @@ const renderBookingItem = booking => `
     data-attendee-email="${escapeHtml(booking.attendeeEmail)}"
     data-attendee-phone="${escapeHtml(booking.attendeePhone)}"
     data-booking-status="${escapeHtml(booking.bookingStatus)}"
+    data-booking-upcoming="${isUpcomingBooking(booking) ? "true" : "false"}"
   >
     <img class="booking-cover" src="${escapeHtml(booking.imageUrl)}" alt="${escapeHtml(booking.eventName)}">
     <div class="booking-body">
@@ -1855,45 +2033,78 @@ const extractTicketDataFromCard = ticketCard => {
   };
 };
 
-const buildTicketPreviewMarkup = ticket => `
-  <div class="ticket-preview-card">
-    <img src="${escapeHtml(ticket.imageUrl || "")}" alt="${escapeHtml(ticket.eventName || "Event ticket")}">
-    <div class="ticket-preview-grid">
-      <div class="ticket-preview-item">
-        <span>Event</span>
-        <strong>${escapeHtml(ticket.eventName || "-")}</strong>
+const buildTicketPreviewMarkup = ticket => {
+  const imageUrl = escapeHtml(ticket.imageUrl || "");
+  const eventName = escapeHtml(ticket.eventName || "EventHub Ticket");
+  const ownerName = escapeHtml(ticket.owner || "EventHub Guest");
+  const issuedOn = escapeHtml(new Date().toLocaleString("en-IN"));
+
+  return `
+    <article class="ticket-preview-shell">
+      <div class="ticket-preview-hero">
+        <div class="ticket-preview-copy">
+          <span class="ticket-preview-eyebrow">EventHub Admission Pass</span>
+          <h4>${eventName}</h4>
+          <p class="ticket-preview-description">This downloadable ticket was issued for verified EventHub registration. Present the ticket code at entry.</p>
+          <div class="ticket-preview-meta">
+            <div>
+              <span>Date</span>
+              <strong>${escapeHtml(ticket.eventDate || "-")}</strong>
+            </div>
+            <div>
+              <span>Time</span>
+              <strong>${escapeHtml(ticket.eventTime || "-")}</strong>
+            </div>
+            <div>
+              <span>Guest</span>
+              <strong>${ownerName}</strong>
+            </div>
+          </div>
+        </div>
+        <div class="ticket-preview-poster">
+          ${imageUrl
+            ? `<img src="${imageUrl}" alt="${eventName} poster">`
+            : `<div class="ticket-preview-poster-fallback"><span>EventHub</span></div>`}
+        </div>
       </div>
-      <div class="ticket-preview-item">
-        <span>Ticket ID</span>
-        <strong>${escapeHtml(ticket.ticketCode || "-")}</strong>
+      <div class="ticket-preview-content">
+        <div class="ticket-preview-detail-grid">
+          <div class="ticket-preview-detail-card">
+            <span>Location</span>
+            <strong>${escapeHtml(ticket.location || "-")}</strong>
+          </div>
+          <div class="ticket-preview-detail-card">
+            <span>Ticket Type</span>
+            <strong>${escapeHtml(ticket.ticketType || "-")}</strong>
+          </div>
+          <div class="ticket-preview-detail-card">
+            <span>Seat / Access</span>
+            <strong>${escapeHtml(ticket.seatInfo || "-")}</strong>
+          </div>
+          <div class="ticket-preview-detail-card">
+            <span>Price</span>
+            <strong>${escapeHtml(ticket.price || "-")}</strong>
+          </div>
+          <div class="ticket-preview-detail-card ticket-preview-detail-wide">
+            <span>Ticket Code</span>
+            <strong>${escapeHtml(ticket.ticketCode || "-")}</strong>
+          </div>
+        </div>
+        <aside class="ticket-preview-stub">
+          <div>
+            <div class="ticket-preview-brand">EventHub</div>
+            <p class="ticket-preview-note">Keep this file with you. You can print it or show it from your device at the venue.</p>
+          </div>
+          <div class="ticket-preview-barcode-wrap">
+            <div class="ticket-preview-barcode"></div>
+            <div class="ticket-preview-code">${escapeHtml(ticket.ticketCode || "-")}</div>
+          </div>
+          <div class="ticket-preview-issued">Issued on ${issuedOn}</div>
+        </aside>
       </div>
-      <div class="ticket-preview-item">
-        <span>Date</span>
-        <strong>${escapeHtml(ticket.eventDate || "-")}</strong>
-      </div>
-      <div class="ticket-preview-item">
-        <span>Time</span>
-        <strong>${escapeHtml(ticket.eventTime || "-")}</strong>
-      </div>
-      <div class="ticket-preview-item">
-        <span>Location</span>
-        <strong>${escapeHtml(ticket.location || "-")}</strong>
-      </div>
-      <div class="ticket-preview-item">
-        <span>Ticket Type</span>
-        <strong>${escapeHtml(ticket.ticketType || "-")}</strong>
-      </div>
-      <div class="ticket-preview-item">
-        <span>Seat / Access</span>
-        <strong>${escapeHtml(ticket.seatInfo || "-")}</strong>
-      </div>
-      <div class="ticket-preview-item">
-        <span>Price</span>
-        <strong>${escapeHtml(ticket.price || "-")}</strong>
-      </div>
-    </div>
-  </div>
-`;
+    </article>
+  `;
+};
 
 const openTicketPreviewModal = ticket => {
   if (!ticketPreviewModal || !ticketPreviewBody || !ticket?.ticketCode) {
@@ -2034,6 +2245,12 @@ const addPdfRect = (commands, x, y, width, height, fill) => {
   commands.push(`${x} ${y} ${width} ${height} re f`);
 };
 
+const addPdfStrokeRect = (commands, x, y, width, height, stroke, lineWidth = 1) => {
+  commands.push(`${pdfColor(stroke)} RG`);
+  commands.push(`${lineWidth} w`);
+  commands.push(`${x} ${y} ${width} ${height} re S`);
+};
+
 const addPdfText = (commands, { text, x, y, size = 12, font = "F1", color = [0, 0, 0] }) => {
   commands.push(`${pdfColor(color)} rg`);
   commands.push("BT");
@@ -2045,189 +2262,188 @@ const addPdfText = (commands, { text, x, y, size = 12, font = "F1", color = [0, 
 
 const buildTicketPdfBlob = ticket => {
   const commands = [];
-  const eventTitleLines = wrapPdfText(ticket.eventName || "EventHub Event", 24, 2);
+  const eventTitleLines = wrapPdfText(ticket.eventName || "EventHub Event", 22, 2);
   const issueDateText = new Date().toLocaleString("en-IN", {
     day: "numeric",
-    month: "short",
+    month: "numeric",
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    second: "2-digit",
   });
+  const ownerText = normalizePdfValue(ticket.owner, "EventHub Guest");
+  const ticketCodeText = normalizePdfValue(ticket.ticketCode, "EVENTHUB-TICKET");
 
   const detailRows = [
-    { label: "DATE", value: normalizePdfValue(ticket.eventDate) },
-    { label: "TIME", value: normalizePdfValue(ticket.eventTime) },
     { label: "LOCATION", value: normalizePdfValue(ticket.location) },
     { label: "TICKET TYPE", value: normalizePdfValue(ticket.ticketType) },
     { label: "SEAT / ACCESS", value: normalizePdfValue(ticket.seatInfo) },
-    { label: "GUEST", value: normalizePdfValue(ticket.owner, "EventHub Guest") },
+    { label: "PRICE", value: normalizePdfValue(ticket.price) },
   ];
 
-  addPdfRect(commands, 0, 0, 595, 842, [0.965, 0.976, 0.992]);
-  addPdfRect(commands, 32, 42, 531, 758, [1, 1, 1]);
-  addPdfRect(commands, 32, 640, 531, 160, [0.118, 0.161, 0.329]);
-  addPdfRect(commands, 32, 634, 531, 8, [0.969, 0.514, 0.341]);
-  addPdfRect(commands, 378, 168, 151, 368, [0.129, 0.192, 0.404]);
-  addPdfRect(commands, 394, 438, 119, 62, [1, 1, 1]);
-  addPdfRect(commands, 64, 575, 270, 1.5, [0.859, 0.89, 0.941]);
+  addPdfRect(commands, 0, 0, 595, 842, [0.949, 0.96, 0.996]);
+  addPdfRect(commands, 40, 76, 515, 690, [1, 1, 1]);
+  addPdfRect(commands, 40, 440, 515, 326, [0.169, 0.165, 0.447]);
+  addPdfRect(commands, 40, 440, 320, 326, [0.169, 0.165, 0.447]);
+  addPdfRect(commands, 360, 440, 195, 326, [0.295, 0.274, 0.89]);
+  addPdfRect(commands, 386, 468, 143, 270, [0.949, 0.792, 0.412]);
+  addPdfRect(commands, 386, 468, 143, 92, [0.137, 0.224, 0.459]);
+  addPdfStrokeRect(commands, 398, 480, 119, 246, [1, 1, 1], 0.8);
+  addPdfRect(commands, 400, 76, 1.2, 364, [0.82, 0.847, 0.98]);
+  addPdfRect(commands, 64, 520, 116, 28, [0.36, 0.34, 0.69]);
+
+  const fieldBoxes = [
+    { x: 60, y: 324, width: 148, height: 98, ...detailRows[0] },
+    { x: 218, y: 324, width: 148, height: 98, ...detailRows[1] },
+    { x: 60, y: 208, width: 148, height: 98, ...detailRows[2] },
+    { x: 218, y: 208, width: 148, height: 98, ...detailRows[3] },
+    { x: 60, y: 92, width: 306, height: 98, label: "TICKET CODE", value: ticketCodeText },
+  ];
+
+  fieldBoxes.forEach(box => {
+    addPdfRect(commands, box.x, box.y, box.width, box.height, [0.968, 0.976, 1]);
+    addPdfStrokeRect(commands, box.x, box.y, box.width, box.height, [0.839, 0.882, 1], 0.9);
+  });
 
   addPdfText(commands, {
     text: "EVENTHUB ADMISSION PASS",
     x: 64,
-    y: 764,
+    y: 529,
     size: 11,
     font: "F2",
-    color: [0.847, 0.886, 0.969],
+    color: [1, 1, 1],
   });
 
   eventTitleLines.forEach((line, index) => {
     addPdfText(commands, {
       text: line,
       x: 64,
-      y: 714 - (index * 30),
-      size: 26,
+      y: 486 - (index * 32),
+      size: 29,
       font: "F2",
       color: [1, 1, 1],
     });
   });
 
   addPdfText(commands, {
-    text: "Your verified EventHub ticket is ready for entry.",
+    text: "This downloadable ticket was issued for verified EventHub",
     x: 64,
-    y: 648,
+    y: 420,
+    size: 12,
+    font: "F1",
+    color: [0.933, 0.945, 0.984],
+  });
+  addPdfText(commands, {
+    text: "registration. Present the ticket code at entry.",
+    x: 64,
+    y: 401,
     size: 12,
     font: "F1",
     color: [0.933, 0.945, 0.984],
   });
 
-  addPdfText(commands, {
-    text: "Ticket Details",
-    x: 64,
-    y: 592,
-    size: 18,
-    font: "F2",
-    color: [0.118, 0.161, 0.329],
-  });
-
-  detailRows.forEach((row, index) => {
-    const rowTop = 548 - (index * 72);
-
+  [
+    { label: "DATE", value: normalizePdfValue(ticket.eventDate), x: 64 },
+    { label: "TIME", value: normalizePdfValue(ticket.eventTime), x: 152 },
+    { label: "GUEST", value: ownerText, x: 242 },
+  ].forEach(item => {
     addPdfText(commands, {
-      text: row.label,
-      x: 64,
-      y: rowTop,
+      text: item.label,
+      x: item.x,
+      y: 330,
       size: 10,
       font: "F2",
-      color: [0.42, 0.482, 0.592],
+      color: [0.78, 0.83, 0.97],
     });
 
-    wrapPdfText(row.value, 30, 2).forEach((line, lineIndex) => {
+    wrapPdfText(item.value, item.label === "GUEST" ? 14 : 12, 2).forEach((line, lineIndex) => {
       addPdfText(commands, {
         text: line,
-        x: 64,
-        y: rowTop - 22 - (lineIndex * 18),
-        size: 16,
-        font: "F1",
-        color: [0.11, 0.129, 0.188],
+        x: item.x,
+        y: 304 - (lineIndex * 16),
+        size: 14,
+        font: "F2",
+        color: [1, 1, 1],
+      });
+    });
+  });
+
+  fieldBoxes.forEach(box => {
+    addPdfText(commands, {
+      text: box.label,
+      x: box.x + 14,
+      y: box.y + box.height - 28,
+      size: 10,
+      font: "F2",
+      color: [0.365, 0.447, 0.576],
+    });
+
+    wrapPdfText(box.value, box.width > 200 ? 28 : 15, box.width > 200 ? 2 : 3).forEach((line, index) => {
+      addPdfText(commands, {
+        text: line,
+        x: box.x + 14,
+        y: box.y + box.height - 58 - (index * 18),
+        size: box.width > 200 ? 18 : 16,
+        font: "F2",
+        color: [0.031, 0.122, 0.302],
       });
     });
   });
 
   addPdfText(commands, {
-    text: "Ticket Code",
-    x: 394,
-    y: 510,
-    size: 10,
+    text: "EventHub",
+    x: 418,
+    y: 332,
+    size: 24,
     font: "F2",
-    color: [0.8, 0.855, 0.965],
+    color: [0.145, 0.196, 0.482],
   });
 
-  wrapPdfText(ticket.ticketCode, 12, 2).forEach((line, index) => {
+  addPdfText(commands, {
+    text: "Keep this file with you. You can print it or show it from your",
+    x: 418,
+    y: 298,
+    size: 10.5,
+    font: "F1",
+    color: [0.357, 0.435, 0.58],
+  });
+  addPdfText(commands, {
+    text: "device at the venue.",
+    x: 418,
+    y: 282,
+    size: 10.5,
+    font: "F1",
+    color: [0.357, 0.435, 0.58],
+  });
+
+  addPdfRect(commands, 426, 180, 112, 76, [1, 1, 1]);
+  addPdfStrokeRect(commands, 426, 180, 112, 76, [0.839, 0.882, 1], 0.9);
+  for (let index = 0; index < 15; index += 1) {
+    const stripeX = 432 + (index * 7);
+    const stripeWidth = index % 3 === 0 ? 4 : (index % 2 === 0 ? 2 : 3);
+    addPdfRect(commands, stripeX, 190, stripeWidth, 56, index % 4 === 0 ? [0.306, 0.275, 0.898] : [0.149, 0.159, 0.404]);
+  }
+
+  wrapPdfText(ticketCodeText, 15, 2).forEach((line, index) => {
     addPdfText(commands, {
       text: line,
-      x: 394,
-      y: 484 - (index * 22),
-      size: 18,
+      x: 430,
+      y: 156 - (index * 16),
+      size: 13,
       font: "F2",
-      color: [1, 1, 1],
+      color: [0.145, 0.196, 0.482],
     });
   });
 
-  addPdfText(commands, {
-    text: "PRICE",
-    x: 410,
-    y: 478,
-    size: 10,
-    font: "F2",
-    color: [0.42, 0.482, 0.592],
-  });
-
-  addPdfText(commands, {
-    text: normalizePdfValue(ticket.price),
-    x: 410,
-    y: 454,
-    size: 20,
-    font: "F2",
-    color: [0.118, 0.161, 0.329],
-  });
-
-  addPdfText(commands, {
-    text: "STATUS",
-    x: 394,
-    y: 396,
-    size: 10,
-    font: "F2",
-    color: [0.8, 0.855, 0.965],
-  });
-
-  addPdfText(commands, {
-    text: "Ready for entry",
-    x: 394,
-    y: 372,
-    size: 16,
-    font: "F2",
-    color: [1, 1, 1],
-  });
-
-  wrapPdfText("Show this PDF at the venue or keep it saved on your phone.", 18, 4).forEach((line, index) => {
+  addPdfRect(commands, 418, 118, 118, 1, [0.839, 0.882, 1]);
+  wrapPdfText(`Issued on ${issueDateText}`, 22, 2).forEach((line, index) => {
     addPdfText(commands, {
       text: line,
-      x: 394,
-      y: 316 - (index * 18),
-      size: 11,
+      x: 418,
+      y: 96 - (index * 15),
+      size: 10.5,
       font: "F1",
-      color: [0.89, 0.918, 0.973],
-    });
-  });
-
-  addPdfText(commands, {
-    text: "Issued",
-    x: 394,
-    y: 214,
-    size: 10,
-    font: "F2",
-    color: [0.8, 0.855, 0.965],
-  });
-
-  wrapPdfText(issueDateText, 18, 2).forEach((line, index) => {
-    addPdfText(commands, {
-      text: line,
-      x: 394,
-      y: 190 - (index * 16),
-      size: 11,
-      font: "F1",
-      color: [1, 1, 1],
-    });
-  });
-
-  wrapPdfText("Keep this ticket with you. EventHub staff may ask for the ticket code during check-in.", 66, 2).forEach((line, index) => {
-    addPdfText(commands, {
-      text: line,
-      x: 64,
-      y: 110 - (index * 16),
-      size: 11,
-      font: "F1",
-      color: [0.365, 0.42, 0.51],
+      color: [0.357, 0.435, 0.58],
     });
   });
 
@@ -2371,6 +2587,11 @@ const updateRegisterModalPriceByCount = () => {
     registerModalTicketType.textContent = selectedTicketType;
   }
 
+  if (activeRegisterEventIsFree) {
+    registerModalPrice.textContent = "Free";
+    return;
+  }
+
   if (activeBaseEventPrice > 0) {
     registerModalPrice.textContent = formatPriceValue(activeBaseEventPrice * priceMultiplier * ticketCount);
     return;
@@ -2472,6 +2693,24 @@ const openRegisterModal = button => {
 
   if (registerModalSeatInfo) {
     registerModalSeatInfo.textContent = card.dataset.seatInfo || "-";
+  }
+
+  activeRegisterEventIsFree = String(card.dataset.ticketPricingMode || "").toLowerCase() === "free" || /free/i.test(card.dataset.price || "");
+
+  if (registerModalDescription) {
+    registerModalDescription.textContent = card.dataset.eventDescription || "No description available.";
+  }
+
+  if (registerModalOrganizerPhone) {
+    registerModalOrganizerPhone.textContent = card.dataset.organizerPhone || "Not provided";
+  }
+
+  if (registerPaymentMethod) {
+    registerPaymentMethod.disabled = activeRegisterEventIsFree;
+    registerPaymentMethod.required = !activeRegisterEventIsFree;
+    if (activeRegisterEventIsFree) {
+      registerPaymentMethod.value = "";
+    }
   }
 
   if (registerTicketCount) {
@@ -3113,8 +3352,50 @@ const loadProfile = async () => {
     applyUserProfile(data);
     setProfileStatus(profileDetailsStatus, "");
     setProfileStatus(profilePasswordStatus, "");
+    setProfileStatus(profileSubscriptionStatusMessage, "");
   } catch (error) {
     setProfileStatus(profileDetailsStatus, error.message || "Unable to load profile.", true);
+  }
+};
+
+const purchaseSubscriptionPlan = async (planId, paymentMethod, actionButton) => {
+  const normalizedPlanId = String(planId || "").trim().toLowerCase();
+  if (!normalizedPlanId) {
+    setProfileStatus(profileSubscriptionStatusMessage, "Please select a valid subscription plan.", true);
+    return;
+  }
+
+  const normalizedMethod = String(paymentMethod || "card").trim().toLowerCase() || "card";
+  const originalLabel = actionButton?.textContent || "Buy Now";
+  if (actionButton) {
+    actionButton.disabled = true;
+    actionButton.textContent = "Processing...";
+  }
+  setProfileStatus(profileSubscriptionStatusMessage, "Activating subscription...");
+
+  try {
+    const response = await fetch(`${getContextPath()}/purchase-subscription`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+        "Accept": "application/json",
+      },
+      body: new URLSearchParams({
+        planId: normalizedPlanId,
+        paymentMethod: normalizedMethod,
+      }).toString(),
+    });
+    const data = await readJsonResponse(response, "Unable to activate subscription.");
+    await loadProfile();
+    closeSubscriptionModal();
+    setProfileStatus(profileSubscriptionStatusMessage, data.message || "Subscription activated successfully.");
+  } catch (error) {
+    setProfileStatus(profileSubscriptionStatusMessage, error.message || "Unable to activate subscription.", true);
+  } finally {
+    if (actionButton) {
+      actionButton.disabled = false;
+      actionButton.textContent = originalLabel;
+    }
   }
 };
 
@@ -3192,6 +3473,7 @@ const initializeTicketFilters = () => {
 
 const initializeBookingFilters = () => {
   const liveBookingItems = document.querySelectorAll("#bookingsList .booking-item");
+  const activeTopBookingSearch = bookingsSearchTop || topbarBrowseSearch;
 
   if (!bookingsList) {
     return;
@@ -3204,13 +3486,22 @@ const initializeBookingFilters = () => {
     return;
   }
 
+  let activeBookingFilter = document.querySelector("[data-booking-filter].active")?.dataset.bookingFilter || "all";
+
   const updateBookingResults = () => {
     const searchValue = bookingsSearch.value.trim().toLowerCase();
     let visibleCount = 0;
 
     liveBookingItems.forEach(item => {
+      const bookingStatus = String(item.dataset.bookingStatus || "").toLowerCase();
+      const isUpcoming = item.dataset.bookingUpcoming === "true";
       const searchableText = item.dataset.bookingSearch?.toLowerCase() || "";
-      const shouldShow = !searchValue || searchableText.includes(searchValue);
+      const matchesSearch = !searchValue || searchableText.includes(searchValue);
+      const matchesFilter = activeBookingFilter === "all"
+        || (activeBookingFilter === "upcoming" && isUpcoming)
+        || (activeBookingFilter === "active" && bookingStatus === "active")
+        || bookingStatus === activeBookingFilter;
+      const shouldShow = matchesSearch && matchesFilter;
 
       item.hidden = !shouldShow;
 
@@ -3225,6 +3516,10 @@ const initializeBookingFilters = () => {
 
     if (bookingsEmptyState) {
       bookingsEmptyState.hidden = visibleCount !== 0;
+      if (visibleCount === 0 && liveBookingItems.length) {
+        bookingsEmptyState.querySelector("h4").textContent = "No bookings found";
+        bookingsEmptyState.querySelector("p").textContent = "Try another search term or choose a different filter.";
+      }
     }
   };
 
@@ -3234,6 +3529,37 @@ const initializeBookingFilters = () => {
 
   bookingsSearch._bookingUpdateHandler = updateBookingResults;
   bookingsSearch.addEventListener("input", updateBookingResults);
+
+  if (activeTopBookingSearch && activeTopBookingSearch.dataset.filtersBound !== "true") {
+    activeTopBookingSearch.addEventListener("input", () => {
+      bookingsSearch.value = activeTopBookingSearch.value;
+      updateBookingResults();
+    });
+
+    bookingsSearch.addEventListener("input", () => {
+      activeTopBookingSearch.value = bookingsSearch.value;
+    });
+
+    activeTopBookingSearch.dataset.filtersBound = "true";
+  }
+
+  bookingFilterButtons.forEach(button => {
+    if (button.dataset.filtersBound === "true") {
+      return;
+    }
+
+    button.addEventListener("click", () => {
+      activeBookingFilter = button.dataset.bookingFilter || "all";
+
+      bookingFilterButtons.forEach(item => item.classList.remove("active"));
+      button.classList.add("active");
+
+      updateBookingResults();
+    });
+
+    button.dataset.filtersBound = "true";
+  });
+
   updateBookingResults();
 };
 
@@ -3269,6 +3595,30 @@ if (profileDetailsForm) {
   loadProfile();
 }
 
+profileSubscriptionExploreBtn?.addEventListener("click", () => {
+  openSubscriptionModal();
+});
+
+profileSubscriptionClose?.addEventListener("click", () => {
+  closeSubscriptionModal();
+});
+
+profileSubscriptionBackdrop?.addEventListener("click", () => {
+  closeSubscriptionModal();
+});
+
+profileSubscriptionPlanGrid?.addEventListener("click", event => {
+  const actionButton = event.target.closest("[data-subscription-buy]");
+  if (!actionButton) {
+    return;
+  }
+
+  const planId = String(actionButton.dataset.subscriptionBuy || "").trim().toLowerCase();
+  const paymentSelect = profileSubscriptionPlanGrid.querySelector(`[data-subscription-payment="${planId}"]`);
+  const paymentMethod = String(paymentSelect?.value || "card").trim().toLowerCase();
+  purchaseSubscriptionPlan(planId, paymentMethod, actionButton);
+});
+
 if (dateStrip && calendarTimeline) {
   loadCalendarEvents();
 }
@@ -3303,69 +3653,60 @@ if (dashboardUpcomingEvents || dashboardTicketsGrid || dashboardHistoryBody || t
 }
 
 // Profile image upload
-if (uploadBtn && profileImageInput) {
-  uploadBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    profileImageInput.click();
-  });
+uploadBtn?.addEventListener("click", () => {
+  profileImageInput?.click();
+});
 
-  profileImageInput.addEventListener("change", async () => {
-    const file = profileImageInput.files[0];
-    if (!file) {
-      return;
+profileImageInput?.addEventListener("change", async () => {
+  const file = profileImageInput.files?.[0];
+  if (!file) {
+    return;
+  }
+
+  const isAllowedType = ["image/jpeg", "image/jpg", "image/png"].includes(String(file.type).toLowerCase());
+  if (!isAllowedType) {
+    setProfileStatus(profileDetailsStatus, "Only JPG/PNG images are allowed.", true);
+    profileImageInput.value = "";
+    return;
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    setProfileStatus(profileDetailsStatus, "Image size must be 2MB or less.", true);
+    profileImageInput.value = "";
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("image", file);
+  setProfileStatus(profileDetailsStatus, "Uploading photo...");
+
+  try {
+    const response = await fetch(`${getContextPath()}/upload-profile-image`, {
+      method: "POST",
+      body: formData,
+      headers: {
+        "Accept": "application/json"
+      }
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "Unable to upload photo.");
     }
-
-    const isAllowedType = ["image/jpeg", "image/jpg", "image/png"].includes(String(file.type).toLowerCase());
-    if (!isAllowedType) {
-      setProfileStatus(profileDetailsStatus, "Only JPG/PNG images are allowed.", true);
-      profileImageInput.value = "";
-      return;
-    }
-
-    if (file.size > 2 * 1024 * 1024) {
-      setProfileStatus(profileDetailsStatus, "Image size must be 2MB or less.", true);
-      profileImageInput.value = "";
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("image", file);
-
-    try {
-      setProfileStatus(profileDetailsStatus, "");
-      uploadBtn.textContent = "Uploading...";
-      uploadBtn.disabled = true;
-
-      const response = await fetch("/upload-profile-image", {
-        method: "POST",
-        headers: {
-          "Accept": "application/json"
-        },
-        body: formData
-      });
-
-      const data = await readJsonResponse(response, "Upload failed. Please try again.");
-      const imageUrl = String(data.imageUrl || "").trim();
-      const cacheSafeImageUrl = imageUrl ? `${imageUrl}?t=${Date.now()}` : "";
-
-      applyUserProfile({
-        userName: document.querySelector("[data-user-name]")?.textContent || "EventHub User",
-        userEmail: profileEmail?.value || currentUserEmail || "",
-        userRole: profileRole?.value || "user",
-        phone: profilePhone?.value || "",
-        bio: profileBio?.value || "",
-        profileImage: cacheSafeImageUrl || data.profileImage || data.profile_image || "",
-      });
-      setProfileStatus(profileDetailsStatus, data.message || "Profile image uploaded successfully.");
-    } catch (error) {
-      setProfileStatus(profileDetailsStatus, error.message || "Upload failed. Please try again.", true);
-    } finally {
-      uploadBtn.textContent = "Upload Photo";
-      uploadBtn.disabled = false;
-      profileImageInput.value = "";
-    }
-  });
-}
+    applyUserProfile({
+      userName: document.querySelector("[data-user-name]")?.textContent || "EventHub User",
+      userEmail: profileEmail?.value || currentUserEmail || "",
+      userRole: profileRole?.value || "user",
+      phone: profilePhone?.value || "",
+      bio: profileBio?.value || "",
+      profileImage: data.imageUrl,
+    });
+    setProfileStatus(profileDetailsStatus, data.message || "Photo uploaded successfully.");
+  } catch (error) {
+    setProfileStatus(profileDetailsStatus, error.message || "Unable to upload photo.", true);
+  } finally {
+    profileImageInput.value = "";
+  }
+});
 
 loadUserDashboard();
 
@@ -3972,8 +4313,13 @@ registerEventForm?.addEventListener("submit", async event => {
     return;
   }
 
-  if (!attendeeName || !attendeeEmail || !attendeePhone || !ticketType || !city || !paymentMethod || !address) {
+  if (!attendeeName || !attendeeEmail || !attendeePhone || !ticketType || !city || !address) {
     setRegisterFormStatus("Please complete the required form fields.", true);
+    return;
+  }
+
+  if (!activeRegisterEventIsFree && !paymentMethod) {
+    setRegisterFormStatus("Please select a payment method for paid events.", true);
     return;
   }
 
@@ -3985,7 +4331,7 @@ registerEventForm?.addEventListener("submit", async event => {
   formPayload.set("ticketType", ticketType);
   formPayload.set("ticketCount", ticketCount);
   formPayload.set("city", city);
-  formPayload.set("paymentMethod", paymentMethod);
+  formPayload.set("paymentMethod", activeRegisterEventIsFree ? "free" : paymentMethod);
   formPayload.set("address", address);
   formPayload.set("specialRequest", specialRequest);
   formPayload.set("consentAccepted", registerConsent.checked ? "true" : "false");
@@ -4161,6 +4507,7 @@ reviewForm?.addEventListener("submit", event => {
 
 document.addEventListener("keydown", event => {
   if (event.key === "Escape") {
+    closeSubscriptionModal();
     closeLogoutModal();
     closeReviewModal();
     closeShareModal();

@@ -39,6 +39,18 @@
           Browse
         </button>
       </li>
+      <li data-admin-nav-item>
+        <button type="button" class="admin-menu-btn" data-section-target="subscriptions">
+          <i class="fa-solid fa-layer-group"></i>
+          Subscription Module
+        </button>
+      </li>
+      <li data-admin-nav-item>
+        <button type="button" class="admin-menu-btn" data-section-target="payments">
+          <i class="fa-solid fa-wallet"></i>
+          Payment & Revenue
+        </button>
+      </li>
       <li>
         <a href="/assets/dashboard/admin/profile.html">
           <i class="fa-regular fa-circle-user"></i>
@@ -77,7 +89,7 @@
       <h2 id="adminSectionTitle">Admin Dashboard</h2>
 
       <div class="top-actions">
-        <input type="text" placeholder="Search organizers, users, events..." class="searchbox" id="adminGlobalSearch">
+        <input type="text" placeholder="Search organizers, users, events, plans, or payments..." class="searchbox" id="adminGlobalSearch">
         <button class="primary-btn" type="button" id="adminPrimaryAction">Browse Events</button>
         <img class="avatar topbar-profile-link" src="/assets/dashboard/images/logo1.png" alt="Admin avatar" data-admin-avatar onclick="window.location.href='/assets/dashboard/admin/profile.html'">
       </div>
@@ -149,10 +161,15 @@
             <span>Browse Events</span>
             <small>Inspect the same live event feed visible to attendees.</small>
           </div>
+          <div class="action-card orange" data-section-shortcut="subscriptions">
+            <i class="fa-solid fa-layer-group"></i>
+            <span>Subscriptions</span>
+            <small>Review plan mix, renewal state, and accounts needing follow-up.</small>
+          </div>
           <div class="action-card orange" id="adminRevenueAction">
             <i class="fa-solid fa-wallet"></i>
-            <span>Revenue Snapshot</span>
-            <small>Highlight the strongest revenue drivers this cycle.</small>
+            <span>Payment & Revenue</span>
+            <small>Track payments, method mix, and top-performing organizers.</small>
           </div>
           <div class="action-card pink" id="adminSupportAction">
             <i class="fa-solid fa-headset"></i>
@@ -188,12 +205,26 @@
             <h3>Manage Organizer</h3>
             <p>Review organizer activity, track event performance, and take action on accounts that need attention.</p>
           </div>
-          <div class="admin-inline-tools">
-            <input type="search" id="organizerSearch" class="admin-inline-search" placeholder="Search organizer or event name">
+        </div>
+        <div class="admin-directory-controls">
+          <div class="admin-directory-search-panel">
+            <div class="admin-directory-search-input">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input type="search" id="organizerSearch" placeholder="Search organizers, emails, phones, or event names">
+            </div>
+          </div>
+          <div class="admin-directory-filter-group" aria-label="Filter organizers">
+            <button type="button" class="admin-directory-filter-btn active" data-organizer-filter="all">All</button>
+            <button type="button" class="admin-directory-filter-btn" data-organizer-filter="active">Active</button>
+            <button type="button" class="admin-directory-filter-btn" data-organizer-filter="warned">Warned</button>
+            <button type="button" class="admin-directory-filter-btn" data-organizer-filter="published">Published</button>
+            <button type="button" class="admin-directory-filter-btn" data-organizer-filter="draft">Draft</button>
           </div>
         </div>
-
-        <div class="organizer-revenue-metrics admin-kpi-grid admin-mini-grid" id="organizerMiniStats"></div>
+        <div class="admin-table-head admin-directory-results-head">
+          <h3>Organizers</h3>
+          <span id="organizerResultsCount">0 organizers</span>
+        </div>
         <div class="admin-directory-grid" id="organizerGrid"></div>
       </div>
     </section>
@@ -205,12 +236,22 @@
             <h3>Manage User</h3>
             <p>Monitor user registrations, spend, status, and upcoming event activity from one table.</p>
           </div>
-          <div class="admin-inline-tools">
-            <input type="search" id="userSearch" class="admin-inline-search" placeholder="Search user, city, or email">
+        </div>
+        <div class="admin-directory-controls">
+          <div class="admin-directory-search-panel">
+            <div class="admin-directory-search-input">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input type="search" id="userSearch" placeholder="Search users, emails, cities, or status">
+            </div>
+          </div>
+          <div class="admin-directory-filter-group" aria-label="Filter users">
+            <button type="button" class="admin-directory-filter-btn active" data-user-filter="all">All</button>
+            <button type="button" class="admin-directory-filter-btn" data-user-filter="active">Active</button>
+            <button type="button" class="admin-directory-filter-btn" data-user-filter="warned">Warned</button>
+            <button type="button" class="admin-directory-filter-btn" data-user-filter="removed">Removed</button>
+            <button type="button" class="admin-directory-filter-btn" data-user-filter="upcoming">Upcoming</button>
           </div>
         </div>
-
-        <div class="organizer-revenue-metrics admin-kpi-grid admin-mini-grid" id="userMiniStats"></div>
         <div class="admin-user-table-wrap">
           <div class="admin-table-head">
             <h3>Users</h3>
@@ -253,6 +294,132 @@
           <span id="adminBrowseResultsCount">0 events</span>
         </div>
         <div class="admin-browse-grid" id="adminBrowseResults"></div>
+      </div>
+    </section>
+
+    <section class="admin-section admin-directory-section" data-section="subscriptions" hidden>
+      <div class="card">
+        <div class="admin-section-head">
+          <div>
+            <h3>Subscription Module</h3>
+            <p>Track user and organizer subscriptions, renewal state, and accounts that need plan or billing follow-up.</p>
+          </div>
+        </div>
+
+        <div class="admin-subscription-plan-grid" id="adminSubscriptionPlans"></div>
+
+        <div class="admin-directory-controls">
+          <div class="admin-directory-search-panel">
+            <div class="admin-directory-search-input">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input type="search" id="adminSubscriptionSearch" placeholder="Search subscribers, emails, plans, roles, or renewal status">
+            </div>
+          </div>
+          <div class="admin-directory-filter-group" aria-label="Filter subscriptions">
+            <button type="button" class="admin-directory-filter-btn active" data-subscription-filter="all">All</button>
+            <button type="button" class="admin-directory-filter-btn" data-subscription-filter="active">Active</button>
+            <button type="button" class="admin-directory-filter-btn" data-subscription-filter="review">Review</button>
+            <button type="button" class="admin-directory-filter-btn" data-subscription-filter="past_due">Past Due</button>
+            <button type="button" class="admin-directory-filter-btn" data-subscription-filter="premium">Premium</button>
+          </div>
+        </div>
+
+        <div class="admin-table-head">
+          <h3>Active Subscriptions</h3>
+          <span id="adminSubscriptionResultsCount">0 subscriptions</span>
+        </div>
+        <div class="manage-users-table-scroll">
+          <table class="manage-users-table admin-user-table admin-subscription-table">
+            <thead>
+              <tr>
+                <th>Subscriber</th>
+                <th>Role</th>
+                <th>Plan</th>
+                <th>Status</th>
+                <th>Monthly Fee</th>
+                <th>Next Billing</th>
+                <th>Usage</th>
+                <th>Value</th>
+              </tr>
+            </thead>
+            <tbody id="adminSubscriptionTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-section admin-directory-section" data-section="payments" hidden>
+      <div class="card">
+        <div class="admin-section-head">
+          <div>
+            <h3>Payment & Revenue</h3>
+            <p>Monitor bookings and subscriptions, payment-method mix, revenue trend, and top-performing organizers.</p>
+          </div>
+        </div>
+
+        <div class="admin-payment-summary-grid" id="adminPaymentSummaryGrid"></div>
+
+        <div class="admin-payment-layout">
+          <div class="admin-payment-panel">
+            <div class="admin-table-head">
+              <h3>Monthly Revenue Trend</h3>
+              <span>Latest 6 cycles</span>
+            </div>
+            <div class="admin-revenue-bars" id="adminPaymentTrendBars"></div>
+          </div>
+          <div class="admin-payment-panel">
+            <div class="admin-table-head">
+              <h3>Payment Method Mix</h3>
+              <span>Bookings + subscriptions</span>
+            </div>
+            <div class="admin-payment-methods-grid" id="adminPaymentMethodsGrid"></div>
+          </div>
+          <div class="admin-payment-panel">
+            <div class="admin-table-head">
+              <h3>Top Revenue Organizers</h3>
+              <span>Highest booking totals</span>
+            </div>
+            <div class="admin-top-organizer-grid" id="adminTopRevenueOrganizers"></div>
+          </div>
+        </div>
+
+        <div class="admin-directory-controls">
+          <div class="admin-directory-search-panel">
+            <div class="admin-directory-search-input">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input type="search" id="adminPaymentSearch" placeholder="Search payers, items, payment methods, or transaction type">
+            </div>
+          </div>
+          <div class="admin-directory-filter-group" aria-label="Filter payments">
+            <button type="button" class="admin-directory-filter-btn active" data-payment-filter="all">All</button>
+            <button type="button" class="admin-directory-filter-btn" data-payment-filter="subscription">Subscriptions</button>
+            <button type="button" class="admin-directory-filter-btn" data-payment-filter="upi">UPI</button>
+            <button type="button" class="admin-directory-filter-btn" data-payment-filter="card">Card</button>
+            <button type="button" class="admin-directory-filter-btn" data-payment-filter="wallet">Wallet</button>
+            <button type="button" class="admin-directory-filter-btn" data-payment-filter="cancelled">Cancelled</button>
+          </div>
+        </div>
+
+        <div class="admin-table-head">
+          <h3>Recent Payments</h3>
+          <span id="adminPaymentsResultsCount">0 payments</span>
+        </div>
+        <div class="manage-users-table-scroll">
+          <table class="manage-users-table admin-user-table admin-payments-table">
+            <thead>
+              <tr>
+                <th>Payer</th>
+                <th>Source</th>
+                <th>Item</th>
+                <th>Method</th>
+                <th>Status</th>
+                <th>Amount</th>
+                <th>Paid On</th>
+              </tr>
+            </thead>
+            <tbody id="adminPaymentsTableBody"></tbody>
+          </table>
+        </div>
       </div>
     </section>
   </main>
