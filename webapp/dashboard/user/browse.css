@@ -1,0 +1,75 @@
+/* Responsive fallback styles for standalone browse layouts. */
+*{
+  box-sizing:border-box;
+}
+
+img,
+video{
+  max-width:100%;
+  height:auto;
+}
+
+.browse-grid,
+.category-grid,
+.events-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:18px;
+}
+
+.browse-toolbar,
+.browse-header,
+.browse-filters,
+.browse-actions{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.browse-search,
+.searchbox,
+input[type="search"],
+input[type="text"]{
+  max-width:100%;
+}
+
+@media (max-width:900px){
+  .browse-layout,
+  .browse-content,
+  .browse-main{
+    grid-template-columns:1fr;
+  }
+
+  .browse-toolbar,
+  .browse-header{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+}
+
+@media (max-width:600px){
+  .browse-grid,
+  .category-grid,
+  .events-grid{
+    grid-template-columns:1fr;
+  }
+
+  .browse-card,
+  .category-card,
+  .event-card{
+    width:100%;
+  }
+
+  .browse-actions,
+  .browse-filters{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  button,
+  .btn,
+  .primary-btn{
+    width:100%;
+  }
+}

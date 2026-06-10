@@ -111,7 +111,10 @@
         <h3>Upcoming Managed Events</h3>
         <br>
         <hr>
-        <div id="organizerManagedEvents"></div>
+        <div id="organizerManagedEvents" class="organizer-dashboard-events"></div>
+        <button type="button" class="dashboard-load-more-btn" id="organizerManagedEventsLoadMoreBtn" hidden>
+          Load More
+        </button>
       </div>
 
       <div class="card">
@@ -120,32 +123,26 @@
           <div class="action-card blue" id="organizerQuickCreateAction" onclick="window.location.href='/assets/dashboard/organizer/create.html'">
             <i class="fa-solid fa-plus"></i>
             <span>Create Event</span>
-            <small id="organizerQuickCreateMeta">Start a new event</small>
           </div>
           <div class="action-card green" id="organizerQuickAttendeesAction" onclick="window.location.href='/assets/dashboard/organizer/manageusers.html'">
             <i class="fa-solid fa-users"></i>
             <span>View Attendees</span>
-            <small id="organizerQuickAttendeesMeta">Track registrations live</small>
           </div>
           <div class="action-card purple" id="organizerQuickPromoteAction" onclick="window.location.href='/assets/dashboard/organizer/myevents.html'">
             <i class="fa-solid fa-bullhorn"></i>
             <span>Promote Event</span>
-            <small id="organizerQuickPromoteMeta">Highlight your next event</small>
           </div>
           <div class="action-card teal" id="openOrganizerAnalyticsAction" onclick="window.location.href='/assets/dashboard/organizer/analytics.html'">
             <i class="fa-solid fa-chart-line"></i>
             <span>View Analytics</span>
-            <small id="organizerQuickAnalyticsMeta">Measure performance</small>
           </div>
           <div class="action-card orange" id="organizerQuickTicketsAction" onclick="window.location.href='/assets/dashboard/organizer/manageusers.html'">
             <i class="fa-solid fa-ticket"></i>
             <span>Manage Tickets</span>
-            <small id="organizerQuickTicketsMeta">Review attendee tickets</small>
           </div>
           <div class="action-card pink" onclick="window.location.href='/assets/dashboard/organizer/support.html'">
             <i class="fa-solid fa-circle-info"></i>
             <span>Support</span>
-            <small id="organizerQuickSupportMeta">Help and setup tips</small>
           </div>
         </div>
       </div>
@@ -155,31 +152,35 @@
         <ul class="activity" id="organizerActivityList"></ul>
       </div>
 
-      <div class="card revenue-card">
-        <div class="revenue-header">
-          <h3>Revenue Overview</h3>
-          <select id="organizerRevenueOverviewFilter">
-            <option value="all">All Events</option>
-            <option value="published">Published Only</option>
-            <option value="active">Active Only</option>
-          </select>
+      <div class="organizer-dashboard-insights">
+        <div class="card revenue-card">
+          <div class="revenue-header">
+            <h3>Revenue Overview</h3>
+            <select id="organizerRevenueOverviewFilter">
+              <option value="all">All Events</option>
+              <option value="published">Published Only</option>
+              <option value="active">Active Only</option>
+            </select>
+          </div>
+
+          <div class="chart-area organizer-chart-placeholder">
+            <strong id="organizerRevenueHeadline">Revenue growing across active events</strong>
+            <p id="organizerRevenueSummary">Use analytics to monitor registrations, payouts, and conversion trends.</p>
+            <div class="organizer-revenue-metrics" id="organizerRevenueMetrics"></div>
+          </div>
         </div>
 
-        <div class="chart-area organizer-chart-placeholder">
-          <strong id="organizerRevenueHeadline">Revenue growing across active events</strong>
-          <p id="organizerRevenueSummary">Use analytics to monitor registrations, payouts, and conversion trends.</p>
-          <div class="organizer-revenue-metrics" id="organizerRevenueMetrics"></div>
+        <div class="organizer-dashboard-side-stack">
+          <div class="card">
+            <h3>Analytics Activity</h3>
+            <ul class="sales-list" id="organizerSalesList"></ul>
+          </div>
+
+          <div class="card">
+            <h3>Event Notifications</h3>
+            <ul class="notification-list" id="organizerNotificationsList"></ul>
+          </div>
         </div>
-      </div>
-
-      <div class="card">
-        <h3>Analytics Activity</h3>
-        <ul class="sales-list" id="organizerSalesList"></ul>
-      </div>
-
-      <div class="card">
-        <h3>Event Notifications</h3>
-        <ul class="notification-list" id="organizerNotificationsList"></ul>
       </div>
     </section>
 

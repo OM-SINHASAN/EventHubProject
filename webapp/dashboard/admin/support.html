@@ -5,6 +5,7 @@
   <title>Admin Support</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/assets/dashboard/user/user.css">
+  <link rel="stylesheet" href="/assets/dashboard/admin/admin.css">
   <link rel="icon" href="/assets/dashboard/images/logo1.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
@@ -23,23 +24,23 @@
       <li>
         <a href="/dashboard/admin?section=users"><i class="fa-solid fa-users"></i>Manage User</a>
       </li>
-      <li data-admin-nav-item>
-        <button type="button" class="admin-menu-btn" data-section-target="browse">
+      <li>
+        <a href="/dashboard/admin?section=browse">
           <i class="fa-solid fa-magnifying-glass"></i>
           Browse
-        </button>
+        </a>
       </li>
-      <li data-admin-nav-item>
-        <button type="button" class="admin-menu-btn" data-section-target="subscriptions">
+      <li>
+        <a href="/dashboard/admin?section=subscriptions">
           <i class="fa-solid fa-layer-group"></i>
           Subscription Module
-        </button>
+        </a>
       </li>
-      <li data-admin-nav-item>
-        <button type="button" class="admin-menu-btn" data-section-target="payments">
+      <li>
+        <a href="/dashboard/admin?section=payments">
           <i class="fa-solid fa-wallet"></i>
           Payment & Revenue
-        </button>
+        </a>
       </li>
       <li>
         <a href="/assets/dashboard/admin/profile.html"><i class="fa-regular fa-circle-user"></i>My Profile</a>
@@ -74,6 +75,10 @@
       <div class="top-actions">
         <input type="text" placeholder="Search admin tools..." class="searchbox">
         <button class="primary-btn" onclick="window.location.href='/dashboard/admin'">Open Panel</button>
+        <button class="admin-theme-toggle" type="button" id="adminThemeToggle" aria-label="Toggle dark mode" title="Toggle dark mode">
+          <i class="fa-regular fa-moon" id="adminThemeDarkIcon"></i>
+          <i class="fa-regular fa-sun hidden" id="adminThemeLightIcon"></i>
+        </button>
         <img class="avatar topbar-profile-link" src="/assets/dashboard/images/logo1.png" alt="Admin avatar" data-user-avatar onclick="window.location.href='/assets/dashboard/admin/profile.html'">
       </div>
     </header>
@@ -118,5 +123,6 @@
   </main>
 </div>
 </body>
+<script src="/assets/dashboard/admin/admin-theme.js"></script>
 <script src="/assets/dashboard/user/user.js"></script>
 </html>

@@ -87,6 +87,11 @@
         <br>
         <hr>
         <div class="organizer-events-grid" id="organizerEventsList"></div>
+        <div class="tickets-empty-state" id="organizerEventsEmptyState" hidden>
+          <i class="fa-regular fa-calendar-xmark"></i>
+          <h4>No events found</h4>
+          <p>Try another search term or switch the event status filter.</p>
+        </div>
       </div>
     </section>
   </main>
@@ -105,6 +110,7 @@
       <input type="hidden" id="organizerEventEditTicketMode" name="ticketPricingMode" value="paid">
       <input type="hidden" id="organizerEventEditPaymentMethods" name="paymentMethods" value="upi,netbanking,cash,wallet,card">
       <input type="hidden" id="organizerEventEditUpiQrUrl" name="upiQrUrl" value="">
+      <input type="hidden" id="organizerEventEditPaymentDetails" name="paymentDetails" value="{}">
       <div class="grid">
         <input type="text" id="organizerEventEditTitleInput" name="eventTitle" placeholder="Event title" required>
         <select id="organizerEventEditCategory" name="eventCategory" required>
@@ -128,6 +134,9 @@
       </div>
       <div id="organizerEventEditVenueWrap">
         <input type="text" id="organizerEventEditVenue" name="venueAddress" placeholder="Venue address" required>
+      </div>
+      <div class="grid">
+        <input type="tel" id="organizerEventEditContactPhone" name="eventContactPhone" placeholder="Event contact number" autocomplete="tel">
       </div>
       <div class="organizer-modal-toggle" id="organizerEventTicketToggle">
         <button type="button" class="active" data-ticket-mode="paid">Paid</button>
@@ -179,6 +188,41 @@
           </div>
           <small id="organizerEventEditQrMeta">No QR code uploaded</small>
           <img id="organizerEventEditQrPreview" class="payment-qr-preview" src="" alt="Event UPI QR preview" hidden>
+        </div>
+        <div class="payment-detail-panels">
+          <div class="payment-detail-panel" data-edit-payment-detail-panel="netbanking">
+            <h4>Net Banking Details</h4>
+            <div class="grid">
+              <input type="text" data-edit-payment-detail="netbanking.accountName" placeholder="Account holder name">
+              <input type="text" data-edit-payment-detail="netbanking.bankName" placeholder="Bank name">
+              <input type="text" data-edit-payment-detail="netbanking.accountNumber" placeholder="Account number">
+              <input type="text" data-edit-payment-detail="netbanking.ifsc" placeholder="IFSC code">
+            </div>
+            <input type="text" data-edit-payment-detail="netbanking.branch" placeholder="Branch / additional banking note">
+          </div>
+          <div class="payment-detail-panel" data-edit-payment-detail-panel="card">
+            <h4>Credit / Debit Card Details</h4>
+            <div class="grid">
+              <input type="text" data-edit-payment-detail="card.merchantName" placeholder="Merchant / receiver name">
+              <input type="text" data-edit-payment-detail="card.cardHolderName" placeholder="Card holder name">
+              <input type="text" data-edit-payment-detail="card.cardNumber" placeholder="Card number or payment reference">
+              <input type="text" data-edit-payment-detail="card.expiry" placeholder="Expiry / valid through">
+            </div>
+          </div>
+          <div class="payment-detail-panel" data-edit-payment-detail-panel="wallet">
+            <h4>Wallet Details</h4>
+            <div class="grid">
+              <input type="text" data-edit-payment-detail="wallet.walletName" placeholder="Wallet name">
+              <input type="text" data-edit-payment-detail="wallet.walletId" placeholder="Wallet ID / mobile number">
+            </div>
+          </div>
+          <div class="payment-detail-panel" data-edit-payment-detail-panel="cash">
+            <h4>Cash Collection Details</h4>
+            <div class="grid">
+              <input type="text" data-edit-payment-detail="cash.receiverName" placeholder="Receiver name">
+              <input type="text" data-edit-payment-detail="cash.venueNote" placeholder="Counter / venue note">
+            </div>
+          </div>
         </div>
       </div>
       <textarea rows="4" id="organizerEventEditDescription" name="eventDescription" placeholder="Event description"></textarea>

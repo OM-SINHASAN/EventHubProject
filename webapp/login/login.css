@@ -227,3 +227,28 @@
     text-align: center;
   }
 }
+
+@media (max-width: 520px) {
+  .auth-wrapper {
+    align-items: flex-start;
+    padding: 14px;
+  }
+
+  .auth-card {
+    border-radius: 14px;
+  }
+
+  .auth-info,
+  .auth-form {
+    padding: 28px 22px;
+  }
+
+  .auth-info h2 {
+    font-size: 26px;
+  }
+
+  .role-select {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
