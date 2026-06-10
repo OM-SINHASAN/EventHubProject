@@ -91,6 +91,10 @@
       <div class="top-actions">
         <input type="text" placeholder="Search organizers, users, events, plans, or payments..." class="searchbox" id="adminGlobalSearch">
         <button class="primary-btn" type="button" id="adminPrimaryAction">Browse Events</button>
+        <button class="admin-theme-toggle" type="button" id="adminThemeToggle" aria-label="Toggle dark mode" title="Toggle dark mode">
+          <i class="fa-regular fa-moon" id="adminThemeDarkIcon"></i>
+          <i class="fa-regular fa-sun hidden" id="adminThemeLightIcon"></i>
+        </button>
         <img class="avatar topbar-profile-link" src="/assets/dashboard/images/logo1.png" alt="Admin avatar" data-admin-avatar onclick="window.location.href='/assets/dashboard/admin/profile.html'">
       </div>
     </header>
@@ -149,32 +153,26 @@
           <div class="action-card blue" data-section-shortcut="organizers">
             <i class="fa-solid fa-user-tie"></i>
             <span>Review Organizers</span>
-            <small>Inspect organizer health and event performance.</small>
           </div>
           <div class="action-card green" data-section-shortcut="users">
             <i class="fa-solid fa-user-check"></i>
             <span>Audit Users</span>
-            <small>Check signups, spend, and flagged accounts.</small>
           </div>
           <div class="action-card teal" data-section-shortcut="browse">
             <i class="fa-solid fa-magnifying-glass"></i>
             <span>Browse Events</span>
-            <small>Inspect the same live event feed visible to attendees.</small>
           </div>
           <div class="action-card orange" data-section-shortcut="subscriptions">
             <i class="fa-solid fa-layer-group"></i>
             <span>Subscriptions</span>
-            <small>Review plan mix, renewal state, and accounts needing follow-up.</small>
           </div>
           <div class="action-card orange" id="adminRevenueAction">
             <i class="fa-solid fa-wallet"></i>
             <span>Payment & Revenue</span>
-            <small>Track payments, method mix, and top-performing organizers.</small>
           </div>
           <div class="action-card pink" id="adminSupportAction">
             <i class="fa-solid fa-headset"></i>
             <span>Support Queue</span>
-            <small>Review open support pressure and admin tasks.</small>
           </div>
         </div>
       </div>
@@ -502,6 +500,7 @@
   </div>
 </div>
 
+<script src="/assets/dashboard/admin/admin-theme.js"></script>
 <script src="/assets/dashboard/admin/admin.js"></script>
 </body>
 </html>

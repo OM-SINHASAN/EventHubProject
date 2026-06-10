@@ -2,6 +2,362 @@
   display:none !important;
 }
 
+.hidden{
+  display:none !important;
+}
+
+.admin-theme-toggle{
+  width:40px;
+  height:40px;
+  border:none;
+  border-radius:10px;
+  background:transparent;
+  color:#6b7280;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  transition:background-color .2s ease,color .2s ease,box-shadow .2s ease;
+}
+
+.admin-theme-toggle:hover{
+  background:#f3f4f6;
+  color:#6366f1;
+}
+
+.admin-theme-toggle:focus-visible{
+  outline:none;
+  box-shadow:0 0 0 3px rgba(99,102,241,.22);
+}
+
+body.dark{
+  background:#07111f;
+  color:#e5e7eb;
+}
+
+body.dark .dashboard,
+body.dark .main{
+  background:#07111f;
+  color:#e5e7eb;
+}
+
+body.dark .sidebar{
+  background:#0b1628;
+  border-right:1px solid #1c2b44;
+  color:#c6d4ee;
+}
+
+body.dark .logo,
+body.dark .topbar h2,
+body.dark .card h3,
+body.dark .stat-card h3,
+body.dark .admin-health-card strong,
+body.dark .admin-overview-visual strong,
+body.dark .admin-payment-method-card strong,
+body.dark .admin-revenue-organizer strong,
+body.dark .admin-directory-card h4,
+body.dark .admin-subscription-card h4{
+  color:#f3f7ff;
+}
+
+body.dark .menu li,
+body.dark .menu li a,
+body.dark .menu li .admin-menu-btn{
+  color:#c6d4ee;
+}
+
+body.dark .menu li:hover,
+body.dark .menu li.active{
+  background:#14233a;
+  color:#ffffff;
+}
+
+body.dark .user{
+  border-top:1px solid #1c2b44;
+}
+
+body.dark .user-text span,
+body.dark .admin-section-head p,
+body.dark .admin-health-card p,
+body.dark .admin-health-card span,
+body.dark .admin-activity-item span,
+body.dark .admin-directory-card p,
+body.dark .admin-subscription-card p,
+body.dark .admin-payment-meta,
+body.dark .admin-revenue-meta,
+body.dark .admin-muted,
+body.dark .meta{
+  color:#98a9c7;
+}
+
+body.dark .topbar{
+  border-bottom-color:#1c2b44;
+}
+
+body.dark .top-actions input,
+body.dark .admin-inline-search,
+body.dark .admin-directory-search-input input,
+body.dark .admin-table-search,
+body.dark textarea,
+body.dark select{
+  background:#101c31;
+  border-color:#263754;
+  color:#e7eefc;
+}
+
+body.dark .top-actions input::placeholder,
+body.dark .admin-inline-search::placeholder,
+body.dark .admin-directory-search-input input::placeholder,
+body.dark .admin-table-search::placeholder{
+  color:#7f93b8;
+}
+
+body.dark .admin-theme-toggle{
+  color:#9ca3af;
+}
+
+body.dark .admin-theme-toggle:hover{
+  background:#6366f1;
+  color:#ffffff;
+}
+
+body.dark .card,
+body.dark .stat-card,
+body.dark .admin-health-card,
+body.dark .admin-directory-search-panel,
+body.dark .admin-directory-card,
+body.dark .admin-organizer-card,
+body.dark .admin-organizer-summary div,
+body.dark .admin-organizer-event,
+body.dark .admin-subscription-card,
+body.dark .admin-plan-card,
+body.dark .admin-payment-summary-card,
+body.dark .admin-payment-panel,
+body.dark .admin-payment-method-card,
+body.dark .admin-top-organizer-card,
+body.dark .admin-review-stat,
+body.dark .admin-review-event,
+body.dark .admin-revenue-organizer,
+body.dark .admin-modal-card,
+body.dark .logout-modal-card{
+  background:#0f1c31;
+  border-color:#263754;
+  color:#dbe7fb;
+  box-shadow:0 18px 38px rgba(0,0,0,.28);
+}
+
+body.dark .admin-directory-search-panel,
+body.dark .admin-overview-visual,
+body.dark .chart-area{
+  background:linear-gradient(135deg,#101c31 0%,#12213a 100%);
+  border-color:#263754;
+}
+
+body.dark .admin-browse-grid .browse-card{
+  background:#0f1c31;
+  border-color:#263754;
+  color:#dbe7fb;
+  box-shadow:0 18px 34px rgba(0,0,0,.24);
+}
+
+body.dark .admin-browse-grid .browse-card:hover{
+  box-shadow:0 22px 44px rgba(0,0,0,.34);
+}
+
+body.dark .admin-browse-grid .browse-info{
+  background:#0f1c31;
+}
+
+body.dark .admin-browse-grid .browse-info h4{
+  color:#f3f7ff;
+}
+
+body.dark .admin-browse-grid .browse-info p,
+body.dark .admin-browse-grid .browse-info .event-description{
+  color:#98a9c7;
+}
+
+body.dark .admin-browse-grid .browse-badge{
+  background:#1b2d4a;
+  color:#9fb7ff;
+}
+
+body.dark .profile-settings,
+body.dark .contact{
+  background:#07111f;
+}
+
+body.dark .profile-card,
+body.dark .profile-form,
+body.dark .password-card,
+body.dark .contact-form,
+body.dark .contact-overlay{
+  background:#0f1c31;
+  border-color:#263754;
+  color:#dbe7fb;
+  box-shadow:0 18px 38px rgba(0,0,0,.28);
+}
+
+body.dark .profile-card h3,
+body.dark .profile-form h2,
+body.dark .password-card h2,
+body.dark .contact-form h2,
+body.dark .contact-overlay strong{
+  color:#f3f7ff;
+}
+
+body.dark .profile-card .role,
+body.dark .profile-card p,
+body.dark .img-note,
+body.dark .contact-desc,
+body.dark .contact-overlay span{
+  color:#98a9c7;
+}
+
+body.dark .field label{
+  color:#bfd0ee;
+}
+
+body.dark .field input,
+body.dark .field select,
+body.dark .field textarea,
+body.dark .contact-form input,
+body.dark .contact-form textarea{
+  background:#101c31;
+  border-color:#263754;
+  color:#e7eefc;
+}
+
+body.dark .field input:disabled{
+  background:#0b1628;
+  color:#7f93b8;
+}
+
+body.dark .cancel{
+  background:#14233a;
+  color:#bfd0ee;
+  border-color:#263754;
+}
+
+body.dark .admin-activity-item{
+  border-bottom-color:#1d2c45;
+}
+
+body.dark .admin-activity-item p,
+body.dark .admin-organizer-summary strong,
+body.dark .admin-organizer-event strong,
+body.dark .admin-plan-card strong,
+body.dark .admin-payment-summary-card strong,
+body.dark .admin-top-organizer-card strong,
+body.dark .admin-review-stat strong,
+body.dark .admin-review-block h4,
+body.dark .admin-review-event strong,
+body.dark .admin-revenue-meta,
+body.dark .admin-table td,
+body.dark .admin-table th{
+  color:#d9e5fb;
+}
+
+body.dark .admin-organizer-meta,
+body.dark .admin-organizer-summary span,
+body.dark .admin-organizer-event span,
+body.dark .admin-browse-meta,
+body.dark .admin-inline-caption,
+body.dark .admin-plan-card strong small,
+body.dark .admin-plan-card p,
+body.dark .admin-payment-summary-card p,
+body.dark .admin-payment-summary-card span,
+body.dark .admin-plan-meta,
+body.dark .admin-top-organizer-meta,
+body.dark .admin-payment-method-card span,
+body.dark .admin-top-organizer-card span,
+body.dark .admin-review-profile p,
+body.dark .admin-review-stat span,
+body.dark .admin-review-event span{
+  color:#98a9c7;
+}
+
+body.dark .admin-browse-contact{
+  color:#9fb7ff;
+}
+
+body.dark .admin-plan-badge{
+  background:#1b2d4a;
+  color:#9fb7ff;
+}
+
+body.dark .admin-btn.primary{
+  background:#243764;
+  color:#dbe7fb;
+}
+
+body.dark .admin-btn.secondary{
+  background:#14233a;
+  color:#9fb7ff;
+}
+
+body.dark .admin-revenue-track{
+  background:#1b2d4a;
+}
+
+body.dark .admin-directory-filter-btn,
+body.dark .admin-table-filter-btn,
+body.dark .admin-subscription-filter-btn,
+body.dark .admin-payment-filter-btn{
+  background:#101c31;
+  border-color:#263754;
+  color:#bfd0ee;
+}
+
+body.dark .admin-directory-filter-btn:hover,
+body.dark .admin-directory-filter-btn.active,
+body.dark .admin-table-filter-btn:hover,
+body.dark .admin-table-filter-btn.active,
+body.dark .admin-subscription-filter-btn:hover,
+body.dark .admin-subscription-filter-btn.active,
+body.dark .admin-payment-filter-btn:hover,
+body.dark .admin-payment-filter-btn.active{
+  background:#1b2d4a;
+  border-color:#5b7cbe;
+  color:#ffffff;
+}
+
+body.dark .admin-table,
+body.dark table{
+  background:#0f1c31;
+  color:#dbe7fb;
+}
+
+body.dark thead,
+body.dark .admin-table thead{
+  background:#101c31;
+  color:#e7eefc;
+}
+
+body.dark tr,
+body.dark .admin-table tr{
+  border-color:#1d2c45;
+}
+
+body.dark .admin-status-pill.success{
+  background:#12351f;
+  color:#86efac;
+}
+
+body.dark .admin-status-pill,
+body.dark .badge,
+body.dark .status-badge{
+  border-color:#263754;
+}
+
+body.dark #adminStatRevenueIcon,
+body.dark #adminStatOrganizerIcon,
+body.dark #adminStatUserIcon,
+body.dark #adminStatEventIcon{
+  background:#1b2d4a;
+  color:#9fb7ff;
+}
+
 #adminStatRevenueIcon{
   background-color:#fff8dd;
 }
@@ -822,5 +1178,38 @@
 
   .admin-user-table-wrap{
     overflow-x:auto;
+  }
+}
+
+@media (max-width:420px){
+  .main{
+    padding:14px;
+  }
+
+  .card,
+  .stat-card,
+  .admin-directory-card,
+  .admin-health-card,
+  .admin-payment-panel,
+  .admin-review-modal-card{
+    border-radius:12px;
+    padding:16px;
+  }
+
+  .top-actions,
+  .admin-inline-tools,
+  .admin-card-actions,
+  .admin-review-actions{
+    width:100%;
+  }
+
+  .top-actions input,
+  .admin-inline-search,
+  .admin-directory-search-input input,
+  .admin-table-search,
+  .primary-btn,
+  .logout-cancel-btn,
+  .logout-confirm-btn{
+    width:100%;
   }
 }

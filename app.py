@@ -6,7 +6,7 @@ import os
 import secrets
 import smtplib
 import ssl
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import time
 from http.cookies import SimpleCookie
 from http import HTTPStatus
@@ -33,6 +33,7 @@ GMAIL_SMTP_PORT = int(os.getenv("EVENTHUB_GMAIL_SMTP_PORT", "465"))
 GMAIL_SENDER_EMAIL = os.getenv("EVENTHUB_GMAIL_SENDER_EMAIL", CONTACT_EMAIL_TO)
 GMAIL_APP_PASSWORD = os.getenv("EVENTHUB_GMAIL_APP_PASSWORD", "")
 SESSIONS: dict[str, dict[str, str | int]] = {}
+DEFAULT_PROFILE_IMAGE = "/assets/dashboard/images/logo1.png"
 ORGANIZER_PAYMENT_METHODS = ("upi", "netbanking", "cash", "wallet", "card")
 SUBSCRIPTION_PAYMENT_METHODS = ("upi", "card", "netbanking", "wallet", "cash")
 ORGANIZER_TICKET_TYPES = (
@@ -435,8 +436,10 @@ def organizer_events_for_email(organizer_email: str) -> list[dict[str, object]]:
                     e.ticket_type,
                     e.description,
                     e.poster_url,
+                    COALESCE(e.event_contact_phone, '') AS event_contact_phone,
                     COALESCE(e.payment_methods, '') AS payment_methods,
                     COALESCE(e.upi_qr_url, '') AS upi_qr_url,
+                    COALESCE(e.payment_details, '') AS payment_details,
                     e.created_at,
                     COALESCE(a.attendee_count, 0) AS attendee_count
                 FROM organizer_events AS e
@@ -470,13 +473,16 @@ def organizer_events_for_email(organizer_email: str) -> list[dict[str, object]]:
             ticket_type,
             description,
             poster_url,
+            event_contact_phone,
             payment_methods,
             upi_qr_url,
+            payment_details,
             created_at,
             attendee_count,
         ) = row
         numeric_price = int(ticket_price or 0)
         resolved_payment_methods = normalize_organizer_payment_methods(payment_methods)
+        resolved_payment_details = normalize_organizer_payment_details(payment_details, resolved_payment_methods)
         events.append(
             {
                 "id": int(event_id),
@@ -493,9 +499,11 @@ def organizer_events_for_email(organizer_email: str) -> list[dict[str, object]]:
                 "ticketType": str(ticket_type or "Entry Pass"),
                 "paymentMethods": resolved_payment_methods,
                 "upiQrUrl": str(upi_qr_url or ""),
+                "paymentDetails": resolved_payment_details,
                 "attendeeCount": int(attendee_count or 0),
                 "description": str(description or ""),
                 "imageUrl": str(poster_url or "/assets/dashboard/images/dsupimg1.jpg"),
+                "organizerPhone": str(event_contact_phone or ""),
                 "_priceAmount": numeric_price,
                 "_createdAt": str(created_at or ""),
             }
@@ -574,8 +582,10 @@ def organizer_event_detail_for_owner(organizer_email: str, event_id: int) -> dic
                     ticket_type,
                     description,
                     poster_url,
+                    COALESCE(event_contact_phone, '') AS event_contact_phone,
                     COALESCE(payment_methods, '') AS payment_methods,
                     COALESCE(upi_qr_url, '') AS upi_qr_url,
+                    COALESCE(payment_details, '') AS payment_details,
                     created_at
                 FROM organizer_events
                 WHERE id = %s AND organizer_email = %s
@@ -608,8 +618,10 @@ def organizer_event_detail_for_owner(organizer_email: str, event_id: int) -> dic
                     ticket_type,
                     description,
                     poster_url,
+                    COALESCE(event_contact_phone, '') AS event_contact_phone,
                     COALESCE(payment_methods, '') AS payment_methods,
                     COALESCE(upi_qr_url, '') AS upi_qr_url,
+                    COALESCE(payment_details, '') AS payment_details,
                     created_at
                 FROM organizer_events
                 WHERE id = %s AND organizer_email = %s
@@ -647,12 +659,15 @@ def organizer_event_detail_for_owner(organizer_email: str, event_id: int) -> dic
         ticket_type,
         description,
         poster_url,
+        event_contact_phone,
         payment_methods,
         upi_qr_url,
+        payment_details,
         created_at,
     ) = event_row
 
     resolved_payment_methods = normalize_organizer_payment_methods(payment_methods)
+    resolved_payment_details = normalize_organizer_payment_details(payment_details, resolved_payment_methods)
 
     attendees = [
         {
@@ -684,8 +699,10 @@ def organizer_event_detail_for_owner(organizer_email: str, event_id: int) -> dic
         "ticketType": str(ticket_type or "Entry Pass"),
         "paymentMethods": resolved_payment_methods,
         "upiQrUrl": str(upi_qr_url or ""),
+        "paymentDetails": resolved_payment_details,
         "description": str(description or ""),
         "imageUrl": str(poster_url or "/assets/dashboard/images/dsupimg1.jpg"),
+        "organizerPhone": str(event_contact_phone or ""),
         "createdAt": created_at.isoformat() if created_at else "",
         "attendeeCount": attendee_count,
         "occupancyPercent": occupancy_percent,
@@ -938,22 +955,10 @@ def admin_user_detail(email: str) -> dict[str, object] | None:
 
 
 def admin_browse_events() -> list[dict[str, object]]:
-    now = datetime.now().date()
     events: list[dict[str, object]] = []
 
-    for event in public_event_catalog():
+    for event in public_event_catalog(include_past=False):
         event_copy: dict[str, object] = dict(event)
-        event_date_raw = str(event_copy.get("eventDate", "") or "")
-
-        try:
-            event_date = datetime.strptime(event_date_raw, "%B %d, %Y").date()
-            is_upcoming = event_date >= now
-        except ValueError:
-            is_upcoming = str(event_copy.get("status", "")).lower() == "upcoming"
-
-        if not is_upcoming:
-            continue
-
         event_copy["isUpcoming"] = True
         events.append(event_copy)
 
@@ -1602,34 +1607,54 @@ def admin_payment_revenue_data() -> dict[str, object]:
     }
 
 
-def organizer_public_events() -> list[dict[str, str]]:
-    with get_connection() as connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT
-                    e.id,
-                    e.title,
-                    e.category,
-                    e.event_date,
-                    e.event_time,
-                    e.venue,
-                    e.ticket_price,
-                    e.event_mode,
-                    e.ticket_pricing_mode,
-                    e.ticket_type,
-                    e.description,
-                    e.poster_url,
-                    COALESCE(e.payment_methods, '') AS payment_methods,
-                    COALESCE(e.upi_qr_url, '') AS upi_qr_url,
-                    COALESCE(u.phone, '') AS organizer_phone
-                FROM organizer_events AS e
-                LEFT JOIN users AS u ON u.email = e.organizer_email
-                WHERE e.event_status = 'published'
-                ORDER BY e.created_at DESC
-                """
-            )
-            rows = cursor.fetchall()
+def event_is_visible_until_date(event: dict[str, object], today: date | None = None) -> bool:
+    current_date = today if today is not None else datetime.now().date()
+    event_date_raw = str(event.get("eventDate", "") or "")
+
+    try:
+        event_date = datetime.strptime(event_date_raw, "%B %d, %Y").date()
+        return event_date >= current_date
+    except ValueError:
+        return str(event.get("status", "")).lower() == "upcoming"
+
+
+def organizer_public_events(include_past: bool = True) -> list[dict[str, str]]:
+    where_clauses = ["LOWER(COALESCE(e.event_status, 'published')) IN ('published', 'live')"]
+    if not include_past:
+        where_clauses.append("e.event_date >= CURDATE()")
+
+    try:
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"""
+                    SELECT
+                        e.id,
+                        e.title,
+                        e.category,
+                        e.event_date,
+                        e.event_time,
+                        e.venue,
+                        e.ticket_price,
+                        e.event_mode,
+                        e.ticket_pricing_mode,
+                        e.ticket_type,
+                        e.description,
+                        e.poster_url,
+                        COALESCE(e.event_contact_phone, '') AS event_contact_phone,
+                        COALESCE(e.payment_methods, '') AS payment_methods,
+                        COALESCE(e.upi_qr_url, '') AS upi_qr_url,
+                        COALESCE(e.payment_details, '') AS payment_details,
+                        COALESCE(u.phone, '') AS organizer_phone
+                    FROM organizer_events AS e
+                    LEFT JOIN users AS u ON u.email = e.organizer_email
+                    WHERE {' AND '.join(where_clauses)}
+                    ORDER BY e.created_at DESC
+                    """
+                )
+                rows = cursor.fetchall()
+    except mysql.connector.Error:
+        return []
 
     now = datetime.now().date()
     events: list[dict[str, str]] = []
@@ -1647,8 +1672,10 @@ def organizer_public_events() -> list[dict[str, str]]:
             ticket_type,
             description,
             poster_url,
+            event_contact_phone,
             payment_methods,
             upi_qr_url,
+            payment_details,
             organizer_phone,
         ) = row
 
@@ -1683,18 +1710,27 @@ def organizer_public_events() -> list[dict[str, str]]:
                 "status": status,
                 "category": str(category or "general"),
                 "imageUrl": str(poster_url or "/assets/dashboard/images/dsupimg1.jpg"),
-                "organizerPhone": str(organizer_phone or ""),
+                "organizerPhone": str(event_contact_phone or organizer_phone or ""),
                 "description": str(description or ""),
+                "ticketPricingMode": "free" if is_free else "paid",
                 "paymentMethods": normalize_organizer_payment_methods(payment_methods),
                 "upiQrUrl": str(upi_qr_url or ""),
+                "paymentDetails": normalize_organizer_payment_details(
+                    payment_details,
+                    normalize_organizer_payment_methods(payment_methods),
+                ),
             }
         )
 
     return events
 
 
-def public_event_catalog() -> list[dict[str, str]]:
-    return [dict(event) for event in EVENT_CATALOG] + organizer_public_events()
+def public_event_catalog(include_past: bool = True) -> list[dict[str, str]]:
+    catalog_events = [dict(event) for event in EVENT_CATALOG]
+    if not include_past:
+        today = datetime.now().date()
+        catalog_events = [event for event in catalog_events if event_is_visible_until_date(event, today)]
+    return catalog_events + organizer_public_events(include_past=include_past)
 
 
 def get_event_by_id(event_id: str) -> dict[str, str] | None:
@@ -1765,6 +1801,42 @@ def normalize_organizer_payment_methods(value: object) -> list[str]:
         if resolved in ORGANIZER_PAYMENT_METHODS and resolved not in seen:
             normalized.append(resolved)
             seen.add(resolved)
+
+    return normalized
+
+
+def normalize_organizer_payment_details(value: object, payment_methods: list[str]) -> dict[str, dict[str, str]]:
+    if isinstance(value, dict):
+        raw_details = value
+    else:
+        try:
+            raw_details = json.loads(str(value or "{}"))
+        except json.JSONDecodeError:
+            raw_details = {}
+
+    if not isinstance(raw_details, dict):
+        raw_details = {}
+
+    allowed_fields = {
+        "upi": ("qrUrl", "upiId", "payeeName", "note"),
+        "netbanking": ("accountName", "bankName", "accountNumber", "ifsc", "branch", "note"),
+        "card": ("merchantName", "cardHolderName", "cardNumber", "expiry", "cvv", "note"),
+        "wallet": ("walletName", "walletId", "payeeName", "note"),
+        "cash": ("receiverName", "venueNote", "note"),
+    }
+
+    normalized: dict[str, dict[str, str]] = {}
+    for method in payment_methods:
+        method_details = raw_details.get(method, {})
+        if not isinstance(method_details, dict):
+            method_details = {}
+        cleaned = {
+            field: str(method_details.get(field, "") or "").strip()
+            for field in allowed_fields.get(method, ())
+        }
+        if method == "upi":
+            cleaned["qrUrl"] = cleaned.get("qrUrl") or str(raw_details.get("upiQrUrl", "") or "").strip()
+        normalized[method] = cleaned
 
     return normalized
 
@@ -2049,26 +2121,14 @@ def sync_existing_registration_attendees() -> None:
 
 
 def upcoming_catalog_events() -> list[dict[str, str]]:
-    now = datetime.now().date()
     events: list[dict[str, str]] = []
 
-    for event in public_event_catalog():
-        event_date_raw = str(event.get("eventDate", ""))
-        is_upcoming = False
-
-        try:
-            event_date = datetime.strptime(event_date_raw, "%B %d, %Y").date()
-            is_upcoming = event_date >= now
-        except ValueError:
-            is_upcoming = str(event.get("status", "")).lower() == "upcoming"
-
-        if not is_upcoming:
-            continue
-
+    for event in public_event_catalog(include_past=False):
         events.append(
             {
+                "id": event.get("id", ""),
                 "eventName": event.get("eventName", ""),
-                "eventDate": event_date_raw,
+                "eventDate": event.get("eventDate", ""),
                 "eventTime": event.get("eventTime", ""),
                 "location": event.get("location", ""),
                 "ticketType": event.get("ticketType", ""),
@@ -2252,6 +2312,63 @@ def booking_records_for_user(user: dict[str, str]) -> list[dict[str, object]]:
     return bookings
 
 
+def ticket_verification_details(ticket_code: str) -> dict[str, object] | None:
+    normalized_ticket_code = str(ticket_code or "").strip().upper()
+    if not normalized_ticket_code:
+        return None
+
+    has_booking_status = table_has_column("user_event_registrations", "booking_status")
+    has_canceled_at = table_has_column("user_event_registrations", "canceled_at")
+    booking_status_select = "r.booking_status" if has_booking_status else "'active'"
+    canceled_at_select = "r.canceled_at" if has_canceled_at else "NULL"
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"""
+                SELECT
+                    COALESCE(u.name, '') AS user_name,
+                    COALESCE(r.user_email, '') AS user_email,
+                    r.id,
+                    r.attendee_name,
+                    r.attendee_email,
+                    r.attendee_phone,
+                    r.ticket_type,
+                    r.ticket_count,
+                    r.city,
+                    r.payment_method,
+                    r.address,
+                    r.special_request,
+                    {booking_status_select} AS booking_status,
+                    r.registered_at,
+                    {canceled_at_select} AS canceled_at,
+                    r.event_id
+                FROM user_event_registrations AS r
+                LEFT JOIN users AS u ON u.email = r.user_email
+                ORDER BY r.registered_at DESC
+                """
+            )
+            rows = cursor.fetchall()
+
+    for row in rows:
+        user_name = str(row[0] or "EventHub Guest")
+        user_email = str(row[1] or "")
+        event_id = str(row[15] or "")
+        event = get_event_by_id(event_id)
+        if event is None:
+            continue
+
+        booking = build_booking_record(user_name, event, row[2:15])
+        if str(booking.get("ticketCode", "")).strip().upper() != normalized_ticket_code:
+            continue
+
+        booking["userName"] = user_name
+        booking["userEmail"] = user_email
+        return booking
+
+    return None
+
+
 def user_profile_for_email(user_email: str) -> dict[str, object] | None:
     has_phone = table_has_column("users", "phone")
     has_bio = table_has_column("users", "bio")
@@ -2298,6 +2415,14 @@ def user_profile_for_email(user_email: str) -> dict[str, object] | None:
         "admin_note": str(admin_note or ""),
         "created_at": created_at.isoformat() if created_at else "",
     }
+
+
+def profile_image_from_profile(profile: dict[str, object] | None) -> str:
+    if profile is None:
+        return DEFAULT_PROFILE_IMAGE
+
+    profile_image = str(profile.get("profile_image", "") or "").strip()
+    return profile_image or DEFAULT_PROFILE_IMAGE
 
 
 def add_column_if_missing(cursor, table_name: str, column_name: str, definition: str) -> None:
@@ -2430,12 +2555,14 @@ def init_db() -> None:
                     capacity INT NOT NULL DEFAULT 0,
                     description TEXT NULL,
                     poster_url VARCHAR(500) NULL,
+                    event_contact_phone VARCHAR(40) NOT NULL DEFAULT '',
                     event_status VARCHAR(20) NOT NULL DEFAULT 'published',
                     event_mode VARCHAR(20) NOT NULL DEFAULT 'venue',
                     ticket_pricing_mode VARCHAR(20) NOT NULL DEFAULT 'paid',
                     ticket_type VARCHAR(100) NOT NULL DEFAULT 'Entry Pass',
                     payment_methods VARCHAR(255) NOT NULL DEFAULT '',
                     upi_qr_url VARCHAR(500) NOT NULL DEFAULT '',
+                    payment_details TEXT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
                 """
@@ -2443,12 +2570,14 @@ def init_db() -> None:
             add_column_if_missing(cursor, "organizer_events", "category", "VARCHAR(100) NOT NULL DEFAULT 'general'")
             add_column_if_missing(cursor, "organizer_events", "description", "TEXT NULL")
             add_column_if_missing(cursor, "organizer_events", "poster_url", "VARCHAR(500) NULL")
+            add_column_if_missing(cursor, "organizer_events", "event_contact_phone", "VARCHAR(40) NOT NULL DEFAULT ''")
             add_column_if_missing(cursor, "organizer_events", "event_status", "VARCHAR(20) NOT NULL DEFAULT 'published'")
             add_column_if_missing(cursor, "organizer_events", "event_mode", "VARCHAR(20) NOT NULL DEFAULT 'venue'")
             add_column_if_missing(cursor, "organizer_events", "ticket_pricing_mode", "VARCHAR(20) NOT NULL DEFAULT 'paid'")
             add_column_if_missing(cursor, "organizer_events", "ticket_type", "VARCHAR(100) NOT NULL DEFAULT 'Entry Pass'")
             add_column_if_missing(cursor, "organizer_events", "payment_methods", "VARCHAR(255) NOT NULL DEFAULT ''")
             add_column_if_missing(cursor, "organizer_events", "upi_qr_url", "VARCHAR(500) NOT NULL DEFAULT ''")
+            add_column_if_missing(cursor, "organizer_events", "payment_details", "TEXT NULL")
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS organizer_event_attendees (
@@ -2542,6 +2671,11 @@ class EventHubHandler(BaseHTTPRequestHandler):
             self.serve_login_page(query)
             return
 
+        if path.startswith("/v/") or path == "/ticketverify":
+            ticket_code = unquote(path.removeprefix("/v/")) if path.startswith("/v/") else self.query_value(query, "code")
+            self.serve_ticket_verification_page(ticket_code)
+            return
+
         if path == "/dashboard/user":
             user = self.require_session()
             if user is None:
@@ -2579,6 +2713,82 @@ class EventHubHandler(BaseHTTPRequestHandler):
                 self.redirect("/dashboard/user")
                 return
             self.serve_html("dashboard/organizer/organizer.html")
+            return
+
+        user_dashboard_pages = {
+            "/assets/dashboard/user/user.html": "dashboard/user/user.html",
+            "/dashboard/user/home": "dashboard/user/user.html",
+            "/dashboard/user/home.html": "dashboard/user/user.html",
+            "/assets/dashboard/user/browse.html": "dashboard/user/browse.html",
+            "/dashboard/user/browse": "dashboard/user/browse.html",
+            "/dashboard/user/browse.html": "dashboard/user/browse.html",
+            "/assets/dashboard/user/tickets.html": "dashboard/user/tickets.html",
+            "/dashboard/user/tickets": "dashboard/user/tickets.html",
+            "/dashboard/user/tickets.html": "dashboard/user/tickets.html",
+            "/assets/dashboard/user/bookings.html": "dashboard/user/bookings.html",
+            "/dashboard/user/bookings": "dashboard/user/bookings.html",
+            "/dashboard/user/bookings.html": "dashboard/user/bookings.html",
+            "/assets/dashboard/user/calendar.html": "dashboard/user/calendar.html",
+            "/dashboard/user/calendar": "dashboard/user/calendar.html",
+            "/dashboard/user/calendar.html": "dashboard/user/calendar.html",
+            "/assets/dashboard/user/profile.html": "dashboard/user/profile.html",
+            "/dashboard/user/profile": "dashboard/user/profile.html",
+            "/dashboard/user/profile.html": "dashboard/user/profile.html",
+            "/assets/dashboard/user/support.html": "dashboard/user/support.html",
+            "/dashboard/user/support": "dashboard/user/support.html",
+            "/dashboard/user/support.html": "dashboard/user/support.html",
+        }
+        if path in user_dashboard_pages:
+            user = self.require_session()
+            if user is None:
+                return
+            if user["role"] == "organizer":
+                self.redirect("/dashboard/organizer")
+                return
+            if user["role"] == "admin":
+                self.redirect("/dashboard/admin")
+                return
+            self.serve_html(user_dashboard_pages[path])
+            return
+
+        organizer_dashboard_pages = {
+            "/assets/dashboard/organizer/organizer.html": "dashboard/organizer/organizer.html",
+            "/assets/dashboard/organizer/browse.html": "dashboard/organizer/browse.html",
+            "/dashboard/organizer/browse": "dashboard/organizer/browse.html",
+            "/dashboard/organizer/browse.html": "dashboard/organizer/browse.html",
+            "/assets/dashboard/organizer/create.html": "dashboard/organizer/create.html",
+            "/dashboard/organizer/create": "dashboard/organizer/create.html",
+            "/dashboard/organizer/create.html": "dashboard/organizer/create.html",
+            "/assets/dashboard/organizer/analytics.html": "dashboard/organizer/analytics.html",
+            "/dashboard/organizer/analytics": "dashboard/organizer/analytics.html",
+            "/dashboard/organizer/analytics.html": "dashboard/organizer/analytics.html",
+            "/assets/dashboard/organizer/myevents.html": "dashboard/organizer/myevents.html",
+            "/dashboard/organizer/myevents": "dashboard/organizer/myevents.html",
+            "/dashboard/organizer/myevents.html": "dashboard/organizer/myevents.html",
+            "/assets/dashboard/organizer/manageusers.html": "dashboard/organizer/manageusers.html",
+            "/dashboard/organizer/manageusers": "dashboard/organizer/manageusers.html",
+            "/dashboard/organizer/manageusers.html": "dashboard/organizer/manageusers.html",
+            "/assets/dashboard/organizer/calendar.html": "dashboard/organizer/calendar.html",
+            "/dashboard/organizer/calendar": "dashboard/organizer/calendar.html",
+            "/dashboard/organizer/calendar.html": "dashboard/organizer/calendar.html",
+            "/assets/dashboard/organizer/profile.html": "dashboard/organizer/profile.html",
+            "/dashboard/organizer/profile": "dashboard/organizer/profile.html",
+            "/dashboard/organizer/profile.html": "dashboard/organizer/profile.html",
+            "/assets/dashboard/organizer/support.html": "dashboard/organizer/support.html",
+            "/dashboard/organizer/support": "dashboard/organizer/support.html",
+            "/dashboard/organizer/support.html": "dashboard/organizer/support.html",
+        }
+        if path in organizer_dashboard_pages:
+            user = self.require_session()
+            if user is None:
+                return
+            if user["role"] == "admin":
+                self.redirect("/dashboard/admin")
+                return
+            if user["role"] != "organizer":
+                self.redirect("/dashboard/user")
+                return
+            self.serve_html(organizer_dashboard_pages[path])
             return
 
         if path in (
@@ -2679,12 +2889,30 @@ class EventHubHandler(BaseHTTPRequestHandler):
             self.serve_registered_events()
             return
 
+        if path == "/browseeventsservlet":
+            self.serve_browse_events()
+            return
+
         if path == "/eventscalendarservlet":
             self.serve_calendar_events()
             return
 
         if path == "/logout":
             self.handle_logout()
+            return
+
+        dashboard_asset_aliases = {
+            "/dashboard/user/user.css": "dashboard/user/user.css",
+            "/dashboard/user/user.js": "dashboard/user/user.js",
+            "/dashboard/organizer/organizer.css": "dashboard/organizer/organizer.css",
+            "/dashboard/organizer/organizer.js": "dashboard/organizer/organizer.js",
+        }
+        if path in dashboard_asset_aliases:
+            self.serve_asset(dashboard_asset_aliases[path])
+            return
+
+        if path.startswith("/dashboard/images/"):
+            self.serve_asset(path.removeprefix("/dashboard/"))
             return
 
         if path.startswith("/assets/"):
@@ -2734,6 +2962,10 @@ class EventHubHandler(BaseHTTPRequestHandler):
 
         if parsed.path == "/upload-profile-image":
             self.handle_profile_image_upload()
+            return
+
+        if parsed.path == "/remove-profile-image":
+            self.handle_profile_image_remove()
             return
 
         if parsed.path == "/upload-organizer-poster":
@@ -2832,6 +3064,90 @@ class EventHubHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def serve_ticket_verification_page(self, ticket_code: str) -> None:
+        ticket = ticket_verification_details(ticket_code)
+        safe_code = html.escape(str(ticket_code or "").strip() or "Unknown")
+
+        if ticket is None:
+            body = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ticket Not Found | EventHub</title>
+  <style>
+    body{{margin:0;min-height:100vh;display:grid;place-items:center;font-family:Segoe UI,Arial,sans-serif;background:#eef2ff;color:#0f172a;padding:24px}}
+    main{{width:min(560px,100%);background:#fff;border:1px solid #dbe4ff;border-radius:24px;padding:30px;box-shadow:0 22px 46px rgba(45,50,123,.12)}}
+    h1{{margin:0 0 10px;font-size:28px;color:#11145d}} p{{margin:0;color:#64748b;line-height:1.7}} strong{{color:#0f172a}}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Ticket Not Found</h1>
+    <p>No active EventHub ticket was found for code <strong>{safe_code}</strong>.</p>
+  </main>
+</body>
+</html>"""
+            encoded = body.encode("utf-8")
+            self.send_response(HTTPStatus.NOT_FOUND)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(encoded)))
+            self.end_headers()
+            self.wfile.write(encoded)
+            return
+
+        status = html.escape(str(ticket.get("bookingStatus", "active")).title())
+        details = [
+            ("Guest", ticket.get("userName") or ticket.get("attendeeName") or "EventHub Guest"),
+            ("Email", ticket.get("attendeeEmail") or ticket.get("userEmail") or "-"),
+            ("Phone", ticket.get("attendeePhone") or "-"),
+            ("Event", ticket.get("eventName") or "-"),
+            ("Date", ticket.get("eventDate") or "-"),
+            ("Time", ticket.get("eventTime") or "-"),
+            ("Location", ticket.get("location") or "-"),
+            ("Ticket Type", ticket.get("ticketType") or "-"),
+            ("Tickets", ticket.get("ticketCount") or "1"),
+            ("Price", ticket.get("bookingPrice") or "-"),
+            ("Booking Status", status),
+        ]
+        detail_markup = "\n".join(
+            f"<div><span>{html.escape(label)}</span><strong>{html.escape(str(value))}</strong></div>"
+            for label, value in details
+        )
+        body = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verified Ticket | EventHub</title>
+  <style>
+    *{{box-sizing:border-box}} body{{margin:0;min-height:100vh;font-family:Segoe UI,Arial,sans-serif;background:linear-gradient(135deg,#eef2ff,#f8fbff);color:#0f172a;padding:24px;display:grid;place-items:center}}
+    main{{width:min(760px,100%);background:#fff;border:1px solid #dbe4ff;border-radius:26px;overflow:hidden;box-shadow:0 24px 54px rgba(45,50,123,.14)}}
+    header{{background:linear-gradient(135deg,#29286f,#4f46e5);color:#fff;padding:28px 30px}} header span{{display:inline-flex;padding:8px 14px;border-radius:999px;background:rgba(255,255,255,.16);font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}} h1{{margin:14px 0 6px;font-size:34px;line-height:1.1}} header p{{margin:0;color:rgba(255,255,255,.84)}}
+    section{{padding:24px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}} section div{{border:1px solid #d6e0ff;border-radius:16px;background:#f8fbff;padding:15px 16px}} section span{{display:block;margin-bottom:7px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#5d7293}} section strong{{font-size:17px;line-height:1.35;overflow-wrap:anywhere;color:#071834}}
+    footer{{padding:0 24px 24px;color:#64748b;font-size:13px;line-height:1.6}} @media(max-width:620px){{section{{grid-template-columns:1fr}} h1{{font-size:28px}}}}
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <span>Verified EventHub Ticket</span>
+      <h1>{html.escape(str(ticket.get("ticketCode") or safe_code))}</h1>
+      <p>Scan verified ticket details for venue entry.</p>
+    </header>
+    <section>{detail_markup}</section>
+    <footer>Use this page to confirm the attendee and booking details before entry.</footer>
+  </main>
+</body>
+</html>"""
+        encoded = body.encode("utf-8")
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.end_headers()
+        self.wfile.write(encoded)
 
     def serve_register_page(self, query: dict[str, list[str]]) -> None:
         context = {
@@ -3084,6 +3400,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
             "userName": user["name"],
             "userEmail": user["email"],
             "userRole": user["role"],
+            "profileImage": profile_image_from_profile(profile),
             "adminStatus": str((profile or {}).get("admin_status", "active")),
             "adminWarningCount": int((profile or {}).get("admin_warning_count", 0) or 0),
             "adminNote": str((profile or {}).get("admin_note", "") or ""),
@@ -3425,6 +3742,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
                 "userName": user["name"],
                 "userEmail": user["email"],
                 "userRole": user["role"],
+                "profileImage": profile_image_from_profile(user_profile_for_email(user["email"])),
                 "tickets": tickets,
                 "totalTickets": len(tickets),
                 "summary": summary,
@@ -3447,7 +3765,41 @@ class EventHubHandler(BaseHTTPRequestHandler):
                 "userName": user["name"],
                 "userEmail": user["email"],
                 "userRole": user["role"],
+                "profileImage": profile_image_from_profile(user_profile_for_email(user["email"])),
                 "registeredEventIds": registered_event_ids
+            }
+        )
+
+    def serve_browse_events(self) -> None:
+        user = self.current_user()
+        if user is None:
+            self.send_json({"error": "Unauthorized"}, HTTPStatus.UNAUTHORIZED)
+            return
+
+        if user["role"] not in {"user", "organizer", "admin"}:
+            self.send_json({"error": "Forbidden"}, HTTPStatus.FORBIDDEN)
+            return
+
+        registered_event_ids = registered_event_ids_for_user(user["email"]) if user["role"] == "user" else []
+        registered_ids = set(registered_event_ids)
+        events: list[dict[str, object]] = []
+
+        for event in public_event_catalog(include_past=False):
+            event_copy: dict[str, object] = dict(event)
+            event_copy["isUpcoming"] = True
+            event_copy["isRegistered"] = event["id"] in registered_ids
+            event_copy["canRegister"] = user["role"] == "user"
+            events.append(event_copy)
+
+        self.send_json(
+            {
+                "userName": user["name"],
+                "userEmail": user["email"],
+                "userRole": user["role"],
+                "profileImage": profile_image_from_profile(user_profile_for_email(user["email"])),
+                "registeredEventIds": registered_event_ids,
+                "events": events,
+                "totalEvents": len(events),
             }
         )
 
@@ -3461,19 +3813,15 @@ class EventHubHandler(BaseHTTPRequestHandler):
             self.send_json({"error": "Forbidden"}, HTTPStatus.FORBIDDEN)
             return
 
-        registered_ids = set(registered_event_ids_for_user(user["email"]))
-        now = datetime.now()
+        registered_event_ids = registered_event_ids_for_user(user["email"]) if user["role"] == "user" else []
+        registered_ids = set(registered_event_ids)
         events: list[dict[str, object]] = []
 
-        for event in public_event_catalog():
+        for event in public_event_catalog(include_past=False):
             event_copy: dict[str, object] = dict(event)
             event_copy["isRegistered"] = event["id"] in registered_ids
-
-            try:
-                event_datetime = datetime.strptime(event["eventDate"], "%B %d, %Y")
-                event_copy["isUpcoming"] = event_datetime.date() >= now.date()
-            except ValueError:
-                event_copy["isUpcoming"] = event.get("status") == "upcoming"
+            event_copy["isUpcoming"] = True
+            event_copy["canRegister"] = user["role"] == "user"
 
             events.append(event_copy)
 
@@ -3482,6 +3830,8 @@ class EventHubHandler(BaseHTTPRequestHandler):
                 "userName": user["name"],
                 "userEmail": user["email"],
                 "userRole": user["role"],
+                "profileImage": profile_image_from_profile(user_profile_for_email(user["email"])),
+                "registeredEventIds": registered_event_ids,
                 "events": events,
             }
         )
@@ -3503,6 +3853,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
                     "userName": user["name"],
                     "userEmail": user["email"],
                     "userRole": user["role"],
+                    "profileImage": profile_image_from_profile(user_profile_for_email(user["email"])),
                     "bookings": [],
                     "totalBookings": 0,
                 }
@@ -3515,6 +3866,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
                 "userName": user["name"],
                 "userEmail": user["email"],
                 "userRole": user["role"],
+                "profileImage": profile_image_from_profile(user_profile_for_email(user["email"])),
                 "bookings": bookings,
                 "totalBookings": len(bookings),
             }
@@ -3539,7 +3891,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
                 "userRole": profile["role"],
                 "phone": profile["phone"],
                 "bio": profile["bio"],
-                "profileImage": profile["profile_image"],
+                "profileImage": profile_image_from_profile(profile),
                 "adminStatus": profile["admin_status"],
                 "adminWarningCount": profile["admin_warning_count"],
                 "adminNote": profile["admin_note"],
@@ -3576,8 +3928,21 @@ class EventHubHandler(BaseHTTPRequestHandler):
             self.send_json({"error": "Event not found."}, HTTPStatus.NOT_FOUND)
             return
 
-        if not all([attendee_name, attendee_email, attendee_phone, ticket_type, city, payment_method, address]):
+        if not event_is_visible_until_date(event):
+            self.send_json({"error": "Registration is closed for this event."}, HTTPStatus.BAD_REQUEST)
+            return
+
+        is_free_event = str(event.get("ticketPricingMode", "")).lower() == "free" or "free" in str(event.get("price", "")).lower()
+        allowed_payment_methods = normalize_organizer_payment_methods(event.get("paymentMethods", []))
+
+        if not all([attendee_name, attendee_email, attendee_phone, ticket_type, city, address]) or (not is_free_event and not payment_method):
             self.send_json({"error": "Please fill in all required registration fields."}, HTTPStatus.BAD_REQUEST)
+            return
+
+        if is_free_event:
+            payment_method = ""
+        elif allowed_payment_methods and payment_method not in allowed_payment_methods:
+            self.send_json({"error": "Selected payment method is not available for this event."}, HTTPStatus.BAD_REQUEST)
             return
 
         if not consent_accepted:
@@ -3845,6 +4210,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
         venue = form.get("venueAddress", "").strip()
         ticket_price_text = form.get("ticketPrice", "0").strip()
         capacity_text = form.get("eventCapacity", "0").strip()
+        event_contact_phone = form.get("eventContactPhone", "").strip()
         description = form.get("eventDescription", "").strip()
         event_status = form.get("eventStatus", "published").strip().lower()
         event_mode = form.get("eventMode", "venue").strip().lower()
@@ -3853,6 +4219,9 @@ class EventHubHandler(BaseHTTPRequestHandler):
         poster_url = form.get("posterUrl", "").strip()
         payment_methods = normalize_organizer_payment_methods(form.get("paymentMethods", ""))
         upi_qr_url = form.get("upiQrUrl", "").strip()
+        payment_details = normalize_organizer_payment_details(form.get("paymentDetails", ""), payment_methods)
+        if "upi" in payment_details:
+            payment_details["upi"]["qrUrl"] = upi_qr_url
 
         if not all([title, event_date, event_time]):
             self.send_json({"error": "Please fill in all required event fields."}, HTTPStatus.BAD_REQUEST)
@@ -3882,6 +4251,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
             ticket_price = 0
             payment_methods = []
             upi_qr_url = ""
+            payment_details = {}
         elif event_status == "published" and not payment_methods:
             self.send_json({"error": "Select at least one payment method for paid events."}, HTTPStatus.BAD_REQUEST)
             return
@@ -3909,6 +4279,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
                             venue,
                             ticket_price,
                             capacity,
+                            event_contact_phone,
                             description,
                             poster_url,
                             event_status,
@@ -3916,9 +4287,10 @@ class EventHubHandler(BaseHTTPRequestHandler):
                             ticket_pricing_mode,
                             ticket_type,
                             payment_methods,
-                            upi_qr_url
+                            upi_qr_url,
+                            payment_details
                         )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """,
                         (
                             user["email"],
@@ -3929,6 +4301,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
                             resolved_venue,
                             ticket_price,
                             capacity,
+                            event_contact_phone,
                             description,
                             poster_url or "/assets/dashboard/images/dsupimg1.jpg",
                             event_status,
@@ -3937,6 +4310,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
                             ticket_type,
                             ",".join(payment_methods),
                             upi_qr_url,
+                            json.dumps(payment_details),
                         ),
                     )
                 connection.commit()
@@ -3966,12 +4340,16 @@ class EventHubHandler(BaseHTTPRequestHandler):
         venue = form.get("venueAddress", "").strip()
         ticket_price_text = form.get("ticketPrice", "0").strip()
         capacity_text = form.get("eventCapacity", "0").strip()
+        event_contact_phone = form.get("eventContactPhone", "").strip()
         description = form.get("eventDescription", "").strip()
         event_mode = form.get("eventMode", "venue").strip().lower()
         ticket_pricing_mode = form.get("ticketPricingMode", "paid").strip().lower()
         ticket_type = normalize_event_ticket_type(form.get("ticketType", "Entry Pass"))
         payment_methods = normalize_organizer_payment_methods(form.get("paymentMethods", ""))
         upi_qr_url = form.get("upiQrUrl", "").strip()
+        payment_details = normalize_organizer_payment_details(form.get("paymentDetails", ""), payment_methods)
+        if "upi" in payment_details:
+            payment_details["upi"]["qrUrl"] = upi_qr_url
 
         if not all([event_id, title, event_date, event_time]):
             self.send_json({"error": "Please fill in all required event fields."}, HTTPStatus.BAD_REQUEST)
@@ -4004,6 +4382,7 @@ class EventHubHandler(BaseHTTPRequestHandler):
             ticket_price = 0
             payment_methods = []
             upi_qr_url = ""
+            payment_details = {}
         elif not payment_methods:
             self.send_json({"error": "Select at least one payment method for paid events."}, HTTPStatus.BAD_REQUEST)
             return
@@ -4030,12 +4409,14 @@ class EventHubHandler(BaseHTTPRequestHandler):
                         venue = %s,
                         ticket_price = %s,
                         capacity = %s,
+                        event_contact_phone = %s,
                         description = %s,
                         event_mode = %s,
                         ticket_pricing_mode = %s,
                         ticket_type = %s,
                         payment_methods = %s,
-                        upi_qr_url = %s
+                        upi_qr_url = %s,
+                        payment_details = %s
                     WHERE id = %s AND organizer_email = %s
                     """,
                     (
@@ -4046,12 +4427,14 @@ class EventHubHandler(BaseHTTPRequestHandler):
                         resolved_venue,
                         ticket_price,
                         capacity,
+                        event_contact_phone,
                         description,
                         event_mode,
                         ticket_pricing_mode,
                         ticket_type,
                         ",".join(payment_methods),
                         upi_qr_url,
+                        json.dumps(payment_details),
                         event_id_value,
                         user["email"],
                     ),
@@ -5102,6 +5485,28 @@ class EventHubHandler(BaseHTTPRequestHandler):
             "message": "Profile image uploaded successfully",
             "imageUrl": image_url
         })
+
+    def handle_profile_image_remove(self) -> None:
+        user = self.current_user()
+        if user is None:
+            self.send_json({"error": "Unauthorized"}, HTTPStatus.UNAUTHORIZED)
+            return
+
+        with get_connection() as connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "UPDATE users SET profile_image = NULL WHERE email = %s",
+                    (user["email"],),
+                )
+            connection.commit()
+
+        self.send_json(
+            {
+                "success": True,
+                "message": "Profile image removed successfully.",
+                "imageUrl": DEFAULT_PROFILE_IMAGE,
+            }
+        )
 
     def handle_logout(self) -> None:
         raw_cookie = self.headers.get("Cookie")

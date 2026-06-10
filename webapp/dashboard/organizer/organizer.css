@@ -187,10 +187,23 @@ font-size:14px;
   flex: 0 0 320px;
   width: 320px;
   min-width: 180px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1px solid #dbe4ff;
+  background:#ffffff;
+  color:#0f172a;
+  box-shadow:0 10px 24px rgba(79,70,229,0.06);
   outline: none;
+  transition:border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+}
+
+.top-actions input:focus{
+  border-color:#6366f1;
+  box-shadow:0 0 0 4px rgba(99,102,241,0.12), 0 14px 28px rgba(79,70,229,0.1);
+}
+
+.top-actions input::placeholder{
+  color:#94a3b8;
 }
 
 .primary-btn {
@@ -421,6 +434,50 @@ to{transform:rotate(360deg);}
 
 /* --------------------Upcoming Event Card ------------------------------*/
 
+.organizer-dashboard-events{
+  display:grid;
+  gap:16px;
+  margin-top:16px;
+}
+
+.organizer-dashboard-events .event-card{
+  margin-top:0;
+}
+
+.organizer-dashboard-events.is-scrollable{
+  max-height:760px;
+  overflow-y:auto;
+  padding-right:8px;
+}
+
+.organizer-dashboard-events.is-scrollable::-webkit-scrollbar{
+  width:8px;
+}
+
+.organizer-dashboard-events.is-scrollable::-webkit-scrollbar-thumb{
+  background:#c7d2fe;
+  border-radius:999px;
+}
+
+.dashboard-load-more-btn{
+  margin-top:18px;
+  width:100%;
+  border:none;
+  border-radius:12px;
+  padding:13px 18px;
+  background:linear-gradient(135deg, #2563eb, #1d4ed8);
+  color:#fff;
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  transition:transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dashboard-load-more-btn:hover{
+  transform:translateY(-1px);
+  box-shadow:0 12px 24px rgba(37, 99, 235, 0.18);
+}
+
 .event-card{
   margin-top:16px;
   border:1px solid #e5e7eb;
@@ -531,13 +588,6 @@ to{transform:rotate(360deg);}
 /* Icons */
 .action-card i{
   font-size:16px;
-}
-
-.action-card small{
-  font-size:11px;
-  line-height:1.45;
-  text-align:center;
-  color:rgba(255,255,255,0.9);
 }
 
 /* Hover */
@@ -926,7 +976,8 @@ to{transform:rotate(360deg);}
 /* ===== Revenue Overview ===== */
 
 .revenue-card{
-margin-top:20px;
+margin-top:0;
+height:100%;
 }
 
 .revenue-header{
@@ -979,7 +1030,7 @@ max-width:60ch;
 
 .organizer-revenue-metrics{
 display:grid;
-grid-template-columns:repeat(2,minmax(0,1fr));
+grid-template-columns:repeat(4,minmax(0,1fr));
 gap:12px;
 width:100%;
 }
@@ -1004,6 +1055,73 @@ color:#64748b;
 .organizer-revenue-metric strong{
 font-size:24px;
 color:#0f172a;
+}
+
+.organizer-dashboard-insights{
+grid-column:1 / -1;
+display:grid;
+grid-template-columns:minmax(0,1.35fr) minmax(280px,0.65fr);
+gap:16px;
+align-items:stretch;
+}
+
+.organizer-dashboard-side-stack{
+display:grid;
+grid-template-rows:1fr 1fr;
+gap:16px;
+min-width:0;
+}
+
+.organizer-dashboard-side-stack .card{
+min-height:0;
+}
+
+.organizer-dashboard-side-stack .sales-list,
+.organizer-dashboard-side-stack .notification-list{
+max-height:210px;
+overflow-y:auto;
+padding-right:6px;
+}
+
+.organizer-dashboard-side-stack .sales-list::-webkit-scrollbar,
+.organizer-dashboard-side-stack .notification-list::-webkit-scrollbar{
+width:6px;
+}
+
+.organizer-dashboard-side-stack .sales-list::-webkit-scrollbar-thumb,
+.organizer-dashboard-side-stack .notification-list::-webkit-scrollbar-thumb{
+background:#d7def8;
+border-radius:999px;
+}
+
+@media (max-width:1100px){
+  .organizer-dashboard-insights{
+    grid-template-columns:1fr;
+  }
+
+  .organizer-dashboard-side-stack{
+    grid-template-columns:1fr 1fr;
+    grid-template-rows:auto;
+  }
+
+  .organizer-revenue-metrics{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media (max-width:768px){
+  .organizer-dashboard-insights,
+  .organizer-dashboard-side-stack,
+  .organizer-revenue-metrics{
+    grid-template-columns:1fr;
+  }
+
+  .organizer-dashboard-side-stack .sales-list,
+  .organizer-dashboard-side-stack .notification-list{
+    max-height:none;
+    overflow:visible;
+    padding-right:0;
+  }
 }
 
 
@@ -1154,7 +1272,8 @@ z-index:1200;
 display:flex;
 align-items:center;
 justify-content:center;
-padding:20px;
+padding:clamp(12px, 3vh, 24px);
+overflow:hidden;
 }
 
 .logout-modal-backdrop{
@@ -1166,12 +1285,14 @@ background:rgba(15,23,42,0.45);
 .logout-modal-card{
 position:relative;
 width:min(420px,100%);
+max-height:calc(100vh - 32px);
 background:#ffffff;
 border-radius:18px;
 padding:28px;
 box-shadow:0 24px 50px rgba(15,23,42,0.18);
 text-align:center;
 border:1px solid #dbe4ff;
+overflow:auto;
 }
 
 .register-modal-close{
@@ -1496,6 +1617,34 @@ background:#fff;
 padding:10px;
 }
 
+.payment-detail-panels{
+display:grid;
+gap:14px;
+margin-top:14px;
+}
+
+.payment-detail-panel{
+padding:16px;
+border:1px solid #dbe4ff;
+border-radius:14px;
+background:#f8fbff;
+}
+
+.payment-detail-panel[hidden]{
+display:none !important;
+}
+
+.payment-detail-panel h4{
+font-size:14px;
+font-weight:700;
+color:#1e293b;
+margin-bottom:12px;
+}
+
+.payment-detail-panel input{
+margin-bottom:0;
+}
+
 /* textarea */
 
 textarea{
@@ -1703,7 +1852,23 @@ cursor:not-allowed;
 
 .organizer-event-modal-card{
 max-width:720px;
-width:min(92vw, 720px);
+width:min(94vw, 720px);
+max-height:min(92vh, 820px);
+padding:0;
+display:flex;
+flex-direction:column;
+text-align:left;
+overflow:hidden;
+}
+
+.organizer-event-modal-card > h3{
+position:sticky;
+top:0;
+z-index:2;
+margin:0;
+padding:22px 56px 16px 24px;
+background:#ffffff;
+border-bottom:1px solid #e8eeff;
 }
 
 .organizer-event-detail-modal-card{
@@ -2223,11 +2388,19 @@ border:1px solid #dbe4ff;
 border-radius:16px;
 background:#ffffff;
 box-shadow:0 10px 30px rgba(79,70,229,0.06);
+min-width:min(460px,100%);
+transition:border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+
+.tickets-search-input:focus-within{
+border-color:#6366f1;
+box-shadow:0 0 0 4px rgba(99,102,241,0.12), 0 18px 36px rgba(79,70,229,0.1);
+transform:translateY(-1px);
 }
 
 .browse-search-input i,
 .tickets-search-input i{
-color:#64748b;
+color:#6366f1;
 font-size:14px;
 }
 
@@ -2239,6 +2412,11 @@ background:transparent;
 padding:16px 0;
 font-size:14px;
 outline:none;
+color:#0f172a;
+}
+
+.tickets-search-input input::placeholder{
+color:#94a3b8;
 }
 
 .browse-categories-wrap{
@@ -2415,6 +2593,10 @@ justify-content:space-between;
 align-items:center;
 gap:16px;
 margin-bottom:20px;
+padding:16px;
+border:1px solid #e0e7ff;
+border-radius:18px;
+background:linear-gradient(135deg,#f9fbff 0%,#f2f6ff 100%);
 }
 
 .tickets-filter-group{
@@ -2440,6 +2622,8 @@ transition:0.2s ease;
 background:#6366f1;
 border-color:#6366f1;
 color:#fff;
+box-shadow:0 10px 22px rgba(99,102,241,0.18);
+transform:translateY(-1px);
 }
 
 .tickets-results-head{
@@ -2654,7 +2838,13 @@ margin-top:4px;
 display:flex;
 flex-direction:column;
 gap:12px;
-margin-top:12px;
+margin-top:0;
+padding:18px 24px 22px;
+overflow-y:auto;
+overscroll-behavior:contain;
+max-height:calc(92vh - 78px);
+min-height:0;
+scrollbar-gutter:stable;
 }
 
 .organizer-edit-form input,
@@ -2670,6 +2860,7 @@ font:inherit;
 .organizer-modal-toggle{
 display:flex;
 gap:8px;
+flex-wrap:wrap;
 }
 
 .organizer-modal-toggle button{
@@ -2684,6 +2875,17 @@ cursor:pointer;
 background:#e0e7ff;
 color:#3730a3;
 border-color:#c7d2fe;
+}
+
+.organizer-event-modal-card .logout-modal-actions{
+position:sticky;
+bottom:0;
+z-index:2;
+margin:4px -24px -22px;
+padding:14px 24px 18px;
+background:linear-gradient(180deg, rgba(255,255,255,0.88), #ffffff 34%);
+border-top:1px solid #e8eeff;
+justify-content:flex-end;
 }
 
 .draft{
@@ -2780,6 +2982,36 @@ background:#4f46e5;
 
   .organizer-analytics-overview-card{
     flex-direction:column;
+  }
+}
+
+@media (max-width:520px){
+  .organizer-event-modal-card{
+    width:100%;
+    max-height:calc(100vh - 20px);
+    border-radius:14px;
+  }
+
+  .organizer-event-modal-card > h3{
+    padding:18px 52px 14px 18px;
+    font-size:20px;
+  }
+
+  .organizer-edit-form{
+    padding:14px 18px 18px;
+    max-height:calc(100vh - 94px);
+  }
+
+  .organizer-event-modal-card .grid,
+  #organizerEventEditPriceWrap,
+  #organizerEventEditTicketTypeWrap,
+  .organizer-event-modal-card .payment-method-grid{
+    grid-template-columns:1fr;
+  }
+
+  .organizer-event-modal-card .logout-modal-actions{
+    margin:4px -18px -18px;
+    padding:12px 18px 16px;
   }
 }
 
@@ -3137,6 +3369,13 @@ font-size:14px;
 line-height:1.6;
 }
 
+@media (max-width:1024px){
+  .browse-category-grid,
+  .browse-grid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width:768px){
   .browse-category-grid,
   .browse-grid{
@@ -3189,9 +3428,48 @@ line-height:1.6;
   }
 }
 
-@media (max-width:1024px){
-  .browse-category-grid,
-  .browse-grid{
-    grid-template-columns:repeat(2, minmax(0, 1fr));
+@media (max-width:420px){
+  .main,
+  .create-event,
+  .organizer-calendar-section{
+    padding:14px;
+  }
+
+  .top-actions,
+  .form-actions,
+  .logout-modal-actions,
+  .booking-actions,
+  .organizer-event-actions{
+    width:100%;
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .top-actions input,
+  .primary-btn,
+  .draft,
+  .publish,
+  .logout-cancel-btn,
+  .logout-confirm-btn,
+  .booking-action-btn,
+  .ticket-link{
+    width:100%;
+  }
+
+  .card,
+  .stat-card,
+  .browse-card,
+  .booking-item,
+  .manage-users-event-card,
+  .organizer-calendar-event-card{
+    border-radius:12px;
+  }
+
+  .grid,
+  .stats,
+  .actions,
+  .organizer-revenue-metrics,
+  .organizer-analytics-card-grid{
+    grid-template-columns:1fr;
   }
 }
